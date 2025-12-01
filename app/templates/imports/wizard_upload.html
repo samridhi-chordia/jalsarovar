@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Import Data - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <!-- Breadcrumbs -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+                <li class="breadcrumb-item active">New Import</li>
+            </ol>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body bg-light">
+                <h2 class="mb-0">
+                    <i class="bi bi-upload"></i> Import Water Quality Data
+                </h2>
+            </div>
+        </div>
+
+        <!-- Import Wizard Steps -->
+        <div class="mb-4">
+            <div class="row text-center">
+                <div class="col">
+                    <div class="badge bg-primary p-3 w-100">
+                        <i class="bi bi-1-circle-fill"></i><br>
+                        Upload File
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="badge bg-secondary p-3 w-100">
+                        <i class="bi bi-2-circle"></i><br>
+                        Validate Data
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="badge bg-secondary p-3 w-100">
+                        <i class="bi bi-3-circle"></i><br>
+                        Confirm Import
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up"></i> Step 1: Upload Data File</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('imports.upload_file') }}" method="POST" enctype="multipart/form-data">
+                    <!-- Data Source Selection -->
+                    <div class="mb-4">
+                        <label for="data_source_id" class="form-label">
+                            <strong>Data Source</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <select name="data_source_id" id="data_source_id" class="form-select" required>
+                            <option value="">-- Select Data Source --</option>
+                            {% for source in sources %}
+                            <option value="{{ source.id }}">
+                                {{ source.name }}
+                                {% if source.source_type %}({{ source.source_type.replace('_', ' ').title() }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Select the source of this data.
+                            <a href="{{ url_for('imports.new_source') }}" target="_blank">Create a new data source</a> if needed.
+                        </div>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label for="file" class="form-label">
+                            <strong>Data File</strong>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="file" id="file" class="form-control"
+                               accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i>
+                            Supported formats: CSV (.csv), Excel (.xlsx, .xls) | Max size: 50 MB
+                        </div>
+                    </div>
+
+                    <!-- Sample Template Download -->
+                    <div class="alert alert-success mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1"><i class="bi bi-download"></i> Need Help Getting Started?</h6>
+                                <small>Download a sample template with all the required and optional fields</small>
+                            </div>
+                            <a href="{{ url_for('imports.download_template') }}" class="btn btn-success btn-sm">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Template
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- File Requirements -->
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-lightbulb"></i> File Requirements:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Required columns:</strong> Sample ID, Site Name, Collection Date, pH</li>
+                            <li><strong>Optional columns:</strong> Temperature, Arsenic, Lead, Iron, Nitrate, Fluoride, etc.</li>
+                            <li>First row should contain column headers</li>
+                            <li>Dates in format: YYYY-MM-DD, DD-MM-YYYY, or DD/MM/YYYY</li>
+                            <li>Numeric values for all test parameters</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('imports.history') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-right-circle"></i> Next: Validate Data
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-link-45deg"></i> Quick Links</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('imports.list_sources') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-database"></i> Manage Data Sources
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('imports.history') }}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                            <i class="bi bi-clock-history"></i> Import History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File size validation
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const maxSize = 50 * 1024 * 1024; // 50 MB
+        if (file.size > maxSize) {
+            alert('File size exceeds 50 MB limit. Please choose a smaller file.');
+            e.target.value = '';
+        }
+    }
+});
+</script>
+{% endblock %}

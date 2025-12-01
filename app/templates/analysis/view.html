@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Report - {{ analysis.sample.sample_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-clipboard-data"></i> Analysis Report</h1>
+    <div>
+        <a href="{{ url_for('samples.view', sample_id=analysis.sample.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sample
+        </a>
+        <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-list-ul"></i> All Reports
+        </a>
+    </div>
+</div>
+
+<!-- Main Analysis Card -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Overview -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Analysis Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Sample ID:</strong> {{ analysis.sample.sample_id }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Analyzed:</strong> {{ analysis.analysis_date.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Site:</strong> {{ analysis.sample.site.site_name if analysis.sample.site else 'N/A' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Analyst:</strong> {{ analysis.analyst.full_name if analysis.analyst else 'System' }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Contamination Detected:</strong>
+                        {% if analysis.contamination_detected %}
+                        <span class="badge bg-danger">YES</span>
+                        {% else %}
+                        <span class="badge bg-success">NO</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Severity:</strong>
+                        {% if analysis.contamination_detected %}
+                        <span class="badge severity-{{ analysis.severity }}">{{ analysis.severity|upper }}</span>
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if analysis.contamination_detected %}
+        <!-- Primary Cause -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bullseye"></i> Primary Cause</h5>
+            </div>
+            <div class="card-body">
+                <h4 class="text-danger">{{ analysis.primary_cause|replace('_', ' ')|title }}</h4>
+                <div class="progress mb-3" style="height: 30px;">
+                    <div class="progress-bar bg-danger" role="progressbar"
+                         style="width: {{ (analysis.confidence_level * 100)|int }}%">
+                        Confidence: {{ (analysis.confidence_level * 100)|int }}%
+                    </div>
+                </div>
+                <p class="text-muted mb-0">{{ analysis.summary or 'No summary available' }}</p>
+            </div>
+        </div>
+
+        <!-- Contamination Scores -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Contamination Scores</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Runoff/Sediment</span>
+                        <span>{{ (analysis.runoff_sediment_score * 100)|int if analysis.runoff_sediment_score else 0 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" style="width: {{ (analysis.runoff_sediment_score * 100)|int if analysis.runoff_sediment_score else 0 }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Sewage Ingress</span>
+                        <span>{{ (analysis.sewage_ingress_score * 100)|int if analysis.sewage_ingress_score else 0 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-danger" style="width: {{ (analysis.sewage_ingress_score * 100)|int if analysis.sewage_ingress_score else 0 }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Salt Intrusion</span>
+                        <span>{{ (analysis.salt_intrusion_score * 100)|int if analysis.salt_intrusion_score else 0 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-info" style="width: {{ (analysis.salt_intrusion_score * 100)|int if analysis.salt_intrusion_score else 0 }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Pipe Corrosion</span>
+                        <span>{{ (analysis.pipe_corrosion_score * 100)|int if analysis.pipe_corrosion_score else 0 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: {{ (analysis.pipe_corrosion_score * 100)|int if analysis.pipe_corrosion_score else 0 }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Disinfectant Decay</span>
+                        <span>{{ (analysis.disinfectant_decay_score * 100)|int if analysis.disinfectant_decay_score else 0 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-secondary" style="width: {{ (analysis.disinfectant_decay_score * 100)|int if analysis.disinfectant_decay_score else 0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+            </div>
+            <div class="card-body">
+                {% if analysis.immediate_actions %}
+                <h6 class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Immediate Actions</h6>
+                <div class="alert alert-danger">{{ analysis.immediate_actions }}</div>
+                {% endif %}
+
+                {% if analysis.short_term_recommendations %}
+                <h6 class="text-warning"><i class="bi bi-clock-history"></i> Short-term (1-4 weeks)</h6>
+                <div class="alert alert-warning">{{ analysis.short_term_recommendations }}</div>
+                {% endif %}
+
+                {% if analysis.long_term_solutions %}
+                <h6 class="text-info"><i class="bi bi-calendar-check"></i> Long-term Solutions</h6>
+                <div class="alert alert-info">{{ analysis.long_term_solutions }}</div>
+                {% endif %}
+
+                {% if not analysis.immediate_actions and not analysis.short_term_recommendations and not analysis.long_term_solutions %}
+                <p class="text-muted mb-0">No specific recommendations provided.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Notes -->
+        {% if analysis.notes %}
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-sticky"></i> Notes</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ analysis.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Compliance Status -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-check2-square"></i> Compliance Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>WHO Standards</strong>
+                        <p class="text-muted small mb-0">World Health Organization</p>
+                    </div>
+                    <div>
+                        {% if analysis.who_compliant %}
+                        <span class="badge bg-success fs-6">
+                            <i class="bi bi-check-circle-fill"></i> Compliant
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6">
+                            <i class="bi bi-x-circle-fill"></i> Non-Compliant
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>BIS Standards</strong>
+                        <p class="text-muted small mb-0">Bureau of Indian Standards</p>
+                    </div>
+                    <div>
+                        {% if analysis.bis_compliant %}
+                        <span class="badge bg-success fs-6">
+                            <i class="bi bi-check-circle-fill"></i> Compliant
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6">
+                            <i class="bi bi-x-circle-fill"></i> Non-Compliant
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Prediction -->
+        {% if analysis.ml_prediction %}
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-cpu"></i> ML Prediction</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Prediction:</strong> {{ analysis.ml_prediction|replace('_', ' ')|title }}</p>
+                <p><strong>Confidence:</strong> {{ (analysis.ml_confidence * 100)|int if analysis.ml_confidence else 0 }}%</p>
+                <p class="text-muted small mb-0">Model: {{ analysis.ml_model_version or 'N/A' }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Review Status -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-person-check"></i> Review Status</h5>
+            </div>
+            <div class="card-body">
+                {% if analysis.reviewed_at %}
+                <p><strong>Reviewed:</strong> <span class="badge bg-success">Yes</span></p>
+                <p><strong>Reviewer:</strong> {{ analysis.reviewer.full_name if analysis.reviewer else 'N/A' }}</p>
+                <p class="mb-0"><strong>Date:</strong> {{ analysis.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                {% else %}
+                <p><strong>Status:</strong> <span class="badge bg-warning">Pending Review</span></p>
+                {% if current_user.role in ['admin', 'analyst'] %}
+                <form method="POST" action="{{ url_for('analysis.review', analysis_id=analysis.id) }}">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check-circle"></i> Mark as Reviewed
+                    </button>
+                </form>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {# PDF export not yet implemented
+                    <a href="{{ url_for('analysis.export_pdf', analysis_id=analysis.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-file-pdf"></i> Export PDF
+                    </a>
+                    #}
+                    <a href="{{ url_for('samples.view', sample_id=analysis.sample.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-droplet"></i> View Sample
+                    </a>
+                    {% if current_user.is_admin() %}
+                    <button class="btn btn-outline-danger" data-confirm-delete
+                            data-confirm-message="Delete this analysis report?">
+                        <i class="bi bi-trash"></i> Delete Report
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

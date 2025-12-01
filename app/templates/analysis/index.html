@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Reports - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-graph-up"></i> Analysis Reports</h1>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analysis.index') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="severity_filter" class="form-label">Severity</label>
+                <select class="form-select" id="severity_filter" name="severity">
+                    <option value="">All Severities</option>
+                    <option value="critical" {% if request.args.get('severity') == 'critical' %}selected{% endif %}>Critical</option>
+                    <option value="high" {% if request.args.get('severity') == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if request.args.get('severity') == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if request.args.get('severity') == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="cause_filter" class="form-label">Primary Cause</label>
+                <select class="form-select" id="cause_filter" name="cause">
+                    <option value="">All Causes</option>
+                    <option value="runoff_sediment" {% if request.args.get('cause') == 'runoff_sediment' %}selected{% endif %}>Runoff/Sediment</option>
+                    <option value="sewage_ingress" {% if request.args.get('cause') == 'sewage_ingress' %}selected{% endif %}>Sewage Ingress</option>
+                    <option value="salt_intrusion" {% if request.args.get('cause') == 'salt_intrusion' %}selected{% endif %}>Salt Intrusion</option>
+                    <option value="pipe_corrosion" {% if request.args.get('cause') == 'pipe_corrosion' %}selected{% endif %}>Pipe Corrosion</option>
+                    <option value="disinfectant_decay" {% if request.args.get('cause') == 'disinfectant_decay' %}selected{% endif %}>Disinfectant Decay</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}">
+            </div>
+
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}">
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Analysis Reports Table -->
+<div class="card">
+    <div class="card-body">
+        {% if analyses.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Sample ID</th>
+                        <th>Site</th>
+                        <th>Analyzed Date</th>
+                        <th>Primary Cause</th>
+                        <th>Severity</th>
+                        <th>Confidence</th>
+                        <th>WHO</th>
+                        <th>BIS</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in analyses.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('samples.view', sample_id=analysis.sample.id) }}">
+                                {{ analysis.sample.sample_id }}
+                            </a>
+                        </td>
+                        <td>{{ analysis.sample.site.site_name if analysis.sample.site else 'N/A' }}</td>
+                        <td>{{ analysis.analysis_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if analysis.contamination_detected %}
+                            <span class="badge bg-secondary">
+                                {{ analysis.primary_cause|replace('_', ' ')|title }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success">No Contamination</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if analysis.contamination_detected %}
+                            <span class="badge severity-{{ analysis.severity }}">
+                                {{ analysis.severity|upper }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if analysis.confidence_level %}
+                            <div class="progress" style="width: 100px; height: 20px;">
+                                <div class="progress-bar bg-info" role="progressbar"
+                                     style="width: {{ (analysis.confidence_level * 100)|int }}%">
+                                    {{ (analysis.confidence_level * 100)|int }}%
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if analysis.who_compliant %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle"></i></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if analysis.bis_compliant %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle"></i></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('analysis.view', analysis_id=analysis.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if analyses.pages > 1 %}
+        <nav aria-label="Analysis pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if not analyses.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('analysis.index', page=analyses.prev_num, **request.args) }}">
+                        Previous
+                    </a>
+                </li>
+                {% for page_num in analyses.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == analyses.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('analysis.index', page=page_num, **request.args) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not analyses.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('analysis.index', page=analyses.next_num, **request.args) }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="text-muted text-center mt-3">
+            Showing {{ analyses.items|length }} of {{ analyses.total }} analysis reports
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-clipboard-data" style="font-size: 4rem;" class="text-muted"></i>
+            <p class="mt-3 text-muted">No analysis reports found matching your criteria</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

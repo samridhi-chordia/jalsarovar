@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}My Home Water Quality - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-house-heart"></i> My Home Water Quality</h1>
+    <div>
+        <a href="{{ url_for('residential.alerts') }}" class="btn btn-warning">
+            <i class="bi bi-bell"></i> Alerts
+            {% if active_alerts_count > 0 %}
+            <span class="badge bg-danger">{{ active_alerts_count }}</span>
+            {% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- Overall Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Water Quality Index</h6>
+                        <h2 class="mb-0">
+                            {% if overall_wqi %}
+                                {{ overall_wqi }}
+                                <small class="text-muted">/100</small>
+                            {% else %}
+                                --
+                            {% endif %}
+                        </h2>
+                        {% if overall_wqi %}
+                            {% if overall_wqi >= 90 %}
+                                <small class="text-success"><i class="bi bi-check-circle"></i> Excellent</small>
+                            {% elif overall_wqi >= 70 %}
+                                <small class="text-success"><i class="bi bi-check-circle"></i> Good</small>
+                            {% elif overall_wqi >= 50 %}
+                                <small class="text-warning"><i class="bi bi-exclamation-circle"></i> Fair</small>
+                            {% else %}
+                                <small class="text-danger"><i class="bi bi-x-circle"></i> Poor</small>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-droplet-half"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card {% if safe_percentage and safe_percentage >= 80 %}border-success{% else %}border-warning{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Safe to Drink</h6>
+                        <h2 class="mb-0">
+                            {% if safe_percentage %}
+                                {{ safe_percentage }}%
+                            {% else %}
+                                --
+                            {% endif %}
+                        </h2>
+                        <small class="text-muted">Last 30 days</small>
+                    </div>
+                    <div class="{% if safe_percentage and safe_percentage >= 80 %}text-success{% else %}text-warning{% endif %}" style="font-size: 2.5rem;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card {% if active_alerts_count == 0 %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Active Alerts</h6>
+                        <h2 class="mb-0">{{ active_alerts_count }}</h2>
+                        <small class="text-muted">Requires attention</small>
+                    </div>
+                    <div class="{% if active_alerts_count == 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 2.5rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card border-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Measurements</h6>
+                        <h2 class="mb-0">{{ total_measurements }}</h2>
+                        <small class="text-muted">All time</small>
+                    </div>
+                    <div class="text-info" style="font-size: 2.5rem;">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Sites -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-house-door"></i> My Monitoring Sites</h5>
+            </div>
+            <div class="card-body">
+                {% if my_sites %}
+                <div class="row">
+                    {% for site in my_sites %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-secondary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            {% if site.site_type == 'individual_home' %}
+                                                <i class="bi bi-house"></i> Individual Home
+                                            {% elif site.site_type == 'apartment_unit' %}
+                                                <i class="bi bi-building"></i> Apartment Unit
+                                            {% elif site.site_type == 'apartment_building' %}
+                                                <i class="bi bi-buildings"></i> Building Monitor
+                                            {% else %}
+                                                <i class="bi bi-shop"></i> {{ site.site_type }}
+                                            {% endif %}
+                                        </h6>
+                                        <p class="mb-1 small">
+                                            {% if site.building_name %}
+                                                {{ site.building_name }}
+                                                {% if site.flat_number %}, Flat {{ site.flat_number }}{% endif %}
+                                                <br>
+                                            {% endif %}
+                                            {{ site.address_line1 }}<br>
+                                            {{ site.city }}, {{ site.state }} {{ site.pincode }}
+                                        </p>
+                                    </div>
+                                    <span class="badge {% if site.subscription_tier == 'free' %}bg-secondary{% elif site.subscription_tier == 'premium' %}bg-primary{% else %}bg-success{% endif %}">
+                                        {{ site.subscription_tier|title }}
+                                    </span>
+                                </div>
+
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <small class="text-muted">Water Source:</small><br>
+                                        <strong>{{ site.water_source|replace('_', ' ')|title }}</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Device ID:</small><br>
+                                        <strong>{{ site.device_id }}</strong>
+                                    </div>
+                                </div>
+
+                                {% if site.has_ro_system %}
+                                <div class="mb-2">
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-filter"></i> RO System: {{ site.ro_brand or 'Unknown' }}
+                                    </span>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-grid">
+                                    <a href="{{ url_for('residential.site_detail', site_id=site.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-graph-up-arrow"></i> View Details & Trends
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-house-slash" style="font-size: 3rem; color: #ccc;"></i>
+                    <p class="text-muted mt-3">No monitoring sites registered yet.</p>
+                    <button class="btn btn-primary" disabled>
+                        <i class="bi bi-plus-circle"></i> Register New Site (Coming Soon)
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Status -->
+{% if active_subscriptions %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-credit-card"></i> Active Subscriptions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Site</th>
+                                <th>Tier</th>
+                                <th>Billing Cycle</th>
+                                <th>Amount</th>
+                                <th>Next Billing</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subscription in active_subscriptions %}
+                            <tr>
+                                <td>
+                                    {% set site = subscription.site %}
+                                    {{ site.address_line1 }}, {{ site.city }}
+                                </td>
+                                <td>
+                                    <span class="badge {% if subscription.tier == 'premium' %}bg-primary{% elif subscription.tier == 'community' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ subscription.tier|title }}
+                                    </span>
+                                </td>
+                                <td>{{ subscription.billing_cycle|title if subscription.billing_cycle else 'N/A' }}</td>
+                                <td>₹{{ subscription.amount }}</td>
+                                <td>{{ subscription.next_billing_date.strftime('%d %b %Y') if subscription.next_billing_date else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {% if subscription.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ subscription.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Help & Information -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Understanding Water Quality Index</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0 small">
+                    <li><strong>90-100:</strong> Excellent - Water exceeds drinking standards</li>
+                    <li><strong>70-89:</strong> Good - Safe for drinking, meets WHO/BIS standards</li>
+                    <li><strong>50-69:</strong> Fair - May require treatment before drinking</li>
+                    <li><strong>Below 50:</strong> Poor - Not safe to drink, immediate action required</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning">
+                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-sm btn-outline-primary" disabled>
+                        <i class="bi bi-file-earmark-pdf"></i> Download Water Quality Report
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <i class="bi bi-gear"></i> Configure Alert Preferences
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" disabled>
+                        <i class="bi bi-telephone"></i> Contact Support
+                    </button>
+                </div>
+                <small class="text-muted d-block mt-2">Features coming soon in premium tier</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+    <div>
+        <a href="{{ url_for('samples.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Sample
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Samples</h6>
+                        <h2 class="mb-0">{{ total_samples }}</h2>
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-droplet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card border-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Pending Tests</h6>
+                        <h2 class="mb-0">{{ pending_tests }}</h2>
+                    </div>
+                    <div class="text-warning" style="font-size: 2.5rem;">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card border-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Contaminated</h6>
+                        <h2 class="mb-0">{{ contaminated_count }}</h2>
+                    </div>
+                    <div class="text-danger" style="font-size: 2.5rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card border-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Active Sites</h6>
+                        <h2 class="mb-0">{{ active_sites }}</h2>
+                    </div>
+                    <div class="text-success" style="font-size: 2.5rem;">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Samples and Alerts -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Recent Samples</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_samples %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sample ID</th>
+                                <th>Site</th>
+                                <th>Collection Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sample in recent_samples %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('samples.view', sample_id=sample.id) }}">
+                                        {{ sample.sample_id }}
+                                    </a>
+                                </td>
+                                <td>{{ sample.site.site_name if sample.site else 'N/A' }}</td>
+                                <td>{{ sample.collection_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if sample.status == 'analyzed' else 'warning' }}">
+                                        {{ sample.status|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('samples.index') }}" class="btn btn-outline-primary">
+                        View All Samples <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No samples collected yet</p>
+                    <a href="{{ url_for('samples.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create First Sample
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bell"></i> Recent Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_alerts %}
+                <div class="list-group list-group-flush">
+                    {% for analysis in recent_alerts %}
+                    <a href="{{ url_for('analysis.view', analysis_id=analysis.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <span class="badge severity-{{ analysis.severity }}">
+                                    {{ analysis.severity|upper }}
+                                </span>
+                            </h6>
+                            <small class="text-muted">
+                                {{ analysis.analysis_date.strftime('%m/%d') }}
+                            </small>
+                        </div>
+                        <p class="mb-1 small">{{ analysis.primary_cause|replace('_', ' ')|title }}</p>
+                        <small class="text-muted">{{ analysis.sample.sample_id }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-danger btn-sm">
+                        View All Alerts <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No contamination alerts</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>WHO Compliant</span>
+                            <strong class="text-success">{{ who_compliant_percent }}%</strong>
+                        </div>
+                    </li>
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>BIS Compliant</span>
+                            <strong class="text-success">{{ bis_compliant_percent }}%</strong>
+                        </div>
+                    </li>
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Tests This Month</span>
+                            <strong class="text-primary">{{ tests_this_month }}</strong>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="d-flex justify-content-between">
+                            <span>Avg Response Time</span>
+                            <strong class="text-info">{{ avg_response_time }} hrs</strong>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add any dashboard-specific JavaScript here
+// For example, auto-refresh alerts, charts, etc.
+</script>
+{% endblock %}

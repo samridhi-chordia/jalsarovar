@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}WQI Calculator - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wqi-score-display {
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        padding: 2rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .wqi-excellent { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+    .wqi-compliant { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+    .wqi-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+    .wqi-unsafe { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+
+    .penalty-bar {
+        height: 25px;
+        background: #ef4444;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+    }
+
+    .parameter-card {
+        transition: transform 0.2s;
+    }
+
+    .parameter-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .result-section {
+        display: none;
+    }
+
+    .loading-spinner {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">
+                <i class="bi bi-calculator"></i> Water Quality Index Calculator
+            </h1>
+            <p class="text-muted">
+                Enter water quality parameters to calculate the WQI score and compliance classification
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Input Form -->
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-input-cursor"></i> Water Quality Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="wqiCalculatorForm">
+                        <!-- pH Value -->
+                        <div class="mb-3">
+                            <label for="ph_value" class="form-label">
+                                <i class="bi bi-circle-half"></i> pH Value
+                                <small class="text-muted">(Optimal: 6.5 - 8.5)</small>
+                            </label>
+                            <input type="number" class="form-control" id="ph_value" name="ph_value"
+                                   step="0.1" min="0" max="14" placeholder="e.g., 7.2">
+                            <div class="form-text">Acidity/alkalinity level of water</div>
+                        </div>
+
+                        <!-- TDS -->
+                        <div class="mb-3">
+                            <label for="tds_ppm" class="form-label">
+                                <i class="bi bi-droplet"></i> TDS (Total Dissolved Solids)
+                                <small class="text-muted">(ppm, Optimal: ≤500)</small>
+                            </label>
+                            <input type="number" class="form-control" id="tds_ppm" name="tds_ppm"
+                                   step="1" min="0" placeholder="e.g., 450">
+                            <div class="form-text">Concentration of dissolved substances</div>
+                        </div>
+
+                        <!-- Turbidity -->
+                        <div class="mb-3">
+                            <label for="turbidity_ntu" class="form-label">
+                                <i class="bi bi-cloud-haze"></i> Turbidity
+                                <small class="text-muted">(NTU, Optimal: ≤5)</small>
+                            </label>
+                            <input type="number" class="form-control" id="turbidity_ntu" name="turbidity_ntu"
+                                   step="0.1" min="0" placeholder="e.g., 3.5">
+                            <div class="form-text">Cloudiness or haziness of water</div>
+                        </div>
+
+                        <!-- Free Chlorine -->
+                        <div class="mb-3">
+                            <label for="free_chlorine" class="form-label">
+                                <i class="bi bi-shield-check"></i> Free Chlorine
+                                <small class="text-muted">(mg/L, Optimal: 0.2 - 4.0)</small>
+                            </label>
+                            <input type="number" class="form-control" id="free_chlorine" name="free_chlorine"
+                                   step="0.01" min="0" placeholder="e.g., 0.5">
+                            <div class="form-text">Disinfectant residual level</div>
+                        </div>
+
+                        <!-- Temperature -->
+                        <div class="mb-3">
+                            <label for="temperature_c" class="form-label">
+                                <i class="bi bi-thermometer-half"></i> Temperature
+                                <small class="text-muted">(°C, Optimal: 10 - 25)</small>
+                            </label>
+                            <input type="number" class="form-control" id="temperature_c" name="temperature_c"
+                                   step="0.1" min="0" max="100" placeholder="e.g., 22.0">
+                            <div class="form-text">Water temperature in Celsius</div>
+                        </div>
+
+                        <!-- Total Coliform -->
+                        <div class="mb-3">
+                            <label for="total_coliform" class="form-label">
+                                <i class="bi bi-bug"></i> Total Coliform
+                                <small class="text-muted">(CFU/100mL, Optimal: ≤10)</small>
+                            </label>
+                            <input type="number" class="form-control" id="total_coliform" name="total_coliform"
+                                   step="1" min="0" placeholder="e.g., 5">
+                            <div class="form-text">Bacterial contamination indicator</div>
+                        </div>
+
+                        <!-- Optional Fields -->
+                        <div class="mb-3">
+                            <label for="device_id" class="form-label">
+                                <i class="bi bi-router"></i> Device ID (Optional)
+                            </label>
+                            <input type="text" class="form-control" id="device_id" name="device_id"
+                                   placeholder="e.g., IOT-001">
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="save_to_db" name="save" value="true">
+                            <label class="form-check-label" for="save_to_db">
+                                Save result to database
+                            </label>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-calculator"></i> Calculate WQI
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="loadSampleData()">
+                                <i class="bi bi-lightning"></i> Load Sample Data
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Reset Form
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Loading Spinner -->
+                    <div class="loading-spinner text-center mt-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Calculating...</span>
+                        </div>
+                        <p class="mt-2">Calculating WQI...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="result-section">
+                <!-- WQI Score Display -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="text-center text-muted mb-3">Water Quality Index</h5>
+                        <div id="wqiScoreDisplay" class="wqi-score-display wqi-excellent">
+                            <div id="wqiScore">--</div>
+                            <small id="wqiClass" style="font-size: 1rem;">--</small>
+                        </div>
+                        <div class="text-center mt-3">
+                            <h5 id="safetyStatus" class="mb-0">
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Safe to Drink</span>
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Penalty Breakdown -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Penalty Breakdown</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="penaltyBreakdown">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Total Penalty:</strong>
+                            <span id="totalPenalty" class="badge bg-danger">0 points</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance Information -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Compliance Information</h5>
+                    </div>
+                    <div class="card-body" id="complianceInfo">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Sample data for quick testing
+function loadSampleData() {
+    document.getElementById('ph_value').value = '7.2';
+    document.getElementById('tds_ppm').value = '450';
+    document.getElementById('turbidity_ntu').value = '3.5';
+    document.getElementById('free_chlorine').value = '0.5';
+    document.getElementById('temperature_c').value = '22.0';
+    document.getElementById('total_coliform').value = '5';
+    document.getElementById('device_id').value = 'TEST-001';
+}
+
+// Form submission
+document.getElementById('wqiCalculatorForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Show loading spinner
+    document.querySelector('.loading-spinner').style.display = 'block';
+    document.querySelector('.result-section').style.display = 'none';
+
+    // Collect form data
+    const formData = {
+        ph_value: parseFloat(document.getElementById('ph_value').value) || null,
+        tds_ppm: parseFloat(document.getElementById('tds_ppm').value) || null,
+        turbidity_ntu: parseFloat(document.getElementById('turbidity_ntu').value) || null,
+        free_chlorine: parseFloat(document.getElementById('free_chlorine').value) || null,
+        temperature_c: parseFloat(document.getElementById('temperature_c').value) || null,
+        total_coliform: parseFloat(document.getElementById('total_coliform').value) || null,
+        device_id: document.getElementById('device_id').value || null,
+        save: document.getElementById('save_to_db').checked
+    };
+
+    try {
+        // Call API
+        const response = await fetch('/api/wqi/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Calculation failed');
+        }
+
+        const result = await response.json();
+
+        // Display results
+        displayResults(result);
+
+    } catch (error) {
+        alert('Error calculating WQI: ' + error.message);
+    } finally {
+        document.querySelector('.loading-spinner').style.display = 'none';
+    }
+});
+
+function displayResults(result) {
+    // Show results section
+    document.querySelector('.result-section').style.display = 'block';
+
+    // WQI Score
+    document.getElementById('wqiScore').textContent = result.wqi_score;
+    document.getElementById('wqiClass').textContent = result.compliance_class.toUpperCase();
+
+    // Apply color based on compliance class
+    const scoreDisplay = document.getElementById('wqiScoreDisplay');
+    scoreDisplay.className = 'wqi-score-display wqi-' + result.compliance_class;
+
+    // Safety status
+    const safetyBadge = result.is_safe
+        ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Safe to Drink</span>'
+        : '<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Unsafe - Do Not Drink</span>';
+    document.getElementById('safetyStatus').innerHTML = safetyBadge;
+
+    // Penalty breakdown
+    const penaltyHtml = Object.entries(result.penalties)
+        .filter(([key, value]) => value > 0)
+        .map(([key, value]) => {
+            const percentage = (value / result.total_penalty) * 100;
+            return `
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><strong>${key.toUpperCase()}:</strong></span>
+                        <span class="text-danger">-${value.toFixed(2)} points</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-danger" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    document.getElementById('penaltyBreakdown').innerHTML = penaltyHtml || '<p class="text-success">No penalties - excellent water quality!</p>';
+    document.getElementById('totalPenalty').textContent = result.total_penalty.toFixed(2) + ' points';
+
+    // Compliance information
+    if (result.compliance_info) {
+        const info = result.compliance_info;
+        const infoHtml = `
+            <h6 class="text-uppercase" style="color: ${info.color}">
+                <i class="bi bi-shield-check"></i> ${info.class}
+            </h6>
+            <p>${info.description}</p>
+            ${info.recommendations ? '<h6>Recommendations:</h6><ul>' +
+                info.recommendations.map(r => '<li>' + r + '</li>').join('') +
+                '</ul>' : ''}
+        `;
+        document.getElementById('complianceInfo').innerHTML = infoHtml;
+    }
+
+    // Scroll to results
+    document.querySelector('.result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+{% endblock %}

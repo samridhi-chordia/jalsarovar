@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Register Your Home - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-house-heart" style="font-size: 4rem; color: #0d6efd;"></i>
+                    <h2 class="mt-4">Welcome to Residential Water Monitoring!</h2>
+                    <p class="lead text-muted">You haven't registered any residential sites yet.</p>
+
+                    <div class="alert alert-info my-4">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Get Started:</strong> Register your home or apartment to start monitoring water quality 24/7 with IoT sensors.
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <i class="bi bi-droplet-fill text-primary" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Real-time Monitoring</h5>
+                                    <p class="text-muted small">Get instant water quality readings (pH, TDS, turbidity, chlorine) 24/7</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <i class="bi bi-bell-fill text-warning" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Instant Alerts</h5>
+                                    <p class="text-muted small">Receive immediate notifications when water quality degrades</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <i class="bi bi-graph-up text-success" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Trend Analysis</h5>
+                                    <p class="text-muted small">Track water quality trends over time with charts and insights</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <i class="bi bi-shield-check text-info" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">RO Health Monitoring</h5>
+                                    <p class="text-muted small">Monitor RO system performance and membrane health</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5">
+                        <h5>How to Get Started:</h5>
+                        <ol class="text-start">
+                            <li class="mb-2">
+                                <strong>Order IoT Device:</strong> Get Jal Sarovar Home Monitor
+                                <span class="badge bg-info">₹2,999 one-time</span>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Install Sensors:</strong> Our technician will install sensors at your water inlet
+                            </li>
+                            <li class="mb-2">
+                                <strong>Register Site:</strong> Complete the registration form with your address details
+                            </li>
+                            <li class="mb-2">
+                                <strong>Start Monitoring:</strong> View real-time data on your dashboard
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="#" class="btn btn-primary btn-lg me-2">
+                            <i class="bi bi-plus-circle"></i> Register My Home
+                        </a>
+                        <a href="#" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-info-circle"></i> Learn More
+                        </a>
+                    </div>
+
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            Questions? Contact us at <strong>support@jalsarovar.in</strong> or call <strong>1800-123-4567</strong>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-star-fill text-warning"></i> Subscription Plans</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="text-muted">Free</h6>
+                                <h4>₹0<small>/month</small></h4>
+                                <ul class="small">
+                                    <li>Basic monitoring</li>
+                                    <li>7-day history</li>
+                                    <li>Email alerts only</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 border-primary">
+                                <h6 class="text-primary">Basic</h6>
+                                <h4>₹99<small>/month</small></h4>
+                                <ul class="small">
+                                    <li>Full monitoring</li>
+                                    <li>30-day history</li>
+                                    <li>SMS + Email alerts</li>
+                                    <li>Weekly reports</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 border-success">
+                                <h6 class="text-success">Premium</h6>
+                                <h4>₹199<small>/month</small></h4>
+                                <ul class="small">
+                                    <li>Advanced analytics</li>
+                                    <li>Unlimited history</li>
+                                    <li>WhatsApp alerts</li>
+                                    <li>Daily reports</li>
+                                    <li>Priority support</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 border-warning">
+                                <h6 class="text-warning">Community</h6>
+                                <h4>₹499<small>/month</small></h4>
+                                <ul class="small">
+                                    <li>Multi-unit monitoring</li>
+                                    <li>Bulk billing</li>
+                                    <li>Community dashboard</li>
+                                    <li>Onsite training</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

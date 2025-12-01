@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Create Sample - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-plus-circle"></i> Create New Sample</h1>
+    <a href="{{ url_for('samples.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Samples
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('samples.create') }}">
+                    <!-- Basic Information -->
+                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="site_id" class="form-label">Site <span class="text-danger">*</span></label>
+                            <select class="form-select" id="site_id" name="site_id" required>
+                                <option value="">Select a site...</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}">{{ site.site_name }} - {{ site.location }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="sub_site_details" class="form-label">Sub-site Details</label>
+                            <input type="text" class="form-control" id="sub_site_details" name="sub_site_details"
+                                   placeholder="e.g., Building A, Floor 2, Tap 3">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="collection_date" class="form-label">Collection Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="collection_date" name="collection_date" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="collection_time" class="form-label">Collection Time</label>
+                            <input type="time" class="form-control" id="collection_time" name="collection_time">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="source_type" class="form-label">Source Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="source_type" name="source_type" required>
+                                <option value="">Select type...</option>
+                                <option value="tap">Tap</option>
+                                <option value="well">Well</option>
+                                <option value="borehole">Borehole</option>
+                                <option value="river">River</option>
+                                <option value="lake">Lake</option>
+                                <option value="treatment_plant">Treatment Plant</option>
+                                <option value="storage_tank">Storage Tank</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Location Details -->
+                    <h5 class="mb-3"><i class="bi bi-geo-alt"></i> Location Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="exact_latitude" class="form-label">Latitude</label>
+                            <input type="number" step="any" class="form-control" id="exact_latitude" name="exact_latitude"
+                                   placeholder="e.g., 12.9716">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="exact_longitude" class="form-label">Longitude</label>
+                            <input type="number" step="any" class="form-control" id="exact_longitude" name="exact_longitude"
+                                   placeholder="e.g., 77.5946">
+                        </div>
+                    </div>
+
+                    <!-- Source Details -->
+                    <h5 class="mb-3"><i class="bi bi-droplet"></i> Source Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="source_depth_meters" class="form-label">Source Depth (meters)</label>
+                            <input type="number" step="0.1" class="form-control" id="source_depth_meters" name="source_depth_meters">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="water_source_root" class="form-label">Water Source Root</label>
+                            <select class="form-select" id="water_source_root" name="water_source_root">
+                                <option value="">Select source...</option>
+                                <option value="municipal">Municipal</option>
+                                <option value="groundwater">Groundwater</option>
+                                <option value="surface_water">Surface Water</option>
+                                <option value="rainwater">Rainwater</option>
+                                <option value="mixed">Mixed</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="storage_type" class="form-label">Storage Type</label>
+                            <select class="form-select" id="storage_type" name="storage_type">
+                                <option value="">Select type...</option>
+                                <option value="overhead_tank">Overhead Tank</option>
+                                <option value="underground_tank">Underground Tank</option>
+                                <option value="ground_level_tank">Ground Level Tank</option>
+                                <option value="no_storage">No Storage</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Infrastructure -->
+                    <h5 class="mb-3"><i class="bi bi-building"></i> Infrastructure</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="pipe_material" class="form-label">Pipe Material</label>
+                            <select class="form-select" id="pipe_material" name="pipe_material">
+                                <option value="">Select material...</option>
+                                <option value="pvc">PVC</option>
+                                <option value="hdpe">HDPE</option>
+                                <option value="gi">GI (Galvanized Iron)</option>
+                                <option value="copper">Copper</option>
+                                <option value="concrete">Concrete</option>
+                                <option value="mixed">Mixed</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="pipe_age_years" class="form-label">Pipe Age (years)</label>
+                            <input type="number" step="1" class="form-control" id="pipe_age_years" name="pipe_age_years">
+                        </div>
+                    </div>
+
+                    <!-- Environmental Conditions -->
+                    <h5 class="mb-3"><i class="bi bi-cloud-sun"></i> Environmental Conditions</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="weather_condition" class="form-label">Weather Condition</label>
+                            <select class="form-select" id="weather_condition" name="weather_condition">
+                                <option value="">Select condition...</option>
+                                <option value="sunny">Sunny</option>
+                                <option value="cloudy">Cloudy</option>
+                                <option value="rainy">Rainy</option>
+                                <option value="stormy">Stormy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="rained_recently" class="form-label">Rained Recently?</label>
+                            <select class="form-select" id="rained_recently" name="rained_recently">
+                                <option value="">Select...</option>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ambient_temperature" class="form-label">Ambient Temperature (°C)</label>
+                            <input type="number" step="0.1" class="form-control" id="ambient_temperature" name="ambient_temperature">
+                        </div>
+                    </div>
+
+                    <!-- Observations -->
+                    <h5 class="mb-3"><i class="bi bi-eye"></i> Observations</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="water_appearance" class="form-label">Water Appearance</label>
+                            <select class="form-select" id="water_appearance" name="water_appearance">
+                                <option value="">Select appearance...</option>
+                                <option value="clear">Clear</option>
+                                <option value="cloudy">Cloudy</option>
+                                <option value="turbid">Turbid</option>
+                                <option value="colored">Colored</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="odor_present" class="form-label">Odor Present?</label>
+                            <select class="form-select" id="odor_present" name="odor_present">
+                                <option value="">Select...</option>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="visible_particles" class="form-label">Visible Particles?</label>
+                            <select class="form-select" id="visible_particles" name="visible_particles">
+                                <option value="">Select...</option>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <h5 class="mb-3"><i class="bi bi-sticky"></i> Additional Notes</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label for="collection_notes" class="form-label">Collection Notes</label>
+                            <textarea class="form-control" id="collection_notes" name="collection_notes" rows="3"
+                                      placeholder="Any notes about the collection process..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="special_observations" class="form-label">Special Observations</label>
+                            <textarea class="form-control" id="special_observations" name="special_observations" rows="3"
+                                      placeholder="Any unusual observations or concerns..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('samples.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Create Sample
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as default for collection_date
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('collection_date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+
+    const timeInput = document.getElementById('collection_time');
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    timeInput.value = `${hours}:${minutes}`;
+});
+</script>
+{% endblock %}

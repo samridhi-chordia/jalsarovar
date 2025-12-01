@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Site Risk - {{ site.site_name }} - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-badge-high {
+        background-color: #dc3545;
+        color: white;
+    }
+    .risk-badge-medium {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .risk-badge-low {
+        background-color: #28a745;
+        color: white;
+    }
+    .probability-bar {
+        height: 25px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    .probability-fill {
+        height: 100%;
+        transition: width 0.5s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .fill-high {
+        background-color: #dc3545;
+    }
+    .fill-medium {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .fill-low {
+        background-color: #28a745;
+    }
+    .site-info-card {
+        border-left: 4px solid #0d6efd;
+    }
+    .recommendation-box {
+        border-left: 4px solid #ffc107;
+        background-color: #fff3cd;
+        padding: 15px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('risk.risk_dashboard') }}">Risk Prediction</a></li>
+                <li class="breadcrumb-item active">{{ site.site_code }}</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-building"></i> {{ site.site_name }}</h1>
+        <p class="text-muted mb-0">{{ site.site_code }}</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" onclick="refreshPrediction()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Prediction
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Site Information -->
+    <div class="col-lg-4 mb-4">
+        <div class="card site-info-card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Site Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th width="50%">Site Code:</th>
+                            <td>{{ site.site_code }}</td>
+                        </tr>
+                        <tr>
+                            <th>Site Name:</th>
+                            <td>{{ site.site_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Environment:</th>
+                            <td><span class="badge bg-info">{{ site.environment_type }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>State:</th>
+                            <td>{{ site.state }}</td>
+                        </tr>
+                        <tr>
+                            <th>District:</th>
+                            <td>{{ site.district or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Coastal:</th>
+                            <td>
+                                {% if site.is_coastal %}
+                                    <span class="badge bg-primary">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Industrial Nearby:</th>
+                            <td>
+                                {% if site.industrial_nearby %}
+                                    <span class="badge bg-warning">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Agricultural Nearby:</th>
+                            <td>
+                                {% if site.agricultural_nearby %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Population Density:</th>
+                            <td>{{ site.population_density or 'N/A' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Prediction -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Risk Assessment</h5>
+            </div>
+            <div class="card-body">
+                <div id="riskPredictionContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading risk prediction...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendation Card -->
+        <div class="card mt-4" id="recommendationCard" style="display: none;">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+            </div>
+            <div class="card-body">
+                <div id="recommendationContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a href="{{ url_for('samples.index') }}?site_code={{ site.site_code }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-droplet"></i><br>View Samples
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{{ url_for('analysis.index') }}?site_code={{ site.site_code }}" class="btn btn-outline-info w-100">
+                    <i class="bi bi-graph-up"></i><br>View Analysis
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{{ url_for('analytics.sites') }}?site={{ site.site_code }}" class="btn btn-outline-success w-100">
+                    <i class="bi bi-bar-chart"></i><br>Site Analytics
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{{ url_for('risk.risk_dashboard') }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-left"></i><br>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load risk prediction on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadRiskPrediction();
+});
+
+function loadRiskPrediction() {
+    const siteCode = '{{ site.site_code }}';
+    const contentDiv = document.getElementById('riskPredictionContent');
+
+    fetch(`/api/risk/predict/site/${siteCode}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success || data.risk_level) {
+                displayRiskPrediction(data);
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Error:</strong> ${data.error || 'Failed to load risk prediction'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading risk prediction:', error);
+            contentDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Error:</strong> ${error.message}
+                </div>
+            `;
+        });
+}
+
+function displayRiskPrediction(data) {
+    const riskLevel = data.risk_level;
+    const badgeClass = riskLevel === 'high' ? 'risk-badge-high' :
+                       riskLevel === 'medium' ? 'risk-badge-medium' : 'risk-badge-low';
+    const fillClass = riskLevel === 'high' ? 'fill-high' :
+                      riskLevel === 'medium' ? 'fill-medium' : 'fill-low';
+
+    // Sort probabilities by value
+    const sortedProbs = Object.entries(data.probabilities).sort((a, b) => b[1] - a[1]);
+
+    let probabilitiesHTML = '';
+    sortedProbs.forEach(([level, prob]) => {
+        const percentage = (prob * 100).toFixed(1);
+        const fillClassLevel = level === 'high' ? 'fill-high' :
+                              level === 'medium' ? 'fill-medium' : 'fill-low';
+
+        probabilitiesHTML += `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-capitalize fw-bold">${level} Risk</span>
+                    <span class="text-muted">${percentage}%</span>
+                </div>
+                <div class="probability-bar">
+                    <div class="probability-fill ${fillClassLevel}" style="width: ${percentage}%">
+                        ${percentage > 15 ? percentage + '%' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    // Display main prediction
+    document.getElementById('riskPredictionContent').innerHTML = `
+        <div class="text-center mb-4">
+            <h2>Risk Level</h2>
+            <h1><span class="badge ${badgeClass} fs-1 px-4 py-3">${riskLevel.toUpperCase()}</span></h1>
+            <p class="text-muted mt-2">Confidence: <strong>${data.confidence}</strong></p>
+            <p class="text-muted">Max Probability: <strong>${(data.max_probability * 100).toFixed(1)}%</strong></p>
+        </div>
+
+        <hr>
+
+        <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Risk Distribution</h5>
+        ${probabilitiesHTML}
+
+        <div class="alert alert-info mt-4">
+            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> What does this mean?</h6>
+            <p class="mb-0">
+                The risk level indicates the likelihood of water quality issues at this site based on
+                environmental factors, location characteristics, and historical contamination patterns.
+            </p>
+        </div>
+    `;
+
+    // Display recommendation
+    document.getElementById('recommendationContent').innerHTML = `
+        <p class="mb-0"><strong>${data.recommendation}</strong></p>
+    `;
+    document.getElementById('recommendationCard').style.display = 'block';
+}
+
+function refreshPrediction() {
+    document.getElementById('riskPredictionContent').innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Refreshing prediction...</p>
+        </div>
+    `;
+    document.getElementById('recommendationCard').style.display = 'none';
+
+    loadRiskPrediction();
+
+    // Show toast notification
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 p-3';
+    toast.style.zIndex = '11';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Risk Prediction</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Prediction refreshed successfully!
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

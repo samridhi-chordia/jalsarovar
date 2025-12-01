@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Water Treatment Interventions - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-tools"></i> Water Treatment Interventions</h1>
+    <div>
+        <a href="{{ url_for('interventions.effectiveness_dashboard') }}" class="btn btn-info me-2">
+            <i class="bi bi-graph-up"></i> Effectiveness Dashboard
+        </a>
+        <a href="{{ url_for('interventions.treatment_recommendations') }}" class="btn btn-success me-2">
+            <i class="bi bi-lightbulb"></i> Get Recommendations
+        </a>
+        <a href="{{ url_for('interventions.new_intervention') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Intervention
+        </a>
+    </div>
+</div>
+
+<!-- Summary Statistics Cards -->
+{% if summary_stats %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Interventions</h5>
+                <h2 class="mb-0">{{ summary_stats.total_interventions }}</h2>
+                <small>All tracked interventions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Completed</h5>
+                <h2 class="mb-0">{{ summary_stats.by_status.completed }}</h2>
+                <small>{{ summary_stats.success_rate }}% success rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">In Progress</h5>
+                <h2 class="mb-0">{{ summary_stats.by_status.in_progress }}</h2>
+                <small>Currently being implemented</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Average Cost</h5>
+                <h2 class="mb-0">{{ "₹{:,.0f}".format(summary_stats.average_cost) if summary_stats.average_cost else 'N/A' }}</h2>
+                <small>Per intervention</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('interventions.list_interventions') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="status_filter" class="form-label">Status</label>
+                <select class="form-select" id="status_filter" name="status">
+                    <option value="">All Status</option>
+                    {% for value, label in status_choices.items() %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="site_filter" class="form-label">Site</label>
+                <select class="form-select" id="site_filter" name="site_id">
+                    <option value="">All Sites</option>
+                    {% for site in sites %}
+                    <option value="{{ site.id }}" {% if selected_site == site.id %}selected{% endif %}>
+                        {{ site.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="treatment_filter" class="form-label">Treatment Method</label>
+                <select class="form-select" id="treatment_filter" name="treatment_method_id">
+                    <option value="">All Methods</option>
+                    {% for method in treatment_methods %}
+                    <option value="{{ method.id }}" {% if selected_treatment == method.id %}selected{% endif %}>
+                        {{ method.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('interventions.list_interventions') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Interventions Table -->
+<div class="card">
+    <div class="card-body">
+        {% if interventions.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Site</th>
+                        <th>Treatment Method</th>
+                        <th>Implementation Date</th>
+                        <th>Cost</th>
+                        <th>Status</th>
+                        <th>Effectiveness</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for intervention in interventions.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('interventions.view_intervention', intervention_id=intervention.id) }}" class="fw-bold">
+                                {{ intervention.title }}
+                            </a>
+                            <br>
+                            <small class="text-muted">{{ intervention.intervention_type|replace('_', ' ')|title }}</small>
+                        </td>
+                        <td>{{ intervention.site.name if intervention.site else 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ intervention.treatment_method.name if intervention.treatment_method else 'N/A' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if intervention.implementation_date %}
+                            {{ intervention.implementation_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            <span class="text-muted">Not started</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if intervention.cost %}
+                            {{ intervention.cost_currency }} {{ "{:,.0f}".format(intervention.cost) }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ intervention.get_status_color(intervention.status) }}">
+                                {{ intervention.status|replace('_', ' ')|title }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if intervention.status == 'completed' and intervention.improvement_percentage is not none %}
+                            {% if intervention.was_effective %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> {{ "{:.1f}".format(intervention.improvement_percentage) }}%
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-exclamation-triangle"></i> {{ "{:.1f}".format(intervention.improvement_percentage) }}%
+                            </span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('interventions.view_intervention', intervention_id=intervention.id) }}"
+                                   class="btn btn-outline-primary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('interventions.edit_intervention', intervention_id=intervention.id) }}"
+                                   class="btn btn-outline-secondary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if interventions.pages > 1 %}
+        <nav aria-label="Intervention pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if not interventions.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('interventions.list_interventions', page=interventions.prev_num, **request.args) }}">
+                        Previous
+                    </a>
+                </li>
+                {% for page_num in interventions.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == interventions.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('interventions.list_interventions', page=page_num, **request.args) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not interventions.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('interventions.list_interventions', page=interventions.next_num, **request.args) }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="text-muted text-center mt-3">
+            Showing {{ interventions.items|length }} of {{ interventions.total }} interventions
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-tools" style="font-size: 4rem; color: #6c757d;"></i>
+            <p class="mt-3 text-muted">No interventions found matching your criteria</p>
+            <a href="{{ url_for('interventions.new_intervention') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> Create First Intervention
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if source else 'New' }} Data Source - Jal Sarovar{% endblock %}
+
+{% block content %}
+<!-- Breadcrumbs -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('imports.list_sources') }}">Data Sources</a></li>
+        <li class="breadcrumb-item active">{{ 'Edit' if source else 'New' }}</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-{{ 'pencil' if source else 'plus-circle' }}"></i>
+        {{ 'Edit' if source else 'New' }} Data Source
+    </h2>
+</div>
+
+<!-- Form -->
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-database"></i>
+                    Data Source Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Basic Information Section -->
+                    <h6 class="border-bottom pb-2 mb-3">
+                        <i class="bi bi-info-circle"></i> Basic Information
+                    </h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">
+                                <strong>Source Name</strong>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ source.name if source else '' }}"
+                                   required
+                                   placeholder="e.g., IIT Madras Water Lab">
+                            <div class="form-text">A descriptive name for this data source</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="source_type" class="form-label">
+                                <strong>Source Type</strong>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="source_type" name="source_type" required>
+                                <option value="">-- Select Type --</option>
+                                {% for type_key, type_label in source_types.items() %}
+                                <option value="{{ type_key }}"
+                                        {% if source and source.source_type == type_key %}selected{% endif %}>
+                                    {{ type_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Classification of this data source</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <strong>Description</strong>
+                        </label>
+                        <textarea class="form-control" id="description" name="description"
+                                  rows="3"
+                                  placeholder="Brief description of this data source...">{{ source.description if source else '' }}</textarea>
+                        <div class="form-text">Additional details about this source</div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">
+                        <i class="bi bi-person"></i> Contact Information
+                    </h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="contact_person" class="form-label">Contact Person</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                   value="{{ source.contact_person if source else '' }}"
+                                   placeholder="Dr. John Smith">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="contact_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="contact_email" name="contact_email"
+                                   value="{{ source.contact_email if source else '' }}"
+                                   placeholder="contact@example.com">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="contact_phone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="contact_phone" name="contact_phone"
+                                   value="{{ source.contact_phone if source else '' }}"
+                                   placeholder="+91 1234567890">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="organization" class="form-label">Organization</label>
+                            <input type="text" class="form-control" id="organization" name="organization"
+                                   value="{{ source.organization if source else '' }}"
+                                   placeholder="Indian Institute of Technology Madras">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="website" class="form-label">Website</label>
+                            <input type="url" class="form-control" id="website" name="website"
+                                   value="{{ source.website if source else '' }}"
+                                   placeholder="https://example.com">
+                        </div>
+                    </div>
+
+                    <!-- Data Format Information Section -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">
+                        <i class="bi bi-file-earmark-text"></i> Data Format Information
+                    </h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="expected_file_format" class="form-label">Expected File Format</label>
+                            <select class="form-select" id="expected_file_format" name="expected_file_format">
+                                <option value="">-- Any Format --</option>
+                                {% for format_key, format_label in file_formats.items() %}
+                                <option value="{{ format_key }}"
+                                        {% if source and source.expected_file_format == format_key %}selected{% endif %}>
+                                    {{ format_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Typical file format for imports from this source</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="data_format_description" class="form-label">Format Description</label>
+                            <input type="text" class="form-control" id="data_format_description" name="data_format_description"
+                                   value="{{ source.data_format_description if source else '' }}"
+                                   placeholder="e.g., CSV with headers, tab-delimited">
+                            <div class="form-text">Details about the file structure</div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Parser Configuration -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="has_custom_parser"
+                                   name="has_custom_parser"
+                                   {% if source and source.has_custom_parser %}checked{% endif %}
+                                   onchange="toggleParserName()">
+                            <label class="form-check-label" for="has_custom_parser">
+                                <strong>Uses Custom Parser</strong>
+                            </label>
+                            <div class="form-text">Enable if this source requires a specialized data parser</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="parser_name_field" style="display: {% if source and source.has_custom_parser %}block{% else %}none{% endif %};">
+                        <label for="parser_name" class="form-label">Parser Name</label>
+                        <input type="text" class="form-control" id="parser_name" name="parser_name"
+                               value="{{ source.parser_name if source else '' }}"
+                               placeholder="e.g., IITParser, WHOGLAASParser">
+                        <div class="form-text">
+                            <i class="bi bi-code-square"></i>
+                            Name of the custom parser class (must be implemented in <code>app/services/</code>)
+                        </div>
+                    </div>
+
+                    <!-- Status and Settings Section -->
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">
+                        <i class="bi bi-gear"></i> Status and Settings
+                    </h6>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="is_trusted" name="is_trusted"
+                                   {% if source and source.is_trusted %}checked{% endif %}>
+                            <label class="form-check-label" for="is_trusted">
+                                <strong>Trusted Source</strong>
+                                <span class="badge bg-success ms-2">
+                                    <i class="bi bi-shield-check"></i>
+                                </span>
+                            </label>
+                            <div class="form-text">
+                                Trusted sources may skip certain validation checks.
+                                Only enable for pre-validated, reliable data sources.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <a href="{{ url_for('imports.list_sources') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-{{ 'save' if source else 'plus-circle' }}"></i>
+                            {{ 'Update' if source else 'Create' }} Data Source
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        {% if not source %}
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-question-circle"></i> Need Help?</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>What is a Data Source?</strong></p>
+                <p>
+                    A data source represents an external entity that provides water quality data to your system.
+                    Each import is associated with a data source to track data provenance and maintain audit trails.
+                </p>
+                <p class="mb-0"><strong>Custom Parsers:</strong></p>
+                <p class="mb-0">
+                    If your data source uses a non-standard format, you can create a custom parser.
+                    Contact your system administrator for assistance with implementing custom parsers.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleParserName() {
+    const checkbox = document.getElementById('has_custom_parser');
+    const field = document.getElementById('parser_name_field');
+    const input = document.getElementById('parser_name');
+
+    if (checkbox.checked) {
+        field.style.display = 'block';
+        input.required = true;
+    } else {
+        field.style.display = 'none';
+        input.required = false;
+        input.value = '';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleParserName();
+});
+</script>
+{% endblock %}

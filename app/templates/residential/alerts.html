@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}My Alerts - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2><i class="bi bi-bell-fill text-warning"></i> Water Quality Alerts</h2>
+            <p class="text-muted">Monitor and manage water quality alerts for your residential sites</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Active Alerts
+                    </h5>
+                    <h2 class="display-4">{{ active_alerts|length }}</h2>
+                    <small class="text-muted">Require attention</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">
+                        <i class="bi bi-check-circle-fill"></i> Resolved Alerts
+                    </h5>
+                    <h2 class="display-4">{{ resolved_alerts|length }}</h2>
+                    <small class="text-muted">Last 30 days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-info">
+                        <i class="bi bi-graph-up"></i> Total Alerts
+                    </h5>
+                    <h2 class="display-4">{{ (active_alerts|length) + (resolved_alerts|length) }}</h2>
+                    <small class="text-muted">All time</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle-fill"></i> Active Alerts
+                <span class="badge bg-dark float-end">{{ active_alerts|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if active_alerts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Site</th>
+                            <th>Alert Type</th>
+                            <th>Severity</th>
+                            <th>Details</th>
+                            <th>Recommended Action</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in active_alerts %}
+                        <tr>
+                            <td>
+                                <small>{{ alert.alert_datetime.strftime('%Y-%m-%d %H:%M') if alert.alert_datetime else 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <small>
+                                    {% if alert.site %}
+                                        {{ alert.site.address_line1[:30] }}...
+                                    {% else %}
+                                        Site #{{ alert.site_id }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ alert.alert_type.replace('_', ' ').title() if alert.alert_type else 'Unknown' }}</span>
+                            </td>
+                            <td>
+                                {% if alert.alert_severity == 'critical' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif alert.alert_severity == 'warning' %}
+                                    <span class="badge bg-warning text-dark">Warning</span>
+                                {% elif alert.alert_severity == 'info' %}
+                                    <span class="badge bg-info">Info</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ alert.alert_severity }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ alert.alert_title }}</strong><br>
+                                <small class="text-muted">{{ alert.alert_message[:100] }}</small>
+                            </td>
+                            <td>
+                                <small>{{ alert.recommended_action[:80] if alert.recommended_action else 'None specified' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <form method="POST" action="{{ url_for('residential.acknowledge_alert', alert_id=alert.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                {% if alert.acknowledged %}disabled{% endif %}>
+                                            <i class="bi bi-check"></i> {% if alert.acknowledged %}Acknowledged{% else %}Acknowledge{% endif %}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('residential.resolve_alert', alert_id=alert.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-circle"></i> Resolve
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill"></i> <strong>Great news!</strong> You have no active water quality alerts.
+                Your water quality is within acceptable limits.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resolved Alerts (Collapsed by default) -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#resolvedAlerts">
+                    <i class="bi bi-check-circle-fill text-success"></i> Resolved Alerts
+                    <span class="badge bg-secondary">{{ resolved_alerts|length }}</span>
+                </button>
+            </h5>
+        </div>
+        <div id="resolvedAlerts" class="collapse">
+            <div class="card-body">
+                {% if resolved_alerts %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Alert Date</th>
+                                <th>Resolved Date</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Details</th>
+                                <th>Resolution Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in resolved_alerts[:20] %}
+                            <tr>
+                                <td><small>{{ alert.alert_datetime.strftime('%Y-%m-%d %H:%M') if alert.alert_datetime else 'N/A' }}</small></td>
+                                <td><small class="text-success">{{ alert.resolved_at.strftime('%Y-%m-%d %H:%M') if alert.resolved_at else 'N/A' }}</small></td>
+                                <td><small>{{ alert.alert_type.replace('_', ' ').title() if alert.alert_type else 'Unknown' }}</small></td>
+                                <td>
+                                    {% if alert.alert_severity == 'critical' %}
+                                        <span class="badge bg-danger">Critical</span>
+                                    {% elif alert.alert_severity == 'warning' %}
+                                        <span class="badge bg-warning text-dark">Warning</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Info</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ alert.alert_title }}: {{ alert.alert_message[:60] }}</small></td>
+                                <td><small class="text-muted">{{ alert.resolution_notes[:60] if alert.resolution_notes else 'No notes' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if resolved_alerts|length > 20 %}
+                <small class="text-muted">Showing 20 most recent resolved alerts</small>
+                {% endif %}
+                {% else %}
+                <p class="text-muted">No resolved alerts in the last 30 days.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle"></i> Understanding Alerts</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <h6 class="text-danger">Critical Alerts</h6>
+                    <small>Immediate action required. Water may be unsafe to drink.</small>
+                    <ul class="small mt-2">
+                        <li>Very high contamination</li>
+                        <li>Severe parameter violations</li>
+                        <li>System failures</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-warning">Warning Alerts</h6>
+                    <small>Action needed soon. Water quality degrading.</small>
+                    <ul class="small mt-2">
+                        <li>Moderate contamination</li>
+                        <li>Parameter limit exceeded</li>
+                        <li>Trend deterioration</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-info">Info Alerts</h6>
+                    <small>Informational. Monitor the situation.</small>
+                    <ul class="small mt-2">
+                        <li>Minor parameter changes</li>
+                        <li>Maintenance reminders</li>
+                        <li>System notifications</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-primary">Common Actions</h6>
+                    <ul class="small mt-2">
+                        <li>Check water source</li>
+                        <li>Clean/replace filters</li>
+                        <li>Service RO system</li>
+                        <li>Contact water authority</li>
+                        <li>Boil water before use</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

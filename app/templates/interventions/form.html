@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if intervention else 'New' }} Intervention - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('interventions.list_interventions') }}">Interventions</a></li>
+            <li class="breadcrumb-item active">{{ 'Edit' if intervention else 'New' }} Intervention</li>
+        </ol>
+    </nav>
+    <h1>
+        <i class="bi bi-{{ 'pencil' if intervention else 'plus-circle' }}"></i>
+        {{ 'Edit' if intervention else 'New' }} Intervention
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-md-10 col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('interventions.edit_intervention', intervention_id=intervention.id) if intervention else url_for('interventions.new_intervention') }}">
+
+                    <!-- Basic Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-info-circle"></i> Basic Information
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title"
+                               value="{{ intervention.title if intervention else '' }}" required>
+                        <div class="form-text">Brief descriptive title for this intervention</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="intervention_type" class="form-label">Intervention Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="intervention_type" name="intervention_type" required>
+                            <option value="">Select type...</option>
+                            {% for value, label in intervention_types.items() %}
+                            <option value="{{ value }}" {% if intervention and intervention.intervention_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="treatment_method_id" class="form-label">Treatment Method <span class="text-danger">*</span></label>
+                        <select class="form-select" id="treatment_method_id" name="treatment_method_id" required>
+                            <option value="">Select treatment method...</option>
+                            {% for method in treatment_methods %}
+                            <option value="{{ method.id }}" {% if intervention and intervention.treatment_method_id == method.id %}selected{% endif %}>
+                                {{ method.name }} ({{ method.category }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select from pre-defined treatment methods</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ intervention.description if intervention else '' }}</textarea>
+                        <div class="form-text">Detailed description of the intervention</div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Scope -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-geo-alt"></i> Scope
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="site_id" class="form-label">Site</label>
+                            <select class="form-select" id="site_id" name="site_id">
+                                <option value="">Select site...</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}" {% if intervention and intervention.site_id == site.id %}selected{% endif %}>
+                                    {{ site.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Site-wide intervention</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="sample_id" class="form-label">Baseline Sample ID</label>
+                            <input type="number" class="form-control" id="sample_id" name="sample_id"
+                                   value="{{ intervention.sample_id if intervention and intervention.sample_id else '' }}">
+                            <div class="form-text">Sample-specific intervention</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> You must specify either a site or a baseline sample (or both)
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Timeline -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-calendar"></i> Timeline
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="planned_date" class="form-label">Planned Date</label>
+                            <input type="date" class="form-control" id="planned_date" name="planned_date"
+                                   value="{{ intervention.planned_date.strftime('%Y-%m-%d') if intervention and intervention.planned_date else '' }}">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="implementation_date" class="form-label">Implementation Date</label>
+                            <input type="date" class="form-control" id="implementation_date" name="implementation_date"
+                                   value="{{ intervention.implementation_date.strftime('%Y-%m-%d') if intervention and intervention.implementation_date else '' }}">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="completion_date" class="form-label">Completion Date</label>
+                            <input type="date" class="form-control" id="completion_date" name="completion_date"
+                                   value="{{ intervention.completion_date.strftime('%Y-%m-%d') if intervention and intervention.completion_date else '' }}">
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Implementation Details -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-people"></i> Implementation Details
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="implemented_by" class="form-label">Implemented By</label>
+                            <input type="text" class="form-control" id="implemented_by" name="implemented_by"
+                                   value="{{ intervention.implemented_by if intervention else '' }}"
+                                   placeholder="Organization or person name">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="funding_source" class="form-label">Funding Source</label>
+                            <input type="text" class="form-control" id="funding_source" name="funding_source"
+                                   value="{{ intervention.funding_source if intervention else '' }}"
+                                   placeholder="Funding organization">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cost" class="form-label">Cost (INR)</label>
+                        <input type="number" step="0.01" class="form-control" id="cost" name="cost"
+                               value="{{ intervention.cost if intervention and intervention.cost else '' }}"
+                               placeholder="0.00">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Status -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-flag"></i> Status
+                    </h5>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Current Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="status" name="status" required>
+                            {% for value, label in status_choices.items() %}
+                            <option value="{{ value }}" {% if (intervention and intervention.status == value) or (not intervention and value == 'planned') %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if intervention and intervention.status == 'completed' %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        When marking as "Completed", make sure you have linked a followup sample to enable effectiveness calculation.
+                    </div>
+                    {% endif %}
+
+                    <hr class="my-4">
+
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('interventions.list_interventions') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> {{ 'Update' if intervention else 'Create' }} Intervention
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if intervention %}
+        <!-- Delete Section -->
+        <div class="card mt-3 border-danger">
+            <div class="card-body">
+                <h5 class="card-title text-danger">
+                    <i class="bi bi-trash"></i> Danger Zone
+                </h5>
+                <p class="text-muted">Delete this intervention permanently. This action cannot be undone.</p>
+                <form method="POST" action="{{ url_for('interventions.delete_intervention', intervention_id=intervention.id) }}"
+                      onsubmit="return confirm('Are you sure you want to delete this intervention? This cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Intervention
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar with help -->
+    <div class="col-md-2 d-none d-md-block">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-lightbulb"></i> Tips
+                </h6>
+                <ul class="small">
+                    <li>Specify either a site or baseline sample</li>
+                    <li>Update status as work progresses</li>
+                    <li>Link followup samples for effectiveness tracking</li>
+                    <li>Record actual costs for ROI analysis</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Treatment Effectiveness Dashboard - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .effectiveness-bar {
+        height: 30px;
+        background: linear-gradient(to right, #dc3545, #ffc107, #28a745);
+        border-radius: 5px;
+        position: relative;
+    }
+    .effectiveness-marker {
+        position: absolute;
+        width: 3px;
+        height: 30px;
+        background: #000;
+        top: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('interventions.list_interventions') }}">Interventions</a></li>
+            <li class="breadcrumb-item active">Effectiveness Dashboard</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>
+            <i class="bi bi-graph-up"></i> Treatment Effectiveness Dashboard
+        </h1>
+        <div>
+            <a href="{{ url_for('interventions.treatment_recommendations') }}" class="btn btn-success">
+                <i class="bi bi-lightbulb"></i> Get Recommendations
+            </a>
+            <a href="{{ url_for('interventions.list_interventions') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+{% if summary_stats %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="mb-0 text-primary">{{ summary_stats.total_interventions }}</h3>
+                <p class="text-muted mb-0">Total Interventions</p>
+                <small class="text-muted">
+                    {{ summary_stats.by_status.completed }} completed,
+                    {{ summary_stats.by_status.in_progress }} in progress
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="mb-0 text-success">{{ summary_stats.success_rate }}%</h3>
+                <p class="text-muted mb-0">Success Rate</p>
+                <small class="text-muted">
+                    {{ summary_stats.successful_interventions }} of {{ summary_stats.by_status.completed }} successful
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="mb-0 text-info">
+                    {% if summary_stats.average_improvement %}
+                    {{ "{:.1f}".format(summary_stats.average_improvement) }}%
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-0">Avg Improvement</p>
+                <small class="text-muted">Water quality improvement</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3 class="mb-0 text-secondary">
+                    {% if summary_stats.average_cost %}
+                    ₹{{ "{:,.0f}".format(summary_stats.average_cost) }}
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-0">Avg Cost</p>
+                <small class="text-muted">Per intervention</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Effectiveness by Treatment Method -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-bar-chart"></i> Effectiveness by Treatment Method
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if effectiveness_data %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Treatment Method</th>
+                        <th>Category</th>
+                        <th>Total Uses</th>
+                        <th>Successful</th>
+                        <th>Success Rate</th>
+                        <th>Avg Improvement</th>
+                        <th>Avg Cost</th>
+                        <th>Effectiveness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for method in effectiveness_data %}
+                    <tr>
+                        <td>
+                            <strong>{{ method.treatment_method }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ method.category|title }}</span>
+                        </td>
+                        <td class="text-center">{{ method.total_interventions }}</td>
+                        <td class="text-center">{{ method.successful_interventions }}</td>
+                        <td>
+                            {% if method.success_rate > 70 %}
+                            <span class="badge bg-success">{{ method.success_rate }}%</span>
+                            {% elif method.success_rate > 40 %}
+                            <span class="badge bg-info">{{ method.success_rate }}%</span>
+                            {% elif method.success_rate > 0 %}
+                            <span class="badge bg-warning">{{ method.success_rate }}%</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ method.success_rate }}%</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if method.average_improvement is not none %}
+                            <span class="{% if method.average_improvement > 30 %}text-success{% elif method.average_improvement > 10 %}text-info{% else %}text-warning{% endif %}">
+                                {{ "{:.1f}".format(method.average_improvement) }}%
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if method.average_cost is not none %}
+                            {{ method.cost_currency }} {{ "{:,.0f}".format(method.average_cost) }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="effectiveness-bar">
+                                {% if method.success_rate > 0 %}
+                                <div class="effectiveness-marker" style="left: {{ method.success_rate }}%;"></div>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-graph-up" style="font-size: 4rem; color: #6c757d;"></i>
+            <p class="mt-3 text-muted">No effectiveness data available yet</p>
+            <p class="text-muted">Complete interventions with pre/post water quality testing to see effectiveness metrics</p>
+            <a href="{{ url_for('interventions.new_intervention') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> Create Intervention
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Insights -->
+{% if effectiveness_data %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-trophy"></i> Most Effective Methods
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for method in effectiveness_data[:5] %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ method.treatment_method }}
+                        <span class="badge bg-success rounded-pill">{{ method.success_rate }}% success</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    {% if summary_stats.success_rate >= 70 %}
+                    <li>Overall success rate is excellent ({{ summary_stats.success_rate }}%)</li>
+                    {% elif summary_stats.success_rate >= 50 %}
+                    <li>Overall success rate is good ({{ summary_stats.success_rate }}%), but there's room for improvement</li>
+                    {% else %}
+                    <li>Overall success rate needs improvement ({{ summary_stats.success_rate }}%)</li>
+                    {% endif %}
+
+                    {% if effectiveness_data %}
+                    {% set top_method = effectiveness_data[0] %}
+                    {% if top_method.total_interventions >= 5 %}
+                    <li>Most reliable method: <strong>{{ top_method.treatment_method }}</strong> with {{ top_method.success_rate }}% success rate over {{ top_method.total_interventions }} uses</li>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if summary_stats.average_improvement and summary_stats.average_improvement > 30 %}
+                    <li>Average water quality improvement is excellent at {{ "{:.1f}".format(summary_stats.average_improvement) }}%</li>
+                    {% endif %}
+
+                    {% if summary_stats.average_cost %}
+                    <li>Average intervention cost: ₹{{ "{:,.0f}".format(summary_stats.average_cost) }}</li>
+                    {% endif %}
+
+                    <li>Track more interventions to improve data reliability</li>
+                    <li>Consider pre/post testing for all interventions to measure effectiveness</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any charts or visualizations here using Chart.js if needed
+});
+</script>
+{% endblock %}

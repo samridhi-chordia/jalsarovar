@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Site Analysis - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-building"></i> Site Analysis</h2>
+            <p class="text-muted">Select a site to view detailed water quality trends and forecasts</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="searchSites"
+                       placeholder="Search by site name, code, district, or state...">
+            </div>
+        </div>
+        <div class="col-md-6 text-end">
+            <span class="text-muted" id="siteCount">{{ sites|length }} sites available</span>
+        </div>
+    </div>
+
+    <!-- Sites Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Available Sites</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if sites %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="sitesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Site Name</th>
+                                    <th>Code</th>
+                                    <th>Location</th>
+                                    <th class="text-center">Samples (Last Year)</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in sites %}
+                                <tr class="site-row">
+                                    <td>
+                                        <strong>{{ site.site_name }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if site.site_code %}
+                                        <span class="badge bg-secondary">{{ site.site_code }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-geo-alt"></i>
+                                        {{ site.district }}{% if site.state %}, {{ site.state }}{% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if site.sample_count > 0 %}
+                                        <span class="badge bg-info">{{ site.sample_count }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('analytics.site_trends', site_id=site.id) }}"
+                                               class="btn btn-outline-primary"
+                                               title="View Trends">
+                                                <i class="bi bi-graph-up"></i> Trends
+                                            </a>
+                                            <a href="{{ url_for('analytics.site_forecast', site_id=site.id) }}"
+                                               class="btn btn-outline-success"
+                                               title="View Forecasts">
+                                                <i class="bi bi-graph-up-arrow"></i> Forecast
+                                            </a>
+                                            <a href="{{ url_for('samples.index', site_id=site.id) }}"
+                                               class="btn btn-outline-info"
+                                               title="View Samples">
+                                                <i class="bi bi-water"></i> Samples
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info m-3">
+                        <i class="bi bi-info-circle"></i> No sites available in the system.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-info-circle"></i> About Site Analysis</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-graph-up"></i> Trends</strong>
+                            <p class="mb-0 small text-muted">
+                                View historical water quality trends with statistical analysis including
+                                Mann-Kendall trend testing, linear regression, and change point detection.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-graph-up-arrow"></i> Forecasts</strong>
+                            <p class="mb-0 small text-muted">
+                                Predict future water quality parameters with 95% confidence intervals.
+                                Includes alerts when parameters may exceed WHO/BIS safety limits.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-water"></i> Samples</strong>
+                            <p class="mb-0 small text-muted">
+                                View all water quality samples collected from the site, including test
+                                results and historical data.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchSites');
+    const siteRows = document.querySelectorAll('.site-row');
+    const siteCount = document.getElementById('siteCount');
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        let visibleCount = 0;
+
+        siteRows.forEach(function(row) {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        siteCount.textContent = `${visibleCount} of {{ sites|length }} sites shown`;
+    });
+});
+</script>
+{% endblock %}

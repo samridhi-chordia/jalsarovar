@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Add Test Results - Sample {{ sample.sample_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-clipboard-pulse"></i> Add Test Results</h1>
+    <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Sample
+    </a>
+</div>
+
+<div class="alert alert-info mb-4">
+    <strong>Sample:</strong> {{ sample.sample_id }} |
+    <strong>Site:</strong> {{ sample.site.site_name if sample.site else 'N/A' }} |
+    <strong>Collected:</strong> {{ sample.collection_date.strftime('%Y-%m-%d') }}
+</div>
+
+<div class="row">
+    <div class="col-lg-11 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('tests.create', sample_id=sample.id) }}">
+                    <!-- Test Metadata -->
+                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Test Information</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="test_date" class="form-label">Test Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="test_date" name="test_date" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="test_time" class="form-label">Test Time <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" id="test_time" name="test_time" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tested_by" class="form-label">Tested By</label>
+                            <input type="text" class="form-control" id="tested_by" name="tested_by" placeholder="Technician name">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="test_batch_id" class="form-label">Batch ID</label>
+                            <input type="text" class="form-control" id="test_batch_id" name="test_batch_id" placeholder="Optional batch ID">
+                        </div>
+                    </div>
+
+                    <!-- Physical Parameters -->
+                    <h5 class="mb-3"><i class="bi bi-thermometer-half"></i> Physical Parameters</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="turbidity_ntu" class="form-label">Turbidity (NTU)</label>
+                            <input type="number" step="0.01" class="form-control" id="turbidity_ntu" name="turbidity_ntu">
+                            <small class="text-muted">WHO: ≤5 NTU</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="temperature_celsius" class="form-label">Temperature (°C)</label>
+                            <input type="number" step="0.1" class="form-control" id="temperature_celsius" name="temperature_celsius">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="color_pcu" class="form-label">Color (PCU)</label>
+                            <input type="number" step="1" class="form-control" id="color_pcu" name="color_pcu">
+                            <small class="text-muted">WHO: ≤15 PCU</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="odor_intensity" class="form-label">Odor Intensity (0-5)</label>
+                            <input type="number" step="1" min="0" max="5" class="form-control" id="odor_intensity" name="odor_intensity">
+                        </div>
+                    </div>
+
+                    <!-- Chemical Parameters -->
+                    <h5 class="mb-3"><i class="bi bi-droplet-half"></i> Chemical Parameters</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="ph_value" class="form-label">pH Value</label>
+                            <input type="number" step="0.01" class="form-control" id="ph_value" name="ph_value">
+                            <small class="text-muted">WHO: 6.5-8.5</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tds_ppm" class="form-label">TDS (ppm)</label>
+                            <input type="number" step="1" class="form-control" id="tds_ppm" name="tds_ppm">
+                            <small class="text-muted">WHO: ≤500 ppm</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="salinity_ppm" class="form-label">Salinity (ppm)</label>
+                            <input type="number" step="1" class="form-control" id="salinity_ppm" name="salinity_ppm">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conductivity_us_cm" class="form-label">Conductivity (μS/cm)</label>
+                            <input type="number" step="1" class="form-control" id="conductivity_us_cm" name="conductivity_us_cm">
+                        </div>
+                    </div>
+
+                    <!-- Chlorine Parameters -->
+                    <h5 class="mb-3"><i class="bi bi-shield-check"></i> Chlorine & Chloride</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="free_chlorine_mg_l" class="form-label">Free Chlorine (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="free_chlorine_mg_l" name="free_chlorine_mg_l">
+                            <small class="text-muted">WHO: 0.2-0.5 mg/L</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="total_chlorine_mg_l" class="form-label">Total Chlorine (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="total_chlorine_mg_l" name="total_chlorine_mg_l">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="chloride_mg_l" class="form-label">Chloride (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="chloride_mg_l" name="chloride_mg_l">
+                            <small class="text-muted">WHO: ≤250 mg/L</small>
+                        </div>
+                    </div>
+
+                    <!-- Metals -->
+                    <h5 class="mb-3"><i class="bi bi-radioactive"></i> Heavy Metals</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="iron_mg_l" class="form-label">Iron (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="iron_mg_l" name="iron_mg_l">
+                            <small class="text-muted">WHO: ≤0.3 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="manganese_mg_l" class="form-label">Manganese (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="manganese_mg_l" name="manganese_mg_l">
+                            <small class="text-muted">WHO: ≤0.1 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="copper_mg_l" class="form-label">Copper (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="copper_mg_l" name="copper_mg_l">
+                            <small class="text-muted">WHO: ≤2 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="lead_mg_l" class="form-label">Lead (mg/L)</label>
+                            <input type="number" step="0.001" class="form-control" id="lead_mg_l" name="lead_mg_l">
+                            <small class="text-muted">WHO: ≤0.01 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="arsenic_mg_l" class="form-label">Arsenic (mg/L)</label>
+                            <input type="number" step="0.001" class="form-control" id="arsenic_mg_l" name="arsenic_mg_l">
+                            <small class="text-muted">WHO: ≤0.01 mg/L</small>
+                        </div>
+                    </div>
+
+                    <!-- Hardness -->
+                    <h5 class="mb-3"><i class="bi bi-bar-chart"></i> Hardness</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="total_hardness_mg_l" class="form-label">Total Hardness (mg/L as CaCO₃)</label>
+                            <input type="number" step="1" class="form-control" id="total_hardness_mg_l" name="total_hardness_mg_l">
+                            <small class="text-muted">WHO: ≤500 mg/L</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="calcium_hardness_mg_l" class="form-label">Calcium Hardness (mg/L)</label>
+                            <input type="number" step="1" class="form-control" id="calcium_hardness_mg_l" name="calcium_hardness_mg_l">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="magnesium_hardness_mg_l" class="form-label">Magnesium Hardness (mg/L)</label>
+                            <input type="number" step="1" class="form-control" id="magnesium_hardness_mg_l" name="magnesium_hardness_mg_l">
+                        </div>
+                    </div>
+
+                    <!-- Nutrients -->
+                    <h5 class="mb-3"><i class="bi bi-graph-up"></i> Nutrients</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label for="nitrate_mg_l" class="form-label">Nitrate (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="nitrate_mg_l" name="nitrate_mg_l">
+                            <small class="text-muted">WHO: ≤50 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="nitrite_mg_l" class="form-label">Nitrite (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="nitrite_mg_l" name="nitrite_mg_l">
+                            <small class="text-muted">WHO: ≤3 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ammonia_mg_l" class="form-label">Ammonia (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="ammonia_mg_l" name="ammonia_mg_l">
+                            <small class="text-muted">WHO: ≤1.5 mg/L</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="phosphate_mg_l" class="form-label">Phosphate (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="phosphate_mg_l" name="phosphate_mg_l">
+                        </div>
+                    </div>
+
+                    <!-- Biological Parameters -->
+                    <h5 class="mb-3"><i class="bi bi-virus"></i> Biological Parameters</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="coliform_status" class="form-label">Coliform Status</label>
+                            <select class="form-select" id="coliform_status" name="coliform_status">
+                                <option value="">Select status...</option>
+                                <option value="absent">Absent</option>
+                                <option value="present">Present</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="e_coli_status" class="form-label">E. Coli Status</label>
+                            <select class="form-select" id="e_coli_status" name="e_coli_status">
+                                <option value="">Select status...</option>
+                                <option value="absent">Absent</option>
+                                <option value="present">Present</option>
+                            </select>
+                            <small class="text-muted">WHO: Must be absent</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="coliform_count_cfu_100ml" class="form-label">Coliform Count (CFU/100ml)</label>
+                            <input type="number" step="1" class="form-control" id="coliform_count_cfu_100ml" name="coliform_count_cfu_100ml">
+                        </div>
+                    </div>
+
+                    <!-- Dissolved Oxygen & Organic Matter -->
+                    <h5 class="mb-3"><i class="bi bi-wind"></i> Oxygen & Organic Matter</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="dissolved_oxygen_mg_l" class="form-label">Dissolved Oxygen (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="dissolved_oxygen_mg_l" name="dissolved_oxygen_mg_l">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bod_mg_l" class="form-label">BOD (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="bod_mg_l" name="bod_mg_l">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cod_mg_l" class="form-label">COD (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control" id="cod_mg_l" name="cod_mg_l">
+                        </div>
+                    </div>
+
+                    <!-- Other Parameters -->
+                    <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Other Parameters</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="alkalinity_mg_l" class="form-label">Alkalinity (mg/L as CaCO₃)</label>
+                            <input type="number" step="1" class="form-control" id="alkalinity_mg_l" name="alkalinity_mg_l">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="sulfate_mg_l" class="form-label">Sulfate (mg/L)</label>
+                            <input type="number" step="1" class="form-control" id="sulfate_mg_l" name="sulfate_mg_l">
+                            <small class="text-muted">WHO: ≤250 mg/L</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fluoride_mg_l" class="form-label">Fluoride (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control" id="fluoride_mg_l" name="fluoride_mg_l">
+                            <small class="text-muted">WHO: 0.5-1.5 mg/L</small>
+                        </div>
+                    </div>
+
+                    <!-- Test Metadata -->
+                    <h5 class="mb-3"><i class="bi bi-tools"></i> Test Methodology</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="test_method" class="form-label">Test Method</label>
+                            <input type="text" class="form-control" id="test_method" name="test_method"
+                                   placeholder="e.g., APHA Standard Methods">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="lab_equipment_id" class="form-label">Equipment ID</label>
+                            <input type="text" class="form-control" id="lab_equipment_id" name="lab_equipment_id"
+                                   placeholder="Laboratory equipment identifier">
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <h5 class="mb-3"><i class="bi bi-sticky"></i> Notes & Observations</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label for="test_notes" class="form-label">Test Notes</label>
+                            <textarea class="form-control" id="test_notes" name="test_notes" rows="2"
+                                      placeholder="Any notes about the testing process..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="anomalies_observed" class="form-label">Anomalies Observed</label>
+                            <textarea class="form-control" id="anomalies_observed" name="anomalies_observed" rows="2"
+                                      placeholder="Any unusual observations during testing..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Auto-analyze Option -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="auto_analyze" name="auto_analyze" value="yes">
+                                <label class="form-check-label" for="auto_analyze">
+                                    <strong>Automatically run contamination analysis after saving test results</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Test Results
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date and current time as defaults
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('test_date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+
+    const timeInput = document.getElementById('test_time');
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    timeInput.value = `${hours}:${minutes}`;
+});
+</script>
+{% endblock %}

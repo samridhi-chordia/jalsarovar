@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Water Quality Alerts - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-exclamation-triangle"></i> Water Quality Alerts</h2>
+            <p class="text-muted">Sites requiring attention based on trend analysis</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5><i class="bi bi-funnel"></i> Filter by Warning Level</h5>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('analytics.alerts', level='all') }}"
+                           class="btn {% if level_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            All Levels
+                        </a>
+                        <a href="{{ url_for('analytics.alerts', level='critical') }}"
+                           class="btn {% if level_filter == 'critical' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                            Critical
+                        </a>
+                        <a href="{{ url_for('analytics.alerts', level='high') }}"
+                           class="btn {% if level_filter == 'high' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                            High
+                        </a>
+                        <a href="{{ url_for('analytics.alerts', level='medium') }}"
+                           class="btn {% if level_filter == 'medium' %}btn-info{% else %}btn-outline-info{% endif %}">
+                            Medium
+                        </a>
+                        <a href="{{ url_for('analytics.alerts', level='low') }}"
+                           class="btn {% if level_filter == 'low' %}btn-success{% else %}btn-outline-success{% endif %}">
+                            Low
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list"></i>
+                        {% if level_filter == 'all' %}
+                            All Alerts
+                        {% else %}
+                            {{ level_filter|capitalize }} Warning Alerts
+                        {% endif %}
+                        <span class="badge bg-secondary">{{ alerts|length }} Sites</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Site</th>
+                                    <th>Warning Level</th>
+                                    <th>Warning Score</th>
+                                    <th>Overall Trend</th>
+                                    <th>Change Points</th>
+                                    <th>Recommendations</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in alerts %}
+                                <tr class="{% if alert.warning_level == 'critical' %}table-danger{% elif alert.warning_level == 'high' %}table-warning{% endif %}">
+                                    <td>
+                                        <h4 class="mb-0">
+                                            {% if alert.warning_level == 'critical' %}
+                                                <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                            {% elif alert.warning_level == 'high' %}
+                                                <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                                            {% elif alert.warning_level == 'medium' %}
+                                                <i class="bi bi-info-circle-fill text-info"></i>
+                                            {% else %}
+                                                <i class="bi bi-check-circle-fill text-success"></i>
+                                            {% endif %}
+                                        </h4>
+                                    </td>
+                                    <td>
+                                        <strong>{{ alert.site_name }}</strong><br>
+                                        <small class="text-muted">{{ alert.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        {% if alert.warning_level == 'critical' %}
+                                            <span class="badge bg-danger">CRITICAL</span>
+                                        {% elif alert.warning_level == 'high' %}
+                                            <span class="badge bg-warning text-dark">HIGH</span>
+                                        {% elif alert.warning_level == 'medium' %}
+                                            <span class="badge bg-info">MEDIUM</span>
+                                        {% else %}
+                                            <span class="badge bg-success">LOW</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ alert.warning_score|round(1) }}</strong> / 100
+                                        <div class="progress mt-1" style="height: 5px;">
+                                            {% if alert.warning_score >= 70 %}
+                                                <div class="progress-bar bg-danger" style="width: {{ alert.warning_score }}%"></div>
+                                            {% elif alert.warning_score >= 50 %}
+                                                <div class="progress-bar bg-warning" style="width: {{ alert.warning_score }}%"></div>
+                                            {% elif alert.warning_score >= 30 %}
+                                                <div class="progress-bar bg-info" style="width: {{ alert.warning_score }}%"></div>
+                                            {% else %}
+                                                <div class="progress-bar bg-success" style="width: {{ alert.warning_score }}%"></div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if alert.overall_trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% elif alert.overall_trend == 'stable' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% elif alert.overall_trend == 'improving' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if alert.change_points > 0 %}
+                                            <span class="badge bg-warning text-dark">
+                                                {{ alert.change_points }} detected
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if alert.recommendations %}
+                                            <div class="accordion" id="recommendations{{ loop.index }}">
+                                                <div class="accordion-item border-0">
+                                                    <h2 class="accordion-header">
+                                                        <button class="accordion-button collapsed p-2" type="button"
+                                                                data-bs-toggle="collapse"
+                                                                data-bs-target="#rec{{ loop.index }}">
+                                                            <small>View {{ alert.recommendations|length }} recommendations</small>
+                                                        </button>
+                                                    </h2>
+                                                    <div id="rec{{ loop.index }}"
+                                                         class="accordion-collapse collapse"
+                                                         data-bs-parent="#recommendations{{ loop.index }}">
+                                                        <div class="accordion-body p-2">
+                                                            <ul class="mb-0 small">
+                                                                {% for rec in alert.recommendations %}
+                                                                <li>{{ rec }}</li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted small">No specific recommendations</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('analytics.site_trends', site_id=alert.site_id) }}"
+                                           class="btn btn-sm btn-outline-primary mb-1">
+                                            <i class="bi bi-graph-up"></i> Trends
+                                        </a>
+                                        <a href="{{ url_for('samples.site_samples', site_id=alert.site_id) }}"
+                                           class="btn btn-sm btn-outline-secondary mb-1">
+                                            <i class="bi bi-water"></i> Samples
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        {% if level_filter == 'all' %}
+                            No alerts found. All analyzed sites are within acceptable parameters.
+                        {% else %}
+                            No {{ level_filter }} warning alerts found.
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

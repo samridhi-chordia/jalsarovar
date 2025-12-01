@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Parameter Forecasts - {{ site.site_name }} - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+    .forecast-card {
+        margin-bottom: 20px;
+    }
+    .prediction-warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    .confidence-indicator {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-graph-up-arrow"></i> Water Quality Forecasts - {{ site.site_name }}</h2>
+            <p class="text-muted">
+                <i class="bi bi-geo-alt"></i> {{ site.district }}{% if site.state %}, {{ site.state }}{% endif %}
+                {% if site.site_code %}
+                    <span class="badge bg-secondary ms-2">{{ site.site_code }}</span>
+                {% endif %}
+            </p>
+            <p class="text-muted">
+                <i class="bi bi-calendar"></i> Forecasting {{ forecast_days }} days into the future based on {{ historical_days }} days of historical data
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.site_trends', site_id=site.id) }}" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Trends
+            </a>
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-primary mb-2">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Forecast Methodology Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> About These Forecasts</h6>
+                <p class="mb-0">
+                    These predictions are based on linear regression analysis of historical water quality data.
+                    Forecasts should be used as guidance for planning sampling and interventions.
+                    Actual values may vary due to environmental factors, seasonal changes, or interventions.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Forecasts -->
+    {% for param_name, forecast_data in forecasts.items() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card forecast-card">
+                <div class="card-header {% if forecast_data.exceeds_limit %}bg-warning{% else %}bg-primary text-white{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ param_name }}</h5>
+                        <div>
+                            {% if forecast_data.trend_direction == 'declining' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-arrow-down"></i> Declining Trend
+                                </span>
+                            {% elif forecast_data.trend_direction == 'improving' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-arrow-up"></i> Improving Trend
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-dash"></i> Stable Trend
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Forecast Warnings -->
+                    {% if forecast_data.exceeds_limit %}
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-exclamation-triangle-fill"></i> Critical Forecast Alert</h6>
+                        <p class="mb-0">
+                            Based on current trends, this parameter is predicted to exceed WHO/BIS safety limits
+                            within the next {{ forecast_days }} days. Immediate intervention is recommended.
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    {% if forecast_data.approaching_limit %}
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-circle"></i> Warning</h6>
+                        <p class="mb-0">
+                            This parameter is approaching safety limits. Consider planning preventive interventions.
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Current vs Predicted Stats -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted">Current Average</small><br>
+                                <h4 class="mb-0">{{ forecast_data.current_avg|round(2) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted">Predicted ({{ forecast_days }} days)</small><br>
+                                <h4 class="mb-0 {% if forecast_data.exceeds_limit %}text-danger{% endif %}">
+                                    {{ forecast_data.predicted_value|round(2) }}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted">Expected Change</small><br>
+                                <h4 class="mb-0 {% if forecast_data.change > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ forecast_data.change|round(2) }}
+                                    {% if forecast_data.change > 0 %}
+                                        <i class="bi bi-arrow-up"></i>
+                                    {% else %}
+                                        <i class="bi bi-arrow-down"></i>
+                                    {% endif %}
+                                </h4>
+                                <small class="confidence-indicator">
+                                    {{ (forecast_data.change_percent)|round(1) }}% change
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted">Model Accuracy (R²)</small><br>
+                                <h4 class="mb-0">{{ (forecast_data.r_squared * 100)|round(1) }}%</h4>
+                                <small class="confidence-indicator">
+                                    {% if forecast_data.r_squared >= 0.7 %}
+                                        <span class="text-success">High confidence</span>
+                                    {% elif forecast_data.r_squared >= 0.4 %}
+                                        <span class="text-warning">Moderate confidence</span>
+                                    {% else %}
+                                        <span class="text-danger">Low confidence</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Chart -->
+                    <div id="forecast_{{ param_name|replace(' ', '_') }}" class="plot-container"></div>
+
+                    <script>
+                    (function() {
+                        // Historical data
+                        var historicalDates = {{ forecast_data.historical_dates|tojson }};
+                        var historicalValues = {{ forecast_data.historical_values|tojson }};
+
+                        // Forecast data
+                        var forecastDates = {{ forecast_data.forecast_dates|tojson }};
+                        var forecastValues = {{ forecast_data.forecast_values|tojson }};
+                        var upperBound = {{ forecast_data.upper_confidence|tojson }};
+                        var lowerBound = {{ forecast_data.lower_confidence|tojson }};
+
+                        // Historical trace
+                        var historicalTrace = {
+                            x: historicalDates,
+                            y: historicalValues,
+                            mode: 'markers+lines',
+                            name: 'Historical Data',
+                            marker: {
+                                size: 8,
+                                color: '#0d6efd'
+                            },
+                            line: {
+                                color: '#0d6efd',
+                                width: 2
+                            }
+                        };
+
+                        // Forecast trace
+                        var forecastTrace = {
+                            x: forecastDates,
+                            y: forecastValues,
+                            mode: 'lines',
+                            name: 'Forecast',
+                            line: {
+                                color: '#dc3545',
+                                width: 2,
+                                dash: 'dash'
+                            }
+                        };
+
+                        // Confidence interval - upper
+                        var upperTrace = {
+                            x: forecastDates,
+                            y: upperBound,
+                            mode: 'lines',
+                            name: 'Upper Confidence (95%)',
+                            line: {
+                                color: 'rgba(220, 53, 69, 0.2)',
+                                width: 1
+                            },
+                            showlegend: true
+                        };
+
+                        // Confidence interval - lower
+                        var lowerTrace = {
+                            x: forecastDates,
+                            y: lowerBound,
+                            mode: 'lines',
+                            name: 'Lower Confidence (95%)',
+                            fill: 'tonexty',
+                            fillcolor: 'rgba(220, 53, 69, 0.1)',
+                            line: {
+                                color: 'rgba(220, 53, 69, 0.2)',
+                                width: 1
+                            },
+                            showlegend: true
+                        };
+
+                        var data = [historicalTrace, forecastTrace, upperTrace, lowerTrace];
+
+                        // Add safety limit line if available
+                        {% if forecast_data.standard_limit %}
+                        var allDates = historicalDates.concat(forecastDates);
+                        var limitLine = {
+                            x: allDates,
+                            y: Array(allDates.length).fill({{ forecast_data.standard_limit }}),
+                            mode: 'lines',
+                            name: 'WHO/BIS Limit',
+                            line: {
+                                color: '#ffc107',
+                                width: 3,
+                                dash: 'dot'
+                            }
+                        };
+                        data.push(limitLine);
+                        {% endif %}
+
+                        var layout = {
+                            title: '{{ param_name }} - Historical Data and Forecast',
+                            xaxis: {
+                                title: 'Date',
+                                showgrid: true
+                            },
+                            yaxis: {
+                                title: 'Value',
+                                showgrid: true
+                            },
+                            hovermode: 'closest',
+                            showlegend: true,
+                            height: 500,
+                            shapes: [{
+                                type: 'line',
+                                x0: '{{ forecast_data.forecast_start_date }}',
+                                y0: 0,
+                                x1: '{{ forecast_data.forecast_start_date }}',
+                                y1: 1,
+                                yref: 'paper',
+                                line: {
+                                    color: '#6c757d',
+                                    width: 2,
+                                    dash: 'dot'
+                                }
+                            }],
+                            annotations: [{
+                                x: '{{ forecast_data.forecast_start_date }}',
+                                y: 1,
+                                yref: 'paper',
+                                text: 'Forecast Start',
+                                showarrow: false,
+                                yanchor: 'bottom'
+                            }]
+                        };
+
+                        Plotly.newPlot('forecast_{{ param_name|replace(" ", "_") }}', data, layout, {responsive: true});
+                    })();
+                    </script>
+
+                    <!-- Recommendations -->
+                    {% if forecast_data.recommendations %}
+                    <div class="mt-3 prediction-warning">
+                        <h6><i class="bi bi-lightbulb"></i> Recommendations</h6>
+                        <ul class="mb-0">
+                            {% for rec in forecast_data.recommendations %}
+                            <li>{{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not forecasts %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Insufficient data to generate forecasts. At least {{ min_samples_required }} samples are needed for reliable predictions.
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Recommended Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if forecasts %}
+                    <a href="{{ url_for('interventions.new_intervention') }}?site_id={{ site.id }}"
+                       class="btn btn-success me-2 mb-2">
+                        <i class="bi bi-plus-circle"></i> Plan Intervention
+                    </a>
+                    <a href="{{ url_for('samples.new_sample') }}?site_id={{ site.id }}"
+                       class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-droplet"></i> Schedule Sample Collection
+                    </a>
+                    <a href="{{ url_for('analytics.site_trends', site_id=site.id) }}"
+                       class="btn btn-outline-secondary me-2 mb-2">
+                        <i class="bi bi-graph-up"></i> View Current Trends
+                    </a>
+                    <a href="{{ url_for('samples.site_samples', site_id=site.id) }}"
+                       class="btn btn-outline-info mb-2">
+                        <i class="bi bi-water"></i> View All Samples
+                    </a>
+                    {% else %}
+                    <p class="text-muted mb-2">
+                        To generate forecasts, please collect more water samples from this site.
+                    </p>
+                    <a href="{{ url_for('samples.new_sample') }}?site_id={{ site.id }}"
+                       class="btn btn-primary">
+                        <i class="bi bi-droplet"></i> Add New Sample
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-secondary">
+                <small>
+                    <strong>Disclaimer:</strong> These forecasts are statistical predictions based on historical trends.
+                    They do not account for sudden environmental changes, extreme weather events, or the effects of interventions.
+                    Use these predictions as planning tools in conjunction with regular water quality monitoring and expert judgment.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

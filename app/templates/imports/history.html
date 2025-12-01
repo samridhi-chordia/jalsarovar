@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Import History - Jal Sarovar{% endblock %}
+
+{% block content %}
+<!-- Breadcrumbs -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+        <li class="breadcrumb-item active">Import History</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-clock-history"></i> Import History</h2>
+    <a href="{{ url_for('imports.new_import') }}" class="btn btn-primary">
+        <i class="bi bi-upload"></i> New Import
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('imports.history') }}" class="row g-3">
+            <div class="col-md-4">
+                <label for="source_id" class="form-label">Data Source</label>
+                <select name="source_id" id="source_id" class="form-select">
+                    <option value="">-- All Sources --</option>
+                    {% for source in sources %}
+                    <option value="{{ source.id }}"
+                            {% if selected_source == source.id %}selected{% endif %}>
+                        {{ source.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">-- All Statuses --</option>
+                    {% for status_key, status_label in status_choices.items() %}
+                    <option value="{{ status_key }}"
+                            {% if selected_status == status_key %}selected{% endif %}>
+                        {{ status_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a href="{{ url_for('imports.history') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Import Batches List -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if batches.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Data Source</th>
+                        <th>File</th>
+                        <th>Import Date</th>
+                        <th>Status</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">Successful</th>
+                        <th class="text-center">Failed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('imports.view_batch', batch_id=batch.id) }}"
+                               class="text-decoration-none">
+                                #{{ batch.id }}
+                            </a>
+                        </td>
+                        <td>
+                            <strong>{{ batch.data_source.name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ batch.data_source.source_type.replace('_', ' ').title() }}
+                            </small>
+                        </td>
+                        <td>
+                            <code class="small">{{ batch.file_name }}</code>
+                        </td>
+                        <td>
+                            {{ batch.import_date.strftime('%Y-%m-%d %H:%M') }}
+                            <br>
+                            <small class="text-muted">
+                                by {{ batch.imported_by.username }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if batch.status == 'completed' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill"></i> Completed
+                                </span>
+                            {% elif batch.status == 'failed' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle-fill"></i> Failed
+                                </span>
+                            {% elif batch.status == 'processing' or batch.status == 'validating' or batch.status == 'importing' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-arrow-clockwise"></i> {{ batch.status.title() }}
+                                </span>
+                            {% elif batch.status == 'rolled_back' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Rolled Back
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ batch.status.title() }}
+                                </span>
+                            {% endif %}
+                            {% if batch.processing_time_seconds %}
+                            <br>
+                            <small class="text-muted">
+                                {{ "%.1f"|format(batch.processing_time_seconds) }}s
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {{ batch.total_records or 0 }}
+                        </td>
+                        <td class="text-center text-success">
+                            <strong>{{ batch.successful_imports or 0 }}</strong>
+                        </td>
+                        <td class="text-center text-danger">
+                            {{ batch.failed_imports or 0 }}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('imports.view_batch', batch_id=batch.id) }}"
+                                   class="btn btn-outline-primary"
+                                   title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if batch.status == 'completed' and batch.can_rollback %}
+                                <button type="button"
+                                        class="btn btn-outline-warning"
+                                        title="Rollback"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#rollbackModal{{ batch.id }}">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Rollback Confirmation Modal -->
+                            {% if batch.status == 'completed' and batch.can_rollback %}
+                            <div class="modal fade" id="rollbackModal{{ batch.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-warning">
+                                            <h5 class="modal-title">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                Confirm Rollback
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to rollback this import?</p>
+                                            <p><strong>This will delete:</strong></p>
+                                            <ul>
+                                                <li>{{ batch.successful_imports }} water sample(s)</li>
+                                                <li>All associated test results</li>
+                                            </ul>
+                                            <p class="text-danger">
+                                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                                This action cannot be undone.
+                                            </p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Cancel
+                                            </button>
+                                            <form action="{{ url_for('imports.rollback_batch', batch_id=batch.id) }}"
+                                                  method="POST"
+                                                  class="d-inline">
+                                                <button type="submit" class="btn btn-warning">
+                                                    <i class="bi bi-arrow-counterclockwise"></i> Rollback Import
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if batches.pages > 1 %}
+        <nav aria-label="Import history pagination">
+            <ul class="pagination justify-content-center mt-4">
+                <li class="page-item {% if not batches.has_prev %}disabled{% endif %}">
+                    <a class="page-link"
+                       href="{{ url_for('imports.history', page=batches.prev_num, source_id=selected_source, status=selected_status) }}">
+                        Previous
+                    </a>
+                </li>
+
+                {% for page_num in batches.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == batches.page %}active{% endif %}">
+                            <a class="page-link"
+                               href="{{ url_for('imports.history', page=page_num, source_id=selected_source, status=selected_status) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                <li class="page-item {% if not batches.has_next %}disabled{% endif %}">
+                    <a class="page-link"
+                       href="{{ url_for('imports.history', page=batches.next_num, source_id=selected_source, status=selected_status) }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        <!-- Summary Stats -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4 class="text-primary">{{ batches.total }}</h4>
+                        <p class="mb-0 text-muted">Total Imports</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4 class="text-success">
+                            {{ batches.items|selectattr('status', 'equalto', 'completed')|list|length }}
+                        </h4>
+                        <p class="mb-0 text-muted">Completed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4 class="text-danger">
+                            {{ batches.items|selectattr('status', 'equalto', 'failed')|list|length }}
+                        </h4>
+                        <p class="mb-0 text-muted">Failed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h4 class="text-info">
+                            {{ "{:,}".format(batches.items|map(attribute='successful_imports')|sum) }}
+                        </h4>
+                        <p class="mb-0 text-muted">Records Imported</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+            <i class="bi bi-clock-history display-1 text-muted"></i>
+            <h4 class="mt-3">No Import History</h4>
+            <p class="text-muted">
+                {% if selected_source or selected_status %}
+                    No imports found matching your filters. Try clearing filters or creating a new import.
+                {% else %}
+                    Start importing water quality data to see your import history here.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('imports.new_import') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-upload"></i> Start New Import
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-database"></i> Data Sources</h6>
+                <p class="card-text small">Manage the sources of your water quality data.</p>
+                <a href="{{ url_for('imports.list_sources') }}" class="btn btn-outline-primary btn-sm">
+                    Manage Sources
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-upload"></i> Import Data</h6>
+                <p class="card-text small">Upload CSV or Excel files with water quality test results.</p>
+                <a href="{{ url_for('imports.new_import') }}" class="btn btn-outline-primary btn-sm">
+                    New Import
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

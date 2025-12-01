@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Agent - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hero Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-5">
+                    <h1 class="display-4"><i class="bi bi-telephone-fill"></i> Jal Sarovar Voice Agent</h1>
+                    <p class="lead">Access water quality information anytime, anywhere via Phone, SMS, or WhatsApp</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Cards -->
+    <div class="row mb-4">
+        {% if voice_enabled %}
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-success"><i class="bi bi-telephone-fill"></i></div>
+                    <h3 class="card-title mt-3">Voice Calls</h3>
+                    <p class="card-text text-muted">Call our automated voice system for detailed water quality reports</p>
+                    <h4 class="text-primary">{{ phone_number }}</h4>
+                    <hr>
+                    <small class="text-muted">Available 24/7 | Interactive Voice Menu</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if sms_enabled %}
+        <div class="col-md-4">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-info"><i class="bi bi-chat-text-fill"></i></div>
+                    <h3 class="card-title mt-3">SMS Messages</h3>
+                    <p class="card-text text-muted">Text a site code to get instant water quality status</p>
+                    <h4 class="text-primary">{{ phone_number }}</h4>
+                    <hr>
+                    <small class="text-muted">Quick responses | Works on any phone</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if whatsapp_enabled %}
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-success"><i class="bi bi-whatsapp"></i></div>
+                    <h3 class="card-title mt-3">WhatsApp</h3>
+                    <p class="card-text text-muted">Get rich formatted reports with detailed parameters</p>
+                    <h4 class="text-primary">{{ whatsapp_number }}</h4>
+                    <hr>
+                    <small class="text-muted">Rich formatting | Save & share reports</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- How to Use Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="bi bi-question-circle"></i> How to Use the Voice Agent</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Voice Calls -->
+                        {% if voice_enabled %}
+                        <div class="col-md-4 mb-4">
+                            <h5 class="text-success"><i class="bi bi-telephone-fill"></i> Voice Calls</h5>
+                            <ol>
+                                <li>Call <strong>{{ phone_number }}</strong></li>
+                                <li>Listen to the welcome menu</li>
+                                <li>Press <kbd>1</kbd> for public water sites</li>
+                                <li>Press <kbd>2</kbd> for residential monitoring</li>
+                                <li>Say the site code or name when prompted</li>
+                                <li>Listen to your water quality report</li>
+                            </ol>
+                            <div class="alert alert-info">
+                                <small><strong>Tip:</strong> Speak clearly and say the full site code (e.g., "A B C 1 2 3")</small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- SMS -->
+                        {% if sms_enabled %}
+                        <div class="col-md-4 mb-4">
+                            <h5 class="text-info"><i class="bi bi-chat-text-fill"></i> SMS Messages</h5>
+                            <ol>
+                                <li>Open your messaging app</li>
+                                <li>Create new message to <strong>{{ phone_number }}</strong></li>
+                                <li>Type the site code or name</li>
+                                <li>Send the message</li>
+                                <li>Receive instant water quality summary</li>
+                            </ol>
+                            <div class="alert alert-info">
+                                <small><strong>Example:</strong> Send "ABC123" or "Ganges River"</small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- WhatsApp -->
+                        {% if whatsapp_enabled %}
+                        <div class="col-md-4 mb-4">
+                            <h5 class="text-success"><i class="bi bi-whatsapp"></i> WhatsApp</h5>
+                            <ol>
+                                <li>Save <strong>{{ whatsapp_number }}</strong> to contacts</li>
+                                <li>Open WhatsApp</li>
+                                <li>Message the Jal Sarovar contact</li>
+                                <li>Send the site code or device ID</li>
+                                <li>Receive detailed formatted report</li>
+                            </ol>
+                            <div class="alert alert-info">
+                                <small><strong>Benefit:</strong> Rich formatting with emojis and bullet points</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Example Responses -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-chat-square-quote"></i> Example Responses</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-success"><i class="bi bi-check-circle-fill"></i> Safe Water Example (SMS)</h6>
+                            <div class="bg-light p-3 rounded font-monospace small">
+                                ✓ Ganges River Site<br>
+                                Status: SAFE (85%)<br>
+                                WHO: ✓ | BIS: ✓<br>
+                                Tested: November 15, 2024
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Unsafe Water Example (SMS)</h6>
+                            <div class="bg-light p-3 rounded font-monospace small">
+                                ⚠ River Site XYZ<br>
+                                Status: UNSAFE (92%)<br>
+                                WHO: ✗ | BIS: ✗<br>
+                                Issues: Lead, Mercury<br>
+                                Tested: November 28, 2024
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- What You Can Check -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-droplet-fill"></i> What Information Can You Get?</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Public Water Sites</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Safety status (Safe/Unsafe)</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> WHO compliance</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> BIS (Indian Standards) compliance</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> ML prediction confidence</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Detected contaminants</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Treatment recommendations</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Sample test date</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Residential Monitoring</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Real-time safety status</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> TDS (Total Dissolved Solids)</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> pH levels</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Turbidity (cloudiness)</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Water temperature</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Recent alerts</li>
+                                <li class="list-group-item"><i class="bi bi-check2 text-success"></i> Recommended actions</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0"><i class="bi bi-patch-question"></i> Frequently Asked Questions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Is this service free?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    The Jal Sarovar voice agent service is free. You may incur standard carrier charges for voice calls, SMS, or WhatsApp messages from your mobile provider.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    What hours is the service available?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    The voice agent operates 24/7, 365 days a year. You can check water quality information at any time, day or night.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    How do I find my site code?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <strong>Public Sites:</strong> Contact your local water authority or check their website.<br>
+                                    <strong>Residential Devices:</strong> Check your IoT device label or setup documentation.<br>
+                                    <strong>Alternative:</strong> You can also use the site name (e.g., "Ganges River") instead of the code.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    How current is the data?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Data is updated as soon as new test results are available. The report will always show the sample test date so you know how recent the data is.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    Can I check multiple sites?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes! Simply make separate calls or send separate messages for each site you want to check.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                    What if the voice system doesn't understand me?
+                                </button>
+                            </h2>
+                            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Speak clearly and at a normal pace. Spell out codes letter-by-letter if needed (e.g., "A-B-C-1-2-3"). If you continue to have issues, try SMS or WhatsApp instead.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Need Help -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h4><i class="bi bi-life-preserver"></i> Need Help?</h4>
+                    <p class="mb-3">If you have questions or need technical support, please contact us.</p>
+                    <div class="btn-group" role="group">
+                        <a href="mailto:support@jalsarovar.org" class="btn btn-primary">
+                            <i class="bi bi-envelope"></i> Email Support
+                        </a>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-house"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

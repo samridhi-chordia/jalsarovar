@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Sites - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+    .site-card {
+        margin-bottom: 20px;
+    }
+    .comparison-table td {
+        vertical-align: middle;
+    }
+    .score-bar {
+        height: 25px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    .parameter-comparison-row {
+        border-bottom: 1px solid #dee2e6;
+        padding: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-diagram-3"></i> Multi-Site Water Quality Comparison</h2>
+            <p class="text-muted">Comparing {{ sites|length }} sites - Last {{ days }} days</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.select_comparison') }}" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Select Different Sites
+            </a>
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-primary mb-2">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Sites Overview Cards -->
+    <div class="row mb-4">
+        {% for site_data in comparison_data %}
+        <div class="col-md-{{ 12 // (sites|length) if (sites|length) <= 4 else 3 }} mb-3">
+            <div class="card site-card {% if site_data.warning_level == 'critical' %}border-danger{% elif site_data.warning_level == 'high' %}border-warning{% endif %}">
+                <div class="card-header {% if site_data.warning_level == 'critical' %}bg-danger text-white{% elif site_data.warning_level == 'high' %}bg-warning{% else %}bg-primary text-white{% endif %}">
+                    <h6 class="mb-0">
+                        <strong>{{ site_data.site_name }}</strong>
+                        {% if site_data.site_code %}
+                        <br><small>{{ site_data.site_code }}</small>
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">Warning Level</small><br>
+                        {% if site_data.warning_level == 'critical' %}
+                            <span class="badge bg-danger">CRITICAL</span>
+                        {% elif site_data.warning_level == 'high' %}
+                            <span class="badge bg-warning text-dark">HIGH</span>
+                        {% elif site_data.warning_level == 'medium' %}
+                            <span class="badge bg-info">MEDIUM</span>
+                        {% else %}
+                            <span class="badge bg-success">LOW</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Warning Score</small><br>
+                        <strong class="fs-5">{{ site_data.warning_score|round(1) }}</strong> / 100
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Overall Trend</small><br>
+                        {% if site_data.overall_trend == 'declining' %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-arrow-down"></i> Declining
+                            </span>
+                        {% elif site_data.overall_trend == 'stable' %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-dash"></i> Stable
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-arrow-up"></i> Improving
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Samples Analyzed</small><br>
+                        <strong>{{ site_data.samples_analyzed }}</strong>
+                    </div>
+                    <a href="{{ url_for('analytics.site_trends', site_id=site_data.site_id) }}"
+                       class="btn btn-sm btn-outline-primary w-100 mt-2">
+                        <i class="bi bi-graph-up"></i> View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Warning Score Comparison -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Warning Score Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div id="warningScoreChart"></div>
+                    <script>
+                    (function() {
+                        var siteNames = {{ [s.site_name for s in comparison_data]|tojson }};
+                        var warningScores = {{ [s.warning_score for s in comparison_data]|tojson }};
+
+                        var colors = warningScores.map(function(score) {
+                            if (score >= 70) return '#dc3545';  // danger
+                            if (score >= 50) return '#ffc107';  // warning
+                            if (score >= 30) return '#0dcaf0';  // info
+                            return '#198754';  // success
+                        });
+
+                        var trace = {
+                            x: siteNames,
+                            y: warningScores,
+                            type: 'bar',
+                            marker: { color: colors },
+                            text: warningScores.map(s => s.toFixed(1)),
+                            textposition: 'outside'
+                        };
+
+                        var layout = {
+                            title: 'Warning Scores by Site',
+                            yaxis: {
+                                title: 'Warning Score',
+                                range: [0, 100]
+                            },
+                            xaxis: { title: 'Site' },
+                            height: 400
+                        };
+
+                        Plotly.newPlot('warningScoreChart', [trace], layout, {responsive: true});
+                    })();
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter-Level Comparison -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Parameter-Level Comparison</h5>
+                </div>
+                <div class="card-body">
+                    {% set all_parameters = [] %}
+                    {% for site_data in comparison_data %}
+                        {% for param_name in site_data.parameters.keys() %}
+                            {% if param_name not in all_parameters %}
+                                {% set _ = all_parameters.append(param_name) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
+                    {% if all_parameters %}
+                    <div class="table-responsive">
+                        <table class="table table-hover comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    {% for site_data in comparison_data %}
+                                    <th>{{ site_data.site_name }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for param_name in all_parameters %}
+                                <tr>
+                                    <td><strong>{{ param_name }}</strong></td>
+                                    {% for site_data in comparison_data %}
+                                    <td>
+                                        {% if param_name in site_data.parameters %}
+                                        {% set param = site_data.parameters[param_name] %}
+                                        <div class="mb-1">
+                                            {% if param.trend_direction == 'declining' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-arrow-down"></i> Declining
+                                                </span>
+                                            {% elif param.trend_direction == 'stable' %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-dash"></i> Stable
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-up"></i> Improving
+                                                </span>
+                                            {% endif %}
+                                            {% if param.is_significant %}
+                                                <span class="badge bg-info">Sig.</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">
+                                            Mean: {{ param.mean|round(2) }}<br>
+                                            Samples: {{ param.sample_count }}<br>
+                                            Slope: {{ param.slope|round(4) }}
+                                        </small>
+                                        {% else %}
+                                        <span class="text-muted">No data</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No common parameters found across selected sites.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Parameter Charts -->
+    {% for param_name in all_parameters %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ param_name }} - Comparison Chart</h5>
+                </div>
+                <div class="card-body">
+                    <div id="chart_{{ param_name|replace(' ', '_') }}"></div>
+                    <script>
+                    (function() {
+                        var traces = [];
+
+                        {% for site_data in comparison_data %}
+                        {% if param_name in site_data.parameters %}
+                        {% set param = site_data.parameters[param_name] %}
+                        traces.push({
+                            x: {{ param.dates|tojson }},
+                            y: {{ param.values|tojson }},
+                            mode: 'markers+lines',
+                            name: '{{ site_data.site_name }}',
+                            marker: { size: 6 }
+                        });
+                        {% endif %}
+                        {% endfor %}
+
+                        var layout = {
+                            title: '{{ param_name }} Trends Across Sites',
+                            xaxis: { title: 'Date' },
+                            yaxis: { title: 'Value' },
+                            hovermode: 'closest',
+                            showlegend: true,
+                            height: 400
+                        };
+
+                        if (traces.length > 0) {
+                            Plotly.newPlot('chart_{{ param_name|replace(" ", "_") }}', traces, layout, {responsive: true});
+                        }
+                    })();
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Summary and Recommendations -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Comparison Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Highest Risk Site</h6>
+                            {% set highest_risk = comparison_data|sort(attribute='warning_score', reverse=true)|first %}
+                            <p class="mb-1">
+                                <strong>{{ highest_risk.site_name }}</strong>
+                                <span class="badge bg-danger ms-2">{{ highest_risk.warning_score|round(1) }}</span>
+                            </p>
+                            <small class="text-muted">{{ highest_risk.site_code }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Best Performing Site</h6>
+                            {% set best_site = comparison_data|sort(attribute='warning_score')|first %}
+                            <p class="mb-1">
+                                <strong>{{ best_site.site_name }}</strong>
+                                <span class="badge bg-success ms-2">{{ best_site.warning_score|round(1) }}</span>
+                            </p>
+                            <small class="text-muted">{{ best_site.site_code }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Average Warning Score</h6>
+                            {% set avg_score = (comparison_data|sum(attribute='warning_score')) / (comparison_data|length) %}
+                            <p class="mb-1">
+                                <strong>{{ avg_score|round(1) }}</strong> / 100
+                            </p>
+                            <small class="text-muted">Across all {{ comparison_data|length }} sites</small>
+                        </div>
+                    </div>
+
+                    {% set critical_count = comparison_data|selectattr('warning_level', 'equalto', 'critical')|list|length %}
+                    {% set high_count = comparison_data|selectattr('warning_level', 'equalto', 'high')|list|length %}
+
+                    {% if critical_count > 0 or high_count > 0 %}
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Attention Required</h6>
+                        <ul class="mb-0">
+                            {% if critical_count > 0 %}
+                            <li><strong>{{ critical_count }}</strong> site(s) require <strong>immediate critical attention</strong></li>
+                            {% endif %}
+                            {% if high_count > 0 %}
+                            <li><strong>{{ high_count }}</strong> site(s) have <strong>high warning levels</strong></li>
+                            {% endif %}
+                            <li>Consider implementing water treatment interventions for sites with declining trends</li>
+                            <li>Schedule additional sampling for sites with limited data</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export and Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('analytics.alerts') }}" class="btn btn-warning me-2 mb-2">
+                        <i class="bi bi-exclamation-triangle"></i> View All Alerts
+                    </a>
+                    <a href="{{ url_for('interventions.list_interventions') }}" class="btn btn-success me-2 mb-2">
+                        <i class="bi bi-tools"></i> Manage Interventions
+                    </a>
+                    <a href="{{ url_for('analytics.select_comparison') }}" class="btn btn-secondary mb-2">
+                        <i class="bi bi-arrow-repeat"></i> Compare Different Sites
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

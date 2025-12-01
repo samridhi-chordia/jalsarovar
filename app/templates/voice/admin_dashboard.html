@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Voice Agent Admin - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2><i class="bi bi-gear-fill"></i> Voice Agent Administration</h2>
+            <p class="text-muted">Monitor and manage Twilio notifications and voice agent system</p>
+        </div>
+    </div>
+
+    <!-- Configuration Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Twilio Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Account SID:</strong><br>
+                            <code>{{ twilio_config.account_sid }}</code>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Phone Number:</strong><br>
+                            <code>{{ twilio_config.phone_number }}</code>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>WhatsApp Number:</strong><br>
+                            <code>{{ twilio_config.whatsapp_number }}</code>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Features:</strong><br>
+                            {% if twilio_config.voice_enabled %}<span class="badge bg-success">Voice</span>{% endif %}
+                            {% if twilio_config.sms_enabled %}<span class="badge bg-info">SMS</span>{% endif %}
+                            {% if twilio_config.whatsapp_enabled %}<span class="badge bg-success">WhatsApp</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted">Total (7 days)</h6>
+                    <h2 class="text-primary">{{ stats_7d.get('total', 0) }}</h2>
+                    <small class="text-muted">All notifications</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Delivered (7 days)</h6>
+                    <h2 class="text-success">{{ stats_7d.get('delivered', 0) }}</h2>
+                    <small class="text-muted">Success rate:
+                        {% if stats_7d.get('total', 0) > 0 %}
+                            {{ "%.1f"|format((stats_7d.get('delivered', 0) / stats_7d.get('total', 1)) * 100) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="text-muted">Failed (7 days)</h6>
+                    <h2 class="text-danger">{{ stats_7d.get('failed', 0) }}</h2>
+                    <small class="text-muted">Needs attention</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted">Total (30 days)</h6>
+                    <h2 class="text-warning">{{ stats_30d.get('total', 0) }}</h2>
+                    <small class="text-muted">Monthly volume</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications by Type -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">Notifications by Type</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for type, count in notification_counts.items() %}
+                            <tr>
+                                <td>
+                                    {% if type == 'sms' %}
+                                        <i class="bi bi-chat-text text-info"></i> SMS
+                                    {% elif type == 'voice' %}
+                                        <i class="bi bi-telephone text-success"></i> Voice
+                                    {% elif type == 'whatsapp' %}
+                                        <i class="bi bi-whatsapp text-success"></i> WhatsApp
+                                    {% endif %}
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">Notifications by Status</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for status, count in status_counts.items() %}
+                            <tr>
+                                <td>
+                                    {% if status == 'delivered' %}
+                                        <span class="badge bg-success">{{ status }}</span>
+                                    {% elif status == 'sent' %}
+                                        <span class="badge bg-primary">{{ status }}</span>
+                                    {% elif status == 'failed' %}
+                                        <span class="badge bg-danger">{{ status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Failed Notifications -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Failed Notifications</h5>
+                </div>
+                <div class="card-body">
+                    {% if failed_notifications %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Site</th>
+                                    <th>Error</th>
+                                    <th>Retry Count</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notif in failed_notifications %}
+                                <tr>
+                                    <td><small>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                                    <td><span class="badge bg-secondary">{{ notif.notification_type }}</span></td>
+                                    <td><small>{{ notif.site_identifier or 'N/A' }}</small></td>
+                                    <td><small class="text-danger">{{ notif.error_message[:50] if notif.error_message else 'Unknown error' }}</small></td>
+                                    <td>{{ notif.retry_count }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('voice.retry_notification', log_id=notif.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-warning" {% if notif.retry_count >= 3 %}disabled{% endif %}>
+                                                <i class="bi bi-arrow-repeat"></i> Retry
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> No failed notifications to display.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Notifications (Last 50)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Type</th>
+                                    <th>Site</th>
+                                    <th>Status</th>
+                                    <th>Recipient</th>
+                                    <th>Twilio SID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notif in recent_notifications %}
+                                <tr>
+                                    <td><small>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                                    <td>
+                                        {% if notif.notification_type == 'sms' %}
+                                            <span class="badge bg-info">SMS</span>
+                                        {% elif notif.notification_type == 'voice' %}
+                                            <span class="badge bg-success">Voice</span>
+                                        {% elif notif.notification_type == 'whatsapp' %}
+                                            <span class="badge bg-success">WhatsApp</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ notif.site_identifier or 'N/A' }}</small></td>
+                                    <td>
+                                        {% if notif.status == 'delivered' %}
+                                            <span class="badge bg-success">Delivered</span>
+                                        {% elif notif.status == 'sent' %}
+                                            <span class="badge bg-primary">Sent</span>
+                                        {% elif notif.status == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ notif.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small><code>{{ notif.recipient_phone or 'N/A' }}</code></small></td>
+                                    <td><small><code>{{ notif.twilio_message_sid[:20] if notif.twilio_message_sid else 'N/A' }}...</code></small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

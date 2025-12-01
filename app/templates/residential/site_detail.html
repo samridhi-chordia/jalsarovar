@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}Site Details - {{ site.device_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Site Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-house-heart text-primary"></i> {{ site.device_id }}</h2>
+                    <p class="text-muted mb-0">
+                        {{ site.address_line1 }}, {{ site.address_line2 }}<br>
+                        {{ site.city }}, {{ site.state }} - {{ site.pincode }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('residential.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Site Status Cards -->
+    <div class="row mb-4">
+        <!-- Water Quality Index -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Average WQI</h6>
+                    {% if avg_wqi %}
+                        <h2 class="mb-0 {% if avg_wqi >= 80 %}text-success{% elif avg_wqi >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ avg_wqi }}
+                        </h2>
+                        <small class="text-muted">out of 100</small>
+                    {% else %}
+                        <p class="text-muted">No data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Safe to Drink -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Safe to Drink</h6>
+                    {% if safe_percentage is not none %}
+                        <h2 class="mb-0 {% if safe_percentage >= 90 %}text-success{% elif safe_percentage >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ safe_percentage }}%
+                        </h2>
+                        <small class="text-muted">of measurements</small>
+                    {% else %}
+                        <p class="text-muted">No data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Active Alerts</h6>
+                    <h2 class="mb-0 {% if active_alerts|length > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ active_alerts|length }}
+                    </h2>
+                    <small class="text-muted">unresolved</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Subscription</h6>
+                    <h4 class="mb-0 text-primary">{{ site.subscription_tier|title }}</h4>
+                    <small class="text-muted">
+                        {% if site.subscription_status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                        {% elif site.subscription_status == 'trial' %}
+                            <span class="badge bg-info">Trial</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ site.subscription_status|title }}</span>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts Section -->
+    {% if active_alerts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Active Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Type</th>
+                                    <th>Severity</th>
+                                    <th>Message</th>
+                                    <th>Action Recommended</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in active_alerts %}
+                                <tr>
+                                    <td>{{ alert.alert_datetime.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ alert.alert_type.replace('_', ' ')|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if alert.alert_severity == 'critical' %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif alert.alert_severity == 'warning' %}
+                                            <span class="badge bg-warning text-dark">Warning</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Info</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alert.alert_message }}</td>
+                                    <td>
+                                        <small class="text-muted">{{ alert.recommended_action or 'N/A' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Water Quality Parameters -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Average pH</h6>
+                    <h3 class="mb-0 {% if avg_ph and 6.5 <= avg_ph <= 8.5 %}text-success{% else %}text-danger{% endif %}">
+                        {{ avg_ph if avg_ph else 'N/A' }}
+                    </h3>
+                    <small class="text-muted">Normal: 6.5 - 8.5</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Average TDS</h6>
+                    <h3 class="mb-0 {% if avg_tds and avg_tds <= 500 %}text-success{% else %}text-danger{% endif %}">
+                        {{ avg_tds if avg_tds else 'N/A' }} <small>ppm</small>
+                    </h3>
+                    <small class="text-muted">Limit: 500 ppm</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Average Turbidity</h6>
+                    <h3 class="mb-0 {% if avg_turbidity and avg_turbidity <= 5 %}text-success{% else %}text-danger{% endif %}">
+                        {{ avg_turbidity if avg_turbidity else 'N/A' }} <small>NTU</small>
+                    </h3>
+                    <small class="text-muted">Limit: 5 NTU</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Site Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Site Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th width="40%">Site Type:</th>
+                            <td>{{ site.site_type|title }}</td>
+                        </tr>
+                        <tr>
+                            <th>Installation Type:</th>
+                            <td>{{ site.installation_type|title }}</td>
+                        </tr>
+                        <tr>
+                            <th>Household Size:</th>
+                            <td>{{ site.household_size }} members</td>
+                        </tr>
+                        <tr>
+                            <th>Water Source:</th>
+                            <td>{{ site.water_source }}</td>
+                        </tr>
+                        {% if site.building_name %}
+                        <tr>
+                            <th>Building:</th>
+                            <td>{{ site.building_name }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if site.flat_number %}
+                        <tr>
+                            <th>Flat/Unit:</th>
+                            <td>{{ site.flat_number }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-droplet-half"></i> Treatment System</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th width="40%">RO System:</th>
+                            <td>
+                                {% if site.has_ro_system %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if site.has_ro_system %}
+                        <tr>
+                            <th>RO Brand:</th>
+                            <td>{{ site.ro_brand or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Installation Date:</th>
+                            <td>{{ site.ro_installation_date.strftime('%Y-%m-%d') if site.ro_installation_date else 'N/A' }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Water Softener:</th>
+                            <td>
+                                {% if site.has_water_softener %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>UV Filter:</th>
+                            <td>
+                                {% if site.has_uv_filter %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if site.storage_tank_capacity_liters %}
+                        <tr>
+                            <th>Storage Capacity:</th>
+                            <td>{{ site.storage_tank_capacity_liters }} liters</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Measurements -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Recent Measurements (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_measurements %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>WQI</th>
+                                    <th>pH</th>
+                                    <th>TDS (ppm)</th>
+                                    <th>Turbidity (NTU)</th>
+                                    <th>Chlorine (mg/L)</th>
+                                    <th>Temp (°C)</th>
+                                    <th>Safe to Drink</th>
+                                    <th>Compliance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for measurement in recent_measurements %}
+                                <tr>
+                                    <td>{{ measurement.measurement_datetime.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <span class="badge {% if measurement.water_quality_index >= 80 %}bg-success{% elif measurement.water_quality_index >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ measurement.water_quality_index|round(1) if measurement.water_quality_index else 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ measurement.ph_value|round(2) if measurement.ph_value else 'N/A' }}</td>
+                                    <td>{{ measurement.tds_ppm|round(1) if measurement.tds_ppm else 'N/A' }}</td>
+                                    <td>{{ measurement.turbidity_ntu|round(2) if measurement.turbidity_ntu else 'N/A' }}</td>
+                                    <td>{{ measurement.free_chlorine_mg_l|round(2) if measurement.free_chlorine_mg_l else 'N/A' }}</td>
+                                    <td>{{ measurement.temperature_celsius|round(1) if measurement.temperature_celsius else 'N/A' }}</td>
+                                    <td>
+                                        {% if measurement.is_safe_to_drink %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if measurement.compliance_status == 'excellent' %}bg-success
+                                            {% elif measurement.compliance_status == 'good' %}bg-info
+                                            {% elif measurement.compliance_status == 'warning' %}bg-warning
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ measurement.compliance_status|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No measurements recorded in the last 30 days.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Information -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-hdd-network"></i> Device Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm mb-0">
+                                <tr>
+                                    <th width="40%">Device ID:</th>
+                                    <td><code>{{ site.device_id }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Device Model:</th>
+                                    <td>{{ site.device_model }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Installation Date:</th>
+                                    <td>{{ site.installation_date.strftime('%Y-%m-%d') if site.installation_date else 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm mb-0">
+                                <tr>
+                                    <th width="40%">Last Calibration:</th>
+                                    <td>{{ site.last_calibration_date.strftime('%Y-%m-%d') if site.last_calibration_date else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Next Calibration Due:</th>
+                                    <td>{{ site.next_calibration_due.strftime('%Y-%m-%d') if site.next_calibration_due else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if site.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

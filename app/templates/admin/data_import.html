@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Data Import - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-cloud-upload text-primary"></i> Data Import Management</h2>
+            <p class="text-muted">Import bulk data for Residential and Public monitoring systems</p>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Residential Monitoring Imports -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="bi bi-house-heart"></i> Residential Monitoring Data Import</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Sites Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-primary">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Residential Sites</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import residential site information including addresses, device details, and subscription information.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_residential_sites') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with residential site data</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-upload"></i> Import Sites
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_residential_template', template_type='sites') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_residential_sample', sample_type='sites') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Measurements Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-primary">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Water Quality Measurements</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import water quality measurements with pH, TDS, turbidity, and other parameters.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_residential_measurements') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with measurement data</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-upload"></i> Import Measurements
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_residential_template', template_type='measurements') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_residential_sample', sample_type='measurements') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-warning">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Alerts</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import water quality alerts and notifications.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_residential_alerts') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with alert data</small>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="bi bi-upload"></i> Import Alerts
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_residential_template', template_type='alerts') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_residential_sample', sample_type='alerts') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscriptions Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-info">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-credit-card"></i> Subscriptions</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import subscription and billing information.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_residential_subscriptions') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with subscription data</small>
+                                </div>
+                                <button type="submit" class="btn btn-info w-100">
+                                    <i class="bi bi-upload"></i> Import Subscriptions
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_residential_template', template_type='subscriptions') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_residential_sample', sample_type='subscriptions') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Public Monitoring Imports -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-building"></i> Public Monitoring Data Import</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Sites Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Public Sites</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import public water monitoring sites (lakes, ponds, community sources).</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_public_sites') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with public site data</small>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-upload"></i> Import Sites
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_public_template', template_type='sites') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_public_sample', sample_type='sites') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Samples Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-droplet"></i> Water Samples</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import water sample collection records.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_public_samples') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with sample data</small>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-upload"></i> Import Samples
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_public_template', template_type='samples') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_public_sample', sample_type='samples') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Test Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import laboratory test results for water samples.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_public_test_results') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with test result data</small>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-upload"></i> Import Test Results
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_public_template', template_type='test_results') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_public_sample', sample_type='test_results') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Import -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Analysis Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Import water quality analysis and contamination assessments.</p>
+
+                            <form method="POST" action="{{ url_for('admin.import_public_analyses') }}" enctype="multipart/form-data" class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Upload CSV File:</strong></label>
+                                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                                    <small class="form-text text-muted">Select a CSV file with analysis data</small>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-upload"></i> Import Analyses
+                                </button>
+                            </form>
+
+                            <a href="{{ url_for('admin.download_public_template', template_type='analyses') }}" class="btn btn-outline-secondary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <a href="{{ url_for('admin.download_public_sample', sample_type='analyses') }}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Download Sample Data (Chennai)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Instructions -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0"><i class="bi bi-info-circle"></i> Import Instructions</h4>
+        </div>
+        <div class="card-body">
+            <h5>How to Import Data:</h5>
+            <ol>
+                <li><strong>Download Template:</strong> Click the "Download Template" button to get an empty CSV template with correct column headers.</li>
+                <li><strong>Download Sample Data (Optional):</strong> Click "Download Sample Data" to get realistic Chennai data as a reference.</li>
+                <li><strong>Prepare Your Data:</strong> Fill in the template with your data, ensuring all required fields are populated.</li>
+                <li><strong>Upload CSV:</strong> Select your CSV file and click "Import" to upload the data.</li>
+                <li><strong>Verify Results:</strong> Check the success/error messages after import completes.</li>
+            </ol>
+
+            <h5 class="mt-4">Import Order:</h5>
+            <div class="alert alert-warning">
+                <strong>⚠️ Important:</strong> Import data in the following order to maintain referential integrity:
+            </div>
+            <ul>
+                <li><strong>Residential:</strong> Sites → Measurements → Alerts → Subscriptions</li>
+                <li><strong>Public:</strong> Sites → Samples → Test Results → Analyses</li>
+            </ul>
+
+            <h5 class="mt-4">Data Requirements:</h5>
+            <ul>
+                <li>CSV files must be UTF-8 encoded</li>
+                <li>Date format: YYYY-MM-DD (e.g., 2025-11-17)</li>
+                <li>DateTime format: YYYY-MM-DD HH:MM:SS (e.g., 2025-11-17 14:30:00)</li>
+                <li>Boolean values: TRUE/FALSE or 1/0</li>
+                <li>Numeric values: Use decimal point (e.g., 7.2, not 7,2)</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

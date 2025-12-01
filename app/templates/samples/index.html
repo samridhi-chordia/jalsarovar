@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Water Samples - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-droplet"></i> Water Samples</h1>
+    <a href="{{ url_for('samples.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Sample
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('samples.index') }}" class="row g-3">
+            <!-- Search Fields -->
+            <div class="col-md-6">
+                <label for="search_id" class="form-label">Search by Sample ID</label>
+                <input type="text" class="form-control" id="search_id" name="search_id"
+                       placeholder="Enter sample ID (e.g., WS-ABC-20231115)"
+                       value="{{ search_id or '' }}">
+            </div>
+
+            <div class="col-md-6">
+                <label for="search_site" class="form-label">Search by Site Name/Code</label>
+                <input type="text" class="form-control" id="search_site" name="search_site"
+                       placeholder="Enter site name or code"
+                       value="{{ search_site or '' }}">
+            </div>
+
+            <!-- Filter Fields -->
+            <div class="col-md-3">
+                <label for="site_filter" class="form-label">Site</label>
+                <select class="form-select" id="site_filter" name="site_id">
+                    <option value="">All Sites</option>
+                    {% for site in sites %}
+                    <option value="{{ site.id }}" {% if request.args.get('site_id') == site.id|string %}selected{% endif %}>
+                        {{ site.site_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="status_filter" class="form-label">Status</label>
+                <select class="form-select" id="status_filter" name="status">
+                    <option value="">All Status</option>
+                    <option value="collected" {% if request.args.get('status') == 'collected' %}selected{% endif %}>Collected</option>
+                    <option value="tested" {% if request.args.get('status') == 'tested' %}selected{% endif %}>Tested</option>
+                    <option value="analyzed" {% if request.args.get('status') == 'analyzed' %}selected{% endif %}>Analyzed</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}">
+            </div>
+
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}">
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('samples.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Samples Table -->
+<div class="card">
+    <div class="card-body">
+        {% if samples.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Sample ID</th>
+                        <th>Site</th>
+                        <th>Collection Date</th>
+                        <th>Source Type</th>
+                        <th>Status</th>
+                        <th>Contamination</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sample in samples.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="fw-bold">
+                                {{ sample.sample_id }}
+                            </a>
+                        </td>
+                        <td>{{ sample.site.site_name if sample.site else 'N/A' }}</td>
+                        <td>{{ sample.collection_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ sample.source_type|title if sample.source_type else 'N/A' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if sample.status == 'analyzed' %}
+                            <span class="badge bg-success">Analyzed</span>
+                            {% elif sample.status == 'tested' %}
+                            <span class="badge bg-info">Tested</span>
+                            {% else %}
+                            <span class="badge bg-warning">Collected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sample.latest_analysis %}
+                            {% if sample.latest_analysis.contamination_detected %}
+                            <span class="badge severity-{{ sample.latest_analysis.severity }}">
+                                {{ sample.latest_analysis.severity|upper }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success">Clean</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-outline-primary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('samples.edit', sample_id=sample.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if sample.status == 'collected' %}
+                                <a href="{{ url_for('tests.create', sample_id=sample.id) }}" class="btn btn-outline-success" title="Add Test">
+                                    <i class="bi bi-clipboard-plus"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if samples.pages > 1 %}
+        <nav aria-label="Sample pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if not samples.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('samples.index', page=samples.prev_num, **request.args) }}">
+                        Previous
+                    </a>
+                </li>
+                {% for page_num in samples.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {% if page_num == samples.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('samples.index', page=page_num, **request.args) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not samples.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('samples.index', page=samples.next_num, **request.args) }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="text-muted text-center mt-3">
+            Showing {{ samples.items|length }} of {{ samples.total }} samples
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem;" class="text-muted"></i>
+            <p class="mt-3 text-muted">No samples found matching your criteria</p>
+            <a href="{{ url_for('samples.create') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> Create First Sample
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

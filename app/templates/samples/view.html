@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Sample {{ sample.sample_id }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-droplet"></i> Sample Details</h1>
+    <div>
+        <a href="{{ url_for('samples.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Samples
+        </a>
+        {% if current_user.can_edit_samples() %}
+        <a href="{{ url_for('samples.edit', sample_id=sample.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit Sample
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Sample Information Card -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Sample Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Sample ID:</strong> {{ sample.sample_id }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        {% if sample.status == 'analyzed' %}
+                        <span class="badge bg-success">Analyzed</span>
+                        {% elif sample.status == 'tested' %}
+                        <span class="badge bg-info">Tested</span>
+                        {% else %}
+                        <span class="badge bg-warning">Collected</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Site:</strong> {{ sample.site.site_name if sample.site else 'N/A' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Location:</strong> {{ sample.site.location if sample.site else 'N/A' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Collection Date:</strong> {{ sample.collection_date.strftime('%Y-%m-%d') }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Collection Time:</strong> {{ sample.collection_time.strftime('%H:%M') if sample.collection_time else 'N/A' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Source Type:</strong> {{ sample.source_type|title if sample.source_type else 'N/A' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Collected By:</strong> {{ sample.collector.full_name if sample.collector else 'N/A' }}
+                    </div>
+                </div>
+                {% if sample.notes %}
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Notes:</strong>
+                        <p class="mb-0 mt-1">{{ sample.notes }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-pulse"></i> Test Results ({{ test_results|length }})</h5>
+                {% if current_user.can_edit_samples() and sample.status == 'collected' %}
+                <a href="{{ url_for('tests.create', sample_id=sample.id) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Test
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if test_results %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                                <th>Test Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for test in test_results %}
+                            <tr>
+                                <td>{{ test.parameter_name }}</td>
+                                <td>{{ test.value }}</td>
+                                <td>{{ test.unit }}</td>
+                                <td>{{ test.test_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No test results available</p>
+                    {% if current_user.can_edit_samples() %}
+                    <a href="{{ url_for('tests.create', sample_id=sample.id) }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add First Test
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Analysis Reports -->
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Analysis Reports ({{ analyses|length }})</h5>
+                {% if current_user.can_analyze() and test_results and sample.status != 'analyzed' %}
+                <a href="{{ url_for('analysis.create', sample_id=sample.id) }}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle"></i> Run Analysis
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if analyses %}
+                <div class="list-group">
+                    {% for analysis in analyses %}
+                    <a href="{{ url_for('analysis.view', analysis_id=analysis.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    {% if analysis.contamination_detected %}
+                                    <span class="badge severity-{{ analysis.severity }}">
+                                        {{ analysis.severity|upper }}
+                                    </span>
+                                    {{ analysis.primary_cause|replace('_', ' ')|title }}
+                                    {% else %}
+                                    <span class="badge bg-success">No Contamination Detected</span>
+                                    {% endif %}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    Analyzed: {{ analysis.analysis_date.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            <div>
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-clipboard-data" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No analysis reports available</p>
+                    {% if current_user.can_analyze() and test_results %}
+                    <a href="{{ url_for('analysis.create', sample_id=sample.id) }}" class="btn btn-success">
+                        <i class="bi bi-clipboard-plus"></i> Run First Analysis
+                    </a>
+                    {% elif not test_results %}
+                    <p class="text-muted small">Add test results before running analysis</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if current_user.can_edit_samples() %}
+                    <a href="{{ url_for('samples.edit', sample_id=sample.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit Sample
+                    </a>
+                    <a href="{{ url_for('tests.create', sample_id=sample.id) }}" class="btn btn-outline-success">
+                        <i class="bi bi-clipboard-plus"></i> Add Test Result
+                    </a>
+                    {% endif %}
+                    {% if current_user.can_analyze() and test_results %}
+                    <a href="{{ url_for('analysis.create', sample_id=sample.id) }}" class="btn btn-success">
+                        <i class="bi bi-clipboard-data"></i> Run Analysis
+                    </a>
+                    {% endif %}
+                    {% if current_user.is_admin() %}
+                    <hr>
+                    <button class="btn btn-outline-danger" data-confirm-delete
+                            data-confirm-message="Delete this sample and all associated data?">
+                        <i class="bi bi-trash"></i> Delete Sample
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Sample Collected</h6>
+                            <p class="text-muted small mb-0">{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                    {% if test_results %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Tests Completed</h6>
+                            <p class="text-muted small mb-0">{{ test_results|length }} tests recorded</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if analyses %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6 class="mb-1">Analysis Complete</h6>
+                            <p class="text-muted small mb-0">{{ analyses|length }} report(s) generated</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-item:not(:last-child):before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 20px;
+    height: calc(100% - 10px);
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -27px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.timeline-content h6 {
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

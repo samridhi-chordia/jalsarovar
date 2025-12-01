@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amrit Sarovar ML Demo Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .dashboard-header h1 {
+            color: var(--dark-color);
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .dashboard-header p {
+            color: #7f8c8d;
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.primary .icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card.success .icon {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+
+        .stat-card.warning .icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .stat-card.info .icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-card .description {
+            font-size: 0.85rem;
+            color: #95a5a6;
+        }
+
+        .nav-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            text-decoration: none;
+        }
+
+        .nav-card .icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-card h3 {
+            color: var(--dark-color);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .nav-card p {
+            color: #7f8c8d;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .savings-highlight {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .savings-highlight h2 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .savings-highlight p {
+            font-size: 1.2rem;
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .badge-custom {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-success-custom {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-warning-custom {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .badge-danger-custom {
+            background: var(--danger-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-water"></i> Amrit Sarovar ML Dashboard</h1>
+                    <p>ML-Driven Water Quality Monitoring & Cost Optimization</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Emblem_of_India.svg/200px-Emblem_of_India.svg.png"
+                         alt="Emblem of India" style="height: 80px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Savings Highlight -->
+        <div class="savings-highlight">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2>{{ stats.savings_percent }} Cost Reduction</h2>
+                    <p>Annual savings of {{ stats.baseline_cost|replace(stats.ml_cost, '')|trim }} through ML-driven testing optimization</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-chart-line" style="font-size: 5rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card primary">
+                    <div class="icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Total Sites</h3>
+                    <div class="value">{{ "{:,}".format(stats.total_sites) }}</div>
+                    <div class="description">Amrit Sarovar water bodies</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="icon">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <h3>Water Samples</h3>
+                    <div class="value">{{ "{:,}".format(stats.total_samples) }}</div>
+                    <div class="description">Analyzed over 12 months</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <h3>Baseline Cost</h3>
+                    <div class="value">{{ stats.baseline_cost }}</div>
+                    <div class="description">Traditional monthly testing</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card info">
+                    <div class="icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <h3>ML-Optimized Cost</h3>
+                    <div class="value">{{ stats.ml_cost }}</div>
+                    <div class="description">Risk-based testing schedule</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Model Performance -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Site Risk Classifier</h3>
+                    <div class="value">{{ stats.site_risk_accuracy }}</div>
+                    <div class="description">Prediction accuracy across 200 test sites</div>
+                    <div class="mt-3">
+                        <span class="badge-custom badge-danger-custom">High: {{ stats.risk_distribution.high }}</span>
+                        <span class="badge-custom badge-warning-custom">Medium: {{ stats.risk_distribution.medium }}</span>
+                        <span class="badge-custom badge-success-custom">Low: {{ stats.risk_distribution.low }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <h3><i class="fas fa-bacteria"></i> Contamination Classifier</h3>
+                    <div class="value">{{ stats.contamination_accuracy }}</div>
+                    <div class="description">5-class classification accuracy</div>
+                    <div class="mt-3">
+                        <small class="text-muted">Identifies: Sewage, Runoff, Salt, Corrosion, Disinfectant</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <h3><i class="fas fa-chart-area"></i> Quality Forecaster</h3>
+                    <div class="value">{{ stats.forecast_rmse }}</div>
+                    <div class="description">pH prediction RMSE (lower is better)</div>
+                    <div class="mt-3">
+                        <small class="text-muted">Time-series forecasting for early warnings</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="row">
+            <div class="col-md-4">
+                <a href="/site-risk-predictor" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Site Risk Predictor</h3>
+                    <p>Classify water bodies as High/Medium/Low risk based on historical data and environmental factors</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/contamination-classifier" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                    <h3>Contamination Classifier</h3>
+                    <p>Identify specific contamination types from water quality parameters for targeted remediation</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/cost-analysis" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                    <h3>Cost Analysis & ROI</h3>
+                    <p>Detailed cost comparison, savings breakdown, and 5-year financial projections</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <a href="/model-performance" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Model Performance</h3>
+                    <p>Feature importance, confusion matrices, cross-validation scores, and model metrics</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/data-explorer" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3>Data Explorer</h3>
+                    <p>Browse 12,000 water samples, site details, test results, and contamination analyses</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/about" class="nav-card">
+                    <div class="icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <h3>About Project</h3>
+                    <p>Mission Amrit Sarovar integration, technical architecture, and implementation roadmap</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-5" style="color: white;">
+            <p style="opacity: 0.8;">
+                <i class="fas fa-flask"></i> Jal Sarovar - Mission Amrit Sarovar ML Integration
+                <br>
+                <small>Optimizing water quality monitoring through Machine Learning</small>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

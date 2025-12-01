@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}WQI Information - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-section {
+        padding: 2rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .info-section:last-child {
+        border-bottom: none;
+    }
+    .parameter-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        height: 100%;
+        transition: all 0.3s;
+    }
+    .parameter-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+    }
+    .penalty-badge {
+        font-size: 1.25rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+    }
+    .formula-box {
+        background: #f1f5f9;
+        border-left: 4px solid #3b82f6;
+        padding: 1.5rem;
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+    }
+    .compliance-row {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    .hero-section {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-droplet-fill"></i> Water Quality Index (WQI)
+                </h1>
+                <p class="lead mb-0">
+                    Understanding the WQI methodology and water quality parameters
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- What is WQI -->
+        <div class="info-section">
+            <h2 class="mb-4"><i class="bi bi-question-circle"></i> What is WQI?</h2>
+            <div class="row">
+                <div class="col-lg-8">
+                    <p class="lead">
+                        The Water Quality Index (WQI) is a composite scoring system that translates multiple
+                        water quality parameters into a single number representing overall water quality.
+                    </p>
+                    <p>
+                        WQI provides an easy-to-understand assessment of water safety, making it simple for
+                        anyone to determine whether water is safe to drink without needing to understand
+                        complex chemistry.
+                    </p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary mb-3">WQI Score</h3>
+                            <div class="display-3 fw-bold text-dark">0-100</div>
+                            <p class="mt-3 mb-0">Higher scores indicate better water quality</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculation Methodology -->
+        <div class="info-section">
+            <h2 class="mb-4"><i class="bi bi-calculator"></i> Calculation Methodology</h2>
+
+            <div class="formula-box mb-4">
+                <strong>WQI Formula:</strong><br>
+                WQI = 100 - Σ P<sub>i</sub>(param<sub>i</sub>)
+            </div>
+
+            <p>
+                Where P<sub>i</sub> are <strong>penalty functions</strong> that reduce the perfect score of 100
+                based on how far each parameter deviates from its optimal range.
+            </p>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Key Concept:</strong> WQI starts at 100 (perfect water) and penalties are subtracted
+                based on parameter violations. The more parameters that deviate from optimal ranges, the lower the WQI score.
+            </div>
+        </div>
+
+        <!-- Water Quality Parameters -->
+        <div class="info-section">
+            <h2 class="mb-4"><i class="bi bi-grid"></i> Water Quality Parameters</h2>
+            <p class="mb-4">
+                Six key parameters are evaluated, each with specific penalty weights based on their
+                impact on human health:
+            </p>
+
+            <div class="row g-4">
+                <!-- pH -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-circle-half text-primary"></i> pH Value
+                            <span class="penalty-badge bg-danger text-white float-end">Max: 20 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Acidity/Alkalinity Level</p>
+                        <p><strong>Optimal Range:</strong> 6.5 - 8.5</p>
+                        <p class="small">
+                            pH outside this range can cause corrosion of pipes, taste issues, and reduced
+                            disinfection effectiveness. Extremely low or high pH can cause health issues.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> 10 points per unit deviation from optimal range
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TDS -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-droplet text-primary"></i> Total Dissolved Solids (TDS)
+                            <span class="penalty-badge bg-danger text-white float-end">Max: 30 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Concentration of dissolved substances (ppm)</p>
+                        <p>
+                            <strong>Excellent:</strong> ≤500 ppm<br>
+                            <strong>Acceptable:</strong> 501-1000 ppm<br>
+                            <strong>High:</strong> >1000 ppm
+                        </p>
+                        <p class="small">
+                            High TDS affects taste and may indicate contamination. Very high levels can cause
+                            gastrointestinal issues and mineral buildup in pipes.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> Tiered system (0-25-30 points)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Turbidity -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-cloud-haze text-primary"></i> Turbidity
+                            <span class="penalty-badge bg-danger text-white float-end">Max: 20 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Cloudiness or haziness (NTU)</p>
+                        <p><strong>Optimal:</strong> ≤5 NTU</p>
+                        <p class="small">
+                            Turbidity indicates suspended particles that can harbor harmful microorganisms
+                            and reduce disinfection effectiveness. High turbidity is a health concern.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> 4 points per NTU above 5
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chlorine -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-shield-check text-primary"></i> Free Chlorine
+                            <span class="penalty-badge bg-danger text-white float-end">Max: 15 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Disinfectant residual (mg/L)</p>
+                        <p><strong>Optimal Range:</strong> 0.2 - 4.0 mg/L</p>
+                        <p class="small">
+                            Chlorine kills harmful bacteria and viruses. Too little means inadequate disinfection,
+                            while too much can cause taste/odor issues and potential health concerns.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> Severe if <0.2 (disinfection failure), moderate if >4.0
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Temperature -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-thermometer-half text-primary"></i> Temperature
+                            <span class="penalty-badge bg-warning text-dark float-end">Max: 10 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Water temperature (°C)</p>
+                        <p><strong>Optimal Range:</strong> 10 - 25°C</p>
+                        <p class="small">
+                            Temperature affects bacterial growth rates, chemical reactions, and taste.
+                            Warmer water encourages microbial growth and reduces dissolved oxygen.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> 2 points per °C deviation from optimal
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coliform -->
+                <div class="col-lg-6">
+                    <div class="parameter-card">
+                        <h5>
+                            <i class="bi bi-bug text-primary"></i> Total Coliform
+                            <span class="penalty-badge bg-danger text-white float-end">Max: 25 pts</span>
+                        </h5>
+                        <p class="text-muted mb-2">Bacterial contamination indicator (CFU/100mL)</p>
+                        <p><strong>Optimal:</strong> ≤10 CFU/100mL</p>
+                        <p class="small">
+                            Coliform bacteria indicate fecal contamination and potential presence of
+                            disease-causing pathogens. Any detection is a serious health concern.
+                        </p>
+                        <div class="alert alert-light small mb-0">
+                            <strong>Penalty:</strong> 0.1 per CFU up to 10, then 0.2 per CFU (escalating)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Classification -->
+        <div class="info-section">
+            <h2 class="mb-4"><i class="bi bi-award"></i> Compliance Classification</h2>
+            <p class="mb-4">
+                Based on the calculated WQI score, water is classified into four compliance tiers:
+            </p>
+
+            <div class="compliance-row" style="background: #ecfdf5;">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h4 class="text-success mb-0">
+                            <i class="bi bi-check-circle-fill"></i> Excellent
+                        </h4>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>WQI ≥ 90</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-success">Safe to Drink</span>
+                    </div>
+                    <div class="col-md-5">
+                        <p class="mb-0 small">
+                            Premium quality water that exceeds all safety standards. Minimal or no penalties
+                            across all parameters.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="compliance-row" style="background: #eff6ff;">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h4 class="text-primary mb-0">
+                            <i class="bi bi-check-circle"></i> Compliant
+                        </h4>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>WQI 70-89</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-primary">Safe to Drink</span>
+                    </div>
+                    <div class="col-md-5">
+                        <p class="mb-0 small">
+                            Meets all essential safety standards. Some parameters may show minor deviations
+                            but remain within acceptable limits.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="compliance-row" style="background: #fef3c7;">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h4 class="text-warning mb-0">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Warning
+                        </h4>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>WQI 50-69</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-danger">Not Safe</span>
+                    </div>
+                    <div class="col-md-5">
+                        <p class="mb-0 small">
+                            Some parameters exceed safe limits. Water requires treatment or further testing
+                            before consumption.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="compliance-row" style="background: #fee2e2;">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h4 class="text-danger mb-0">
+                            <i class="bi bi-x-circle-fill"></i> Unsafe
+                        </h4>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>WQI < 50</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-danger">Not Safe</span>
+                    </div>
+                    <div class="col-md-5">
+                        <p class="mb-0 small">
+                            Multiple parameters show serious violations. Water is not safe for consumption
+                            and requires immediate attention.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standards Reference -->
+        <div class="info-section">
+            <h2 class="mb-4"><i class="bi bi-book"></i> Standards Reference</h2>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-globe"></i> WHO Guidelines
+                            </h5>
+                            <p class="card-text small">
+                                World Health Organization guidelines for drinking water quality, providing
+                                internationally recognized safety standards.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-flag"></i> BIS 10500:2012
+                            </h5>
+                            <p class="card-text small">
+                                Bureau of Indian Standards specification for drinking water quality,
+                                adapted for Indian conditions and requirements.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-shield-check"></i> EPA Standards
+                            </h5>
+                            <p class="card-text small">
+                                US Environmental Protection Agency standards for water quality and
+                                disinfection requirements.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Try It Out -->
+        <div class="info-section">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-5">
+                    <h2 class="mb-3">Ready to Calculate WQI?</h2>
+                    <p class="lead mb-4">
+                        Use our WQI Calculator to assess your water quality in real-time
+                    </p>
+                    <a href="{{ url_for('wqi.wqi_calculator_page') }}" class="btn btn-light btn-lg">
+                        <i class="bi bi-calculator"></i> Launch WQI Calculator
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

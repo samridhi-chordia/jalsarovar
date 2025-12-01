@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Treatment Recommendations - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('interventions.list_interventions') }}">Interventions</a></li>
+            <li class="breadcrumb-item active">Treatment Recommendations</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>
+            <i class="bi bi-lightbulb"></i> Treatment Recommendations
+        </h1>
+        <div>
+            <a href="{{ url_for('interventions.effectiveness_dashboard') }}" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> Effectiveness Dashboard
+            </a>
+            <a href="{{ url_for('interventions.list_interventions') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sidebar with Selection Form -->
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel"></i> Find Treatments
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('interventions.treatment_recommendations') }}">
+                    <div class="mb-3">
+                        <label for="contamination_type" class="form-label">
+                            Contamination Type <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="contamination_type" name="contamination_type" required>
+                            {% for ctype in contamination_types %}
+                            <option value="{{ ctype }}" {% if selected_type == ctype %}selected{% endif %}>
+                                {{ ctype|title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select the contaminant found in your water</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="budget" class="form-label">Budget Limit (INR)</label>
+                        <input type="number" step="1000" class="form-control" id="budget" name="budget"
+                               value="{{ budget if budget else '' }}" placeholder="Optional">
+                        <div class="form-text">Filter treatments by maximum cost</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Get Recommendations
+                    </button>
+                </form>
+
+                <hr class="my-4">
+
+                <h6 class="text-muted">Common Contaminants:</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for ctype in contamination_types[:6] %}
+                    <a href="{{ url_for('interventions.treatment_recommendations', contamination_type=ctype) }}"
+                       class="badge {% if selected_type == ctype %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ ctype|title }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations Results -->
+    <div class="col-md-8">
+        {% if recommendations %}
+        <div class="card mb-3 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    Recommended Treatments for {{ recommendations.contamination_type|title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">
+                    <i class="bi bi-check-circle"></i> Found <strong>{{ recommendations.recommendations|length }}</strong> suitable treatment method(s)
+                    {% if budget %}
+                    within your budget of ₹{{ "{:,.0f}".format(budget) }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if recommendations.recommendations %}
+        <!-- Treatment Cards -->
+        {% for rec in recommendations.recommendations %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {{ loop.index }}. {{ rec.treatment_method }}
+                    </h5>
+                    <div>
+                        <span class="badge bg-secondary">{{ rec.category|title }}</span>
+                        {% if rec.effectiveness_rate %}
+                        {% if rec.effectiveness_rate >= 70 %}
+                        <span class="badge bg-success">{{ rec.effectiveness_rate }}% effective</span>
+                        {% elif rec.effectiveness_rate >= 40 %}
+                        <span class="badge bg-info">{{ rec.effectiveness_rate }}% effective</span>
+                        {% else %}
+                        <span class="badge bg-warning">{{ rec.effectiveness_rate }}% effective</span>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <p class="text-muted">{{ rec.description }}</p>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-0 text-success">
+                                {% if rec.effectiveness_rate %}
+                                {{ rec.effectiveness_rate }}%
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">Success Rate</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-0 text-primary">{{ rec.cost_range }}</h5>
+                            <small class="text-muted">Cost Range</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-0 text-info">
+                                {% if rec.implementation_days %}
+                                {{ rec.implementation_days }} days
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">Timeline</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-0">
+                                {% if rec.technical_complexity == 'low' %}
+                                <span class="text-success">Low</span>
+                                {% elif rec.technical_complexity == 'medium' %}
+                                <span class="text-warning">Medium</span>
+                                {% elif rec.technical_complexity == 'high' %}
+                                <span class="text-danger">High</span>
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </h5>
+                            <small class="text-muted">Complexity</small>
+                        </div>
+                    </div>
+                </div>
+
+                {% if rec.average_improvement %}
+                <div class="alert alert-success mt-3 mb-0">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    Historical data shows an average improvement of <strong>{{ "{:.1f}".format(rec.average_improvement) }}%</strong>
+                    {% if rec.historical_uses %}
+                    based on {{ rec.historical_uses }} intervention(s)
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if rec.historical_uses == 0 or rec.historical_uses is none %}
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    No historical data available yet. Effectiveness rating based on treatment method characteristics.
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('interventions.new_intervention') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i> Create Intervention with This Method
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <!-- No Recommendations -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-exclamation-circle" style="font-size: 4rem; color: #ffc107;"></i>
+                <h4 class="mt-3">No Suitable Treatments Found</h4>
+                <p class="text-muted">
+                    No treatment methods in our database are suitable for {{ recommendations.contamination_type }}.
+                    {% if budget %}
+                    Try increasing your budget or removing the budget filter.
+                    {% else %}
+                    You may need to add custom treatment methods to the database.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- Initial State -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-lightbulb" style="font-size: 4rem; color: #0d6efd;"></i>
+                <h4 class="mt-3">Get Treatment Recommendations</h4>
+                <p class="text-muted">
+                    Select a contamination type from the form on the left to see recommended treatments
+                    based on historical effectiveness data and expert knowledge.
+                </p>
+                <hr class="my-4">
+                <div class="row text-start">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-check-circle text-success"></i> What You'll Get:</h6>
+                        <ul>
+                            <li>Ranked treatment options by effectiveness</li>
+                            <li>Historical success rates from your data</li>
+                            <li>Cost estimates and timelines</li>
+                            <li>Technical complexity ratings</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-info-circle text-info"></i> How It Works:</h6>
+                        <ul>
+                            <li>AI analyzes your historical interventions</li>
+                            <li>Compares pre/post water quality data</li>
+                            <li>Ranks methods by proven effectiveness</li>
+                            <li>Filters by your budget constraints</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

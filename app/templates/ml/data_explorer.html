@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Explorer - Jal Sarovar ML</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .stat-card p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        .badge-compliant {
+            background: #27ae60;
+        }
+        .badge-non-compliant {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark navbar-custom mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/ml/">
+                <i class="fas fa-water"></i> Jal Sarovar - ML Analytics
+            </a>
+            <a href="/ml/" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-home"></i> Back to ML Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="content-card">
+            <h2><i class="fas fa-database"></i> Data Explorer</h2>
+            <p class="text-muted">Explore the Amrit Sarovar water quality dataset</p>
+            <hr>
+
+            <!-- Summary Statistics -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
+                        <h3>{{ "{:,}".format(stats.total_sites) }}</h3>
+                        <p><i class="fas fa-map-marker-alt"></i> Total Sites</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+                        <h3>{{ "{:,}".format(stats.total_samples) }}</h3>
+                        <p><i class="fas fa-vial"></i> Water Samples</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%);">
+                        <h3>{{ "{:,}".format(stats.who_compliant) }}</h3>
+                        <p><i class="fas fa-check-circle"></i> WHO Compliant</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+                        <h3>{{ "{:,}".format(stats.non_compliant) }}</h3>
+                        <p><i class="fas fa-exclamation-triangle"></i> Non-Compliant</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coverage Stats -->
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-map"></i> Geographic Coverage</h5>
+                        <p class="mb-0"><strong>{{ stats.states_covered }}</strong> states covered in the dataset</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-flag"></i> Priority Sites</h5>
+                        <p class="mb-0"><strong>{{ stats.urgent_priority }}</strong> sites require urgent intervention</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Sites Table -->
+        <div class="content-card">
+            <h3><i class="fas fa-list"></i> Sample Sites (First 20)</h3>
+            <p class="text-muted">Amrit Sarovar sites from demo dataset</p>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Site Code</th>
+                            <th>State</th>
+                            <th>District</th>
+                            <th>Capacity (m³)</th>
+                            <th>Depth (m)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in sample_sites %}
+                        <tr>
+                            <td><code>{{ site.site_code }}</code></td>
+                            <td>{{ site.state }}</td>
+                            <td>{{ site.district }}</td>
+                            <td>{{ "{:,.0f}".format(site.capacity_cubic_meters) }}</td>
+                            <td>{{ "%.1f"|format(site.avg_depth_meters) }}</td>
+                            <td>
+                                {% if site.operational_status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ site.operational_status.title() }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info view-details-btn"
+                                        data-site="{{ site.site_code }}">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-light">
+                <i class="fas fa-info-circle"></i>
+                <strong>Note:</strong> This is a sample of the demo dataset. The full dataset contains {{ "{:,}".format(stats.total_sites) }} sites
+                with {{ "{:,}".format(stats.total_samples) }} water quality samples across 12 months.
+            </div>
+        </div>
+
+        <!-- Data Distribution -->
+        <div class="content-card">
+            <h3><i class="fas fa-chart-pie"></i> Data Distribution</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>WHO Compliance Status</h5>
+                    <div class="progress" style="height: 30px;">
+                        {% set compliant_pct = (stats.who_compliant / (stats.who_compliant + stats.non_compliant) * 100) %}
+                        <div class="progress-bar bg-success" style="width: {{ compliant_pct }}%">
+                            {{ "%.1f"|format(compliant_pct) }}% Compliant
+                        </div>
+                        <div class="progress-bar bg-danger" style="width: {{ 100 - compliant_pct }}%">
+                            {{ "%.1f"|format(100 - compliant_pct) }}% Non-Compliant
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Dataset Composition</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Sites
+                            <span class="badge bg-primary rounded-pill">{{ "{:,}".format(stats.total_sites) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Samples per Site (avg)
+                            <span class="badge bg-primary rounded-pill">{{ stats.total_samples // stats.total_sites }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Parameters Tested
+                            <span class="badge bg-primary rounded-pill">30+</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Access Info -->
+        <div class="content-card">
+            <h3><i class="fas fa-code"></i> API Access</h3>
+            <p class="text-muted">Access site and sample data programmatically via REST API</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Get Site Details</h5>
+                    <pre class="bg-light p-3 rounded"><code>GET /ml/api/site-details/&lt;site_code&gt;</code></pre>
+                    <p class="small">Returns detailed information about a specific site including samples and analyses</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Get ML Statistics</h5>
+                    <pre class="bg-light p-3 rounded"><code>GET /ml/api/stats</code></pre>
+                    <p class="small">Returns overall ML system statistics including model performance and cost savings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle view details buttons
+        document.querySelectorAll('.view-details-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const siteCode = this.dataset.site;
+                window.location.href = `/ml/api/site-details/${siteCode}`;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Sites - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-diagram-3"></i> Compare Water Quality Trends</h2>
+            <p class="text-muted">Select 2-5 sites to compare their water quality trends side by side</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check2-square"></i> Select Sites to Compare</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('analytics.compare_sites') }}" method="GET" id="compareForm">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Select between 2 and 5 sites to compare. The system will analyze water quality trends
+                            over the last 180 days for each site.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Available Sites</strong></label>
+                            <div class="row">
+                                {% for site in sites %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input site-checkbox" type="checkbox"
+                                               name="site_ids" value="{{ site.id }}" id="site{{ site.id }}">
+                                        <label class="form-check-label" for="site{{ site.id }}">
+                                            <strong>{{ site.site_name }}</strong>
+                                            {% if site.site_code %}
+                                                <span class="badge bg-secondary">{{ site.site_code }}</span>
+                                            {% endif %}
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ site.district }}{% if site.state %}, {{ site.state }}{% endif %}
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span id="selectionCount" class="text-muted">0 sites selected</span>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="compareButton" disabled>
+                                <i class="bi bi-diagram-3"></i> Compare Selected Sites
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.site-checkbox');
+    const selectionCount = document.getElementById('selectionCount');
+    const compareButton = document.getElementById('compareButton');
+    const compareForm = document.getElementById('compareForm');
+
+    function updateSelection() {
+        const checked = Array.from(checkboxes).filter(cb => cb.checked);
+        const count = checked.length;
+
+        selectionCount.textContent = `${count} site${count !== 1 ? 's' : ''} selected`;
+
+        if (count >= 2 && count <= 5) {
+            compareButton.disabled = false;
+            compareButton.classList.remove('btn-secondary');
+            compareButton.classList.add('btn-primary');
+        } else {
+            compareButton.disabled = true;
+            compareButton.classList.remove('btn-primary');
+            compareButton.classList.add('btn-secondary');
+        }
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+
+    compareForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const checked = Array.from(checkboxes).filter(cb => cb.checked);
+        const siteIds = checked.map(cb => cb.value).join(',');
+
+        if (siteIds) {
+            window.location.href = `{{ url_for('analytics.compare_sites') }}?sites=${siteIds}`;
+        }
+    });
+});
+</script>
+{% endblock %}

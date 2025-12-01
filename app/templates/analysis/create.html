@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Run Analysis - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-clipboard-data"></i> Run Contamination Analysis</h1>
+    <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Sample
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Sample Info Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Sample Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <strong>Sample ID:</strong> {{ sample.sample_id }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Site:</strong> {{ sample.site.site_name if sample.site else 'N/A' }}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <strong>Collection Date:</strong> {{ sample.collection_date.strftime('%Y-%m-%d') }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <span class="badge bg-info">{{ sample.status|title }}</span>
+                    </div>
+                </div>
+                {% if test_result %}
+                <div class="row">
+                    <div class="col-12">
+                        <strong>Latest Test:</strong> {{ test_result.test_date.strftime('%Y-%m-%d') if test_result.test_date else 'N/A' }}
+                        {% if test_result.tested_by %}
+                        by {{ test_result.tested_by }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Test Results Summary Card -->
+        {% if test_result %}
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-pulse"></i> Test Results Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <small class="text-muted">pH Value:</small><br>
+                        <strong>{{ test_result.ph_value or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Turbidity (NTU):</small><br>
+                        <strong>{{ test_result.turbidity_ntu or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">TDS (ppm):</small><br>
+                        <strong>{{ test_result.tds_ppm or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Free Chlorine (mg/L):</small><br>
+                        <strong>{{ test_result.free_chlorine_mg_l or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">E. Coli Status:</small><br>
+                        <strong>
+                            {% if test_result.e_coli_status == 'absent' %}
+                            <span class="text-success">Absent</span>
+                            {% elif test_result.e_coli_status == 'present' %}
+                            <span class="text-danger">Present</span>
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Iron (mg/L):</small><br>
+                        <strong>{{ test_result.iron_mg_l or 'N/A' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Analysis Configuration Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Analysis Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('analysis.create', sample_id=sample.id) }}">
+                    <!-- Analysis Type -->
+                    <div class="mb-4">
+                        <label for="analysis_type" class="form-label">Analysis Type</label>
+                        <select class="form-select" id="analysis_type" name="analysis_type" required>
+                            <option value="automated">Automated (Rule-based)</option>
+                            <option value="manual">Manual Review</option>
+                            <option value="hybrid">Hybrid (Automated + Manual)</option>
+                        </select>
+                        <div class="form-text">
+                            Automated analysis applies WHO and BIS standards to test results
+                        </div>
+                    </div>
+
+                    <!-- ML Analysis Option -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="run_ml_analysis" name="run_ml_analysis" value="yes">
+                            <label class="form-check-label" for="run_ml_analysis">
+                                <strong>Enable Machine Learning Prediction</strong>
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            ML model will provide additional contamination prediction (requires ML API)
+                        </div>
+                    </div>
+
+                    <!-- What Will Happen -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="bi bi-lightbulb"></i> What Will Happen:</h6>
+                        <ul class="mb-0">
+                            <li>Test results will be analyzed against WHO and BIS standards</li>
+                            <li>Contamination sources will be identified and ranked</li>
+                            <li>Severity level will be assigned (low, medium, high, critical)</li>
+                            <li>Immediate actions and recommendations will be generated</li>
+                            <li>Sample status will be updated to "Analyzed"</li>
+                            {% if test_result and test_result.e_coli_status == 'present' %}
+                            <li class="text-danger"><strong>Warning: E. Coli detected in test results</strong></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('samples.view', sample_id=sample.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-play-circle"></i> Run Analysis
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card border-primary">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-info-circle-fill text-primary"></i> About Contamination Analysis</h6>
+                <p class="card-text small mb-0">
+                    The analysis engine evaluates multiple contamination scenarios including:
+                </p>
+                <ul class="small mb-0 mt-2">
+                    <li><strong>Runoff/Sediment:</strong> Turbidity, iron, suspended solids</li>
+                    <li><strong>Sewage Ingress:</strong> E. Coli, nitrates, ammonia, organic matter</li>
+                    <li><strong>Salt Intrusion:</strong> TDS, salinity, conductivity, chlorides</li>
+                    <li><strong>Pipe Corrosion:</strong> Iron, manganese, copper, lead, pH</li>
+                    <li><strong>Disinfectant Decay:</strong> Free chlorine, coliform bacteria</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

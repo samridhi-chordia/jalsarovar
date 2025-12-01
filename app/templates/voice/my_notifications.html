@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}My Notifications - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2><i class="bi bi-bell-fill"></i> My Notification History</h2>
+            <p class="text-muted">View SMS, Voice, and WhatsApp messages sent by the system (last 30 days)</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="text-primary"><i class="bi bi-envelope"></i> Total Messages</h6>
+                    <h3>{{ stats.get('total', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="text-info"><i class="bi bi-chat-text"></i> SMS</h6>
+                    <h3>{{ stats.get('sms', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="text-success"><i class="bi bi-telephone"></i> Voice</h6>
+                    <h3>{{ stats.get('voice', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="text-success"><i class="bi bi-whatsapp"></i> WhatsApp</h6>
+                    <h3>{{ stats.get('whatsapp', 0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Recent Notifications</h5>
+        </div>
+        <div class="card-body">
+            {% if notifications %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Type</th>
+                            <th>Site</th>
+                            <th>Status</th>
+                            <th>Message Preview</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notif in notifications %}
+                        <tr>
+                            <td><small>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}</small></td>
+                            <td>
+                                {% if notif.notification_type == 'sms' %}
+                                    <span class="badge bg-info">SMS</span>
+                                {% elif notif.notification_type == 'voice' %}
+                                    <span class="badge bg-success">Voice</span>
+                                {% elif notif.notification_type == 'whatsapp' %}
+                                    <span class="badge bg-success">WhatsApp</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ notif.site_identifier or 'N/A' }}</small></td>
+                            <td>
+                                {% if notif.status == 'delivered' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif notif.status == 'sent' %}
+                                    <span class="badge bg-primary">Sent</span>
+                                {% elif notif.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ notif.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ notif.message_content[:80] if notif.message_content else 'N/A' }}...</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No notifications in the last 30 days.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}Import Batch #{{ batch.id }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<!-- Breadcrumbs -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Import History</a></li>
+        <li class="breadcrumb-item active">Batch #{{ batch.id }}</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-file-earmark-check"></i>
+        Import Batch #{{ batch.id }}
+    </h2>
+    <div>
+        <a href="{{ url_for('imports.history') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to History
+        </a>
+        {% if batch.status == 'completed' and batch.can_rollback %}
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#rollbackModal">
+            <i class="bi bi-arrow-counterclockwise"></i> Rollback Import
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status Alert -->
+{% if batch.status == 'completed' %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle-fill"></i> Import Completed Successfully</h5>
+    <p class="mb-0">
+        {{ batch.successful_imports }} of {{ batch.total_records }} records were imported successfully
+        {% if batch.processing_time_seconds %}
+            in {{ "%.2f"|format(batch.processing_time_seconds) }} seconds
+        {% endif %}.
+    </p>
+</div>
+{% elif batch.status == 'failed' %}
+<div class="alert alert-danger">
+    <h5><i class="bi bi-x-circle-fill"></i> Import Failed</h5>
+    <p class="mb-0">
+        The import could not be completed due to errors. See details below.
+    </p>
+</div>
+{% elif batch.status == 'rolled_back' %}
+<div class="alert alert-warning">
+    <h5><i class="bi bi-arrow-counterclockwise"></i> Import Rolled Back</h5>
+    <p class="mb-0">
+        This import was rolled back on {{ batch.rolled_back_at.strftime('%Y-%m-%d %H:%M') }}
+        {% if batch.rolled_back_by %}
+            by {{ batch.rolled_back_by.username }}
+        {% endif %}.
+        All imported records have been removed.
+    </p>
+</div>
+{% elif batch.is_in_progress %}
+<div class="alert alert-info">
+    <h5><i class="bi bi-arrow-clockwise"></i> Import In Progress</h5>
+    <p class="mb-0">
+        Status: {{ batch.status.title() }}
+        <span class="spinner-border spinner-border-sm ms-2"></span>
+    </p>
+</div>
+{% endif %}
+
+<!-- Import Summary -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Import Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Data Source:</strong></p>
+                        <p class="ms-3">
+                            {{ batch.data_source.name }}
+                            <br>
+                            <small class="text-muted">
+                                {{ batch.data_source.source_type.replace('_', ' ').title() }}
+                            </small>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>File:</strong></p>
+                        <p class="ms-3">
+                            <code>{{ batch.file_name }}</code>
+                            {% if batch.file_hash %}
+                            <br>
+                            <small class="text-muted" title="SHA256 hash">
+                                Hash: {{ batch.file_hash[:16] }}...
+                            </small>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Imported By:</strong></p>
+                        <p class="ms-3">{{ batch.imported_by.username }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Import Date:</strong></p>
+                        <p class="ms-3">{{ batch.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                </div>
+
+                {% if batch.completed_at %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Completed At:</strong></p>
+                        <p class="ms-3">{{ batch.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Processing Time:</strong></p>
+                        <p class="ms-3">
+                            {{ "%.2f"|format(batch.processing_time_seconds) }} seconds
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p class="mb-1 text-muted">Total Records</p>
+                    <h4 class="text-primary">{{ batch.total_records or 0 }}</h4>
+                </div>
+                <div class="mb-3">
+                    <p class="mb-1 text-muted">Successful</p>
+                    <h4 class="text-success">{{ batch.successful_imports or 0 }}</h4>
+                </div>
+                <div class="mb-3">
+                    <p class="mb-1 text-muted">Failed</p>
+                    <h4 class="text-danger">{{ batch.failed_imports or 0 }}</h4>
+                </div>
+                {% if batch.skipped_records %}
+                <div class="mb-3">
+                    <p class="mb-1 text-muted">Skipped</p>
+                    <h4 class="text-warning">{{ batch.skipped_records }}</h4>
+                </div>
+                {% endif %}
+                <div class="mb-0">
+                    <p class="mb-1 text-muted">Success Rate</p>
+                    <h4 class="text-info">{{ "%.1f"|format(batch.success_rate) }}%</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Errors -->
+{% if batch.validation_errors_list and batch.validation_errors_list|length > 0 %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-x-circle-fill"></i>
+            Validation Errors ({{ batch.validation_errors_list|length }})
+            <button class="btn btn-sm btn-outline-light float-end" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#errorsCollapse">
+                Toggle
+            </button>
+        </h5>
+    </div>
+    <div class="collapse show" id="errorsCollapse">
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-light">
+                        <tr>
+                            <th>Row</th>
+                            <th>Field</th>
+                            <th>Error</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for error in batch.validation_errors_list %}
+                        <tr>
+                            <td>{{ error.row }}</td>
+                            <td><code>{{ error.field }}</code></td>
+                            <td>{{ error.error }}</td>
+                            <td>
+                                {% if error.value %}
+                                    <code>{{ error.value }}</code>
+                                {% else %}
+                                    <em class="text-muted">(empty)</em>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Validation Warnings -->
+{% if batch.validation_warnings_list and batch.validation_warnings_list|length > 0 %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Warnings ({{ batch.validation_warnings_list|length }})
+            <button class="btn btn-sm btn-outline-dark float-end" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#warningsCollapse">
+                Toggle
+            </button>
+        </h5>
+    </div>
+    <div class="collapse" id="warningsCollapse">
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-light">
+                        <tr>
+                            <th>Row</th>
+                            <th>Field</th>
+                            <th>Warning</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for warning in batch.validation_warnings_list %}
+                        <tr>
+                            <td>{{ warning.row }}</td>
+                            <td><code>{{ warning.field }}</code></td>
+                            <td>{{ warning.warning }}</td>
+                            <td>
+                                {% if warning.value %}
+                                    <code>{{ warning.value }}</code>
+                                {% else %}
+                                    <em class="text-muted">(empty)</em>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Import Log -->
+{% if batch.import_log %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-list-ul"></i>
+            Import Log
+            <button class="btn btn-sm btn-outline-light float-end" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#logCollapse">
+                Toggle
+            </button>
+        </h5>
+    </div>
+    <div class="collapse" id="logCollapse">
+        <div class="card-body">
+            <div class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+                <pre class="mb-0 text-light">{{ batch.import_log }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Data Preview -->
+{% if batch.data_preview_list and batch.data_preview_list|length > 0 %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-eye"></i>
+            Data Preview (First {{ batch.data_preview_list|length }} Rows)
+            <button class="btn btn-sm btn-outline-light float-end" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#previewCollapse">
+                Toggle
+            </button>
+        </h5>
+    </div>
+    <div class="collapse" id="previewCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            {% if batch.data_preview_list[0] %}
+                                {% for key in batch.data_preview_list[0].keys() %}
+                                <th>{{ key }}</th>
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in batch.data_preview_list %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            {% for key, value in row.items() %}
+                            <td>{{ value if value != None else '' }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Rollback Confirmation Modal -->
+{% if batch.status == 'completed' and batch.can_rollback %}
+<div class="modal fade" id="rollbackModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Confirm Rollback
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">Are you sure you want to rollback this import?</p>
+
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle-fill"></i> This will delete:</h6>
+                    <ul>
+                        <li>{{ batch.successful_imports }} water sample(s)</li>
+                        <li>All associated test results</li>
+                        <li>All related analysis data</li>
+                    </ul>
+                    <p class="mb-0 fw-bold">This action cannot be undone!</p>
+                </div>
+
+                <p><strong>Import Details:</strong></p>
+                <ul>
+                    <li>Batch ID: #{{ batch.id }}</li>
+                    <li>Data Source: {{ batch.data_source.name }}</li>
+                    <li>File: {{ batch.file_name }}</li>
+                    <li>Imported on: {{ batch.import_date.strftime('%Y-%m-%d %H:%M') }}</li>
+                </ul>
+
+                <p class="text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Only the data imported in this specific batch will be removed.
+                    Other imports will not be affected.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <form action="{{ url_for('imports.rollback_batch', batch_id=batch.id) }}"
+                      method="POST"
+                      class="d-inline">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-arrow-counterclockwise"></i> Confirm Rollback
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{% if batch.is_in_progress %}
+<script>
+// Auto-refresh for in-progress imports
+setTimeout(function() {
+    location.reload();
+}, 5000); // Refresh every 5 seconds
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Site Trends - {{ site.site_name }} - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+    .parameter-card {
+        margin-bottom: 20px;
+        border-left: 4px solid #dee2e6;
+    }
+    .parameter-card.declining {
+        border-left-color: #dc3545;
+    }
+    .parameter-card.stable {
+        border-left-color: #6c757d;
+    }
+    .parameter-card.improving {
+        border-left-color: #198754;
+    }
+    .stat-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="bi bi-graph-up"></i> Water Quality Trends - {{ site.site_name }}</h2>
+            <p class="text-muted">
+                <i class="bi bi-geo-alt"></i> {{ site.district }}{% if site.state %}, {{ site.state }}{% endif %}
+                {% if site.site_code %}
+                    <span class="badge bg-secondary ms-2">{{ site.site_code }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary mb-2">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{{ url_for('samples.site_samples', site_id=site.id) }}" class="btn btn-outline-primary mb-2">
+                <i class="bi bi-water"></i> View Samples
+            </a>
+        </div>
+    </div>
+
+    <!-- Overall Summary Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card {% if trend_data.warning_level == 'critical' %}border-danger{% elif trend_data.warning_level == 'high' %}border-warning{% endif %}">
+                <div class="card-header {% if trend_data.warning_level == 'critical' %}bg-danger text-white{% elif trend_data.warning_level == 'high' %}bg-warning{% else %}bg-primary text-white{% endif %}">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clipboard-data"></i> Overall Site Assessment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-box text-center">
+                                <h6 class="text-muted">Warning Level</h6>
+                                {% if trend_data.warning_level == 'critical' %}
+                                    <span class="badge bg-danger fs-5">CRITICAL</span>
+                                {% elif trend_data.warning_level == 'high' %}
+                                    <span class="badge bg-warning text-dark fs-5">HIGH</span>
+                                {% elif trend_data.warning_level == 'medium' %}
+                                    <span class="badge bg-info fs-5">MEDIUM</span>
+                                {% else %}
+                                    <span class="badge bg-success fs-5">LOW</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box text-center">
+                                <h6 class="text-muted">Warning Score</h6>
+                                <h3 class="mb-0">{{ trend_data.warning_score|round(1) }}</h3>
+                                <small class="text-muted">out of 100</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box text-center">
+                                <h6 class="text-muted">Overall Trend</h6>
+                                {% if trend_data.overall_trend == 'declining' %}
+                                    <span class="badge bg-danger fs-5">
+                                        <i class="bi bi-arrow-down"></i> Declining
+                                    </span>
+                                {% elif trend_data.overall_trend == 'stable' %}
+                                    <span class="badge bg-secondary fs-5">
+                                        <i class="bi bi-dash"></i> Stable
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success fs-5">
+                                        <i class="bi bi-arrow-up"></i> Improving
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box text-center">
+                                <h6 class="text-muted">Samples Analyzed</h6>
+                                <h3 class="mb-0">{{ trend_data.samples_analyzed }}</h3>
+                                <small class="text-muted">Last {{ days }} days</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if trend_data.recommendations %}
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-lightbulb"></i> Recommendations:</h6>
+                        <ul class="mb-0">
+                            {% for rec in trend_data.recommendations %}
+                            <li>{{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Trends Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4><i class="bi bi-activity"></i> Parameter-Level Analysis</h4>
+            <p class="text-muted">Detailed trend analysis for each water quality parameter</p>
+        </div>
+    </div>
+
+    {% for param_name, param_data in trend_data.parameters.items() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card parameter-card {{ param_data.trend_direction }}">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ param_name }}</h5>
+                        <div>
+                            {% if param_data.trend_direction == 'declining' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-arrow-down"></i> Declining
+                                </span>
+                            {% elif param_data.trend_direction == 'stable' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-dash"></i> Stable
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-arrow-up"></i> Improving
+                                </span>
+                            {% endif %}
+
+                            {% if param_data.is_significant %}
+                                <span class="badge bg-info">Statistically Significant</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <strong>Samples:</strong><br>
+                            {{ param_data.sample_count }}
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Mean:</strong><br>
+                            {{ param_data.mean|round(2) }}
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Std Dev:</strong><br>
+                            {{ param_data.std_dev|round(2) }}
+                        </div>
+                        <div class="col-md-2">
+                            <strong>Slope:</strong><br>
+                            {{ param_data.slope|round(4) }}
+                        </div>
+                        <div class="col-md-2">
+                            <strong>R² Score:</strong><br>
+                            {{ param_data.r_squared|round(3) }}
+                        </div>
+                        <div class="col-md-2">
+                            <strong>P-Value:</strong><br>
+                            {{ param_data.p_value|round(4) }}
+                        </div>
+                    </div>
+
+                    {% if param_data.change_points %}
+                    <div class="alert alert-info">
+                        <strong><i class="bi bi-exclamation-circle"></i> Change Points Detected:</strong>
+                        {{ param_data.change_points|length }} significant shift(s) in trend detected
+                    </div>
+                    {% endif %}
+
+                    <!-- Plotly Chart -->
+                    <div id="chart_{{ param_name|replace(' ', '_') }}" class="plot-container"></div>
+
+                    <script>
+                    (function() {
+                        var dates = {{ param_data.dates|tojson }};
+                        var values = {{ param_data.values|tojson }};
+                        var predictions = {{ param_data.predictions|tojson }};
+
+                        var trace1 = {
+                            x: dates,
+                            y: values,
+                            mode: 'markers+lines',
+                            name: 'Actual Values',
+                            marker: { size: 8 },
+                            line: { color: '#0d6efd' }
+                        };
+
+                        var trace2 = {
+                            x: dates,
+                            y: predictions,
+                            mode: 'lines',
+                            name: 'Trend Line',
+                            line: { color: '#dc3545', dash: 'dash', width: 2 }
+                        };
+
+                        var data = [trace1, trace2];
+
+                        {% if param_data.standard_limit %}
+                        var standardLine = {
+                            x: dates,
+                            y: Array(dates.length).fill({{ param_data.standard_limit }}),
+                            mode: 'lines',
+                            name: 'WHO/BIS Limit',
+                            line: { color: '#ffc107', dash: 'dot', width: 2 }
+                        };
+                        data.push(standardLine);
+                        {% endif %}
+
+                        var layout = {
+                            title: '{{ param_name }} Over Time',
+                            xaxis: { title: 'Date' },
+                            yaxis: { title: 'Value' },
+                            hovermode: 'closest',
+                            showlegend: true,
+                            height: 400
+                        };
+
+                        Plotly.newPlot('chart_{{ param_name|replace(" ", "_") }}', data, layout, {responsive: true});
+                    })();
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not trend_data.parameters %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No parameter trends available for this site. More samples are needed for trend analysis.
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('analytics.site_forecast', site_id=site.id) }}" class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-graph-up-arrow"></i> View Forecasts
+                    </a>
+                    <a href="{{ url_for('interventions.new_intervention') }}?site_id={{ site.id }}" class="btn btn-success me-2 mb-2">
+                        <i class="bi bi-plus-circle"></i> Create Intervention
+                    </a>
+                    <a href="{{ url_for('samples.new_sample') }}?site_id={{ site.id }}" class="btn btn-info me-2 mb-2">
+                        <i class="bi bi-droplet"></i> Add New Sample
+                    </a>
+                    <a href="{{ url_for('analytics.compare_sites') }}" class="btn btn-secondary mb-2">
+                        <i class="bi bi-diagram-3"></i> Compare with Other Sites
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

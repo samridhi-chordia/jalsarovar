@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Risk Prediction Dashboard - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-badge-high {
+        background-color: #dc3545;
+        color: white;
+    }
+    .risk-badge-medium {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .risk-badge-low {
+        background-color: #28a745;
+        color: white;
+    }
+    .contamination-card {
+        transition: transform 0.2s;
+    }
+    .contamination-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .probability-bar {
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .probability-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+        transition: width 0.3s;
+    }
+    .model-status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-healthy {
+        background-color: #28a745;
+    }
+    .status-degraded {
+        background-color: #ffc107;
+    }
+    .prediction-card {
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-shield-check"></i> Risk Prediction Dashboard</h1>
+    <div>
+        <button class="btn btn-outline-primary" onclick="refreshModels()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Model Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-cpu"></i> Site Risk Model
+                    <span class="model-status-indicator status-healthy" id="siteModelStatus"></span>
+                </h5>
+                <div id="siteModelInfo">
+                    <p class="text-muted mb-0">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-cpu"></i> Contamination Model
+                    <span class="model-status-indicator status-healthy" id="contaminationModelStatus"></span>
+                </h5>
+                <div id="contaminationModelInfo">
+                    <p class="text-muted mb-0">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prediction Forms -->
+<div class="row">
+    <!-- Site Risk Prediction Form -->
+    <div class="col-lg-6 mb-4">
+        <div class="card prediction-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Site Risk Prediction</h5>
+            </div>
+            <div class="card-body">
+                <form id="siteRiskForm">
+                    <div class="mb-3">
+                        <label for="siteCode" class="form-label">Site Code</label>
+                        <input type="text" class="form-control" id="siteCode" placeholder="e.g., MUM01" required>
+                        <div class="form-text">Enter a valid site code from the database</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Predict Site Risk
+                    </button>
+                </form>
+
+                <!-- Site Risk Result -->
+                <div id="siteRiskResult" class="mt-4" style="display: none;">
+                    <hr>
+                    <h6>Prediction Result:</h6>
+                    <div id="siteRiskContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contamination Prediction Form -->
+    <div class="col-lg-6 mb-4">
+        <div class="card prediction-card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-droplet-half"></i> Contamination Prediction</h5>
+            </div>
+            <div class="card-body">
+                <form id="contaminationForm">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label for="pH" class="form-label small">pH</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="pH" value="7.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="turbidity" class="form-label small">Turbidity (NTU)</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="turbidity" value="5.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="tds" class="form-label small">TDS (mg/L)</label>
+                            <input type="number" step="1" class="form-control form-control-sm" id="tds" value="500" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="dissolvedOxygen" class="form-label small">Dissolved Oxygen</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="dissolvedOxygen" value="6.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="temperature" class="form-label small">Temperature (°C)</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="temperature" value="25.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="nitrate" class="form-label small">Nitrate (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="nitrate" value="10.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="hardness" class="form-label small">Total Hardness</label>
+                            <input type="number" step="1" class="form-control form-control-sm" id="hardness" value="200" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="bod" class="form-label small">BOD (mg/L)</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" id="bod" value="5.0" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="cod" class="form-label small">COD (mg/L)</label>
+                            <input type="number" step="1" class="form-control form-control-sm" id="cod" value="20" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="chloride" class="form-label small">Chloride (mg/L)</label>
+                            <input type="number" step="1" class="form-control form-control-sm" id="chloride" value="100" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="iron" class="form-label small">Iron (mg/L)</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" id="iron" value="0.1" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="arsenic" class="form-label small">Arsenic (mg/L)</label>
+                            <input type="number" step="0.001" class="form-control form-control-sm" id="arsenic" value="0.005" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="lead" class="form-label small">Lead (mg/L)</label>
+                            <input type="number" step="0.001" class="form-control form-control-sm" id="lead" value="0.005" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="coliformStatus" class="form-label small">Coliform Status</label>
+                            <select class="form-select form-select-sm" id="coliformStatus" required>
+                                <option value="absent">Absent</option>
+                                <option value="present">Present</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info w-100 mt-3 text-white">
+                        <i class="bi bi-search"></i> Predict Contamination
+                    </button>
+                </form>
+
+                <!-- Contamination Result -->
+                <div id="contaminationResult" class="mt-4" style="display: none;">
+                    <hr>
+                    <h6>Prediction Result:</h6>
+                    <div id="contaminationContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Predictions (placeholder) -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Quick Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a href="{{ url_for('samples.index') }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-droplet"></i><br>View All Samples
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('analytics.sites') }}" class="btn btn-outline-info w-100">
+                    <i class="bi bi-building"></i><br>Site Analysis
+                </a>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-success w-100" onclick="window.location.href='/api/risk/models/info'" target="_blank">
+                    <i class="bi bi-info-circle"></i><br>Model Info API
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load model information on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadModelInfo();
+});
+
+function loadModelInfo() {
+    fetch('/api/risk/models/info')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const info = data.info;
+
+                // Site Risk Model Info
+                if (info.site_risk_model.loaded) {
+                    document.getElementById('siteModelInfo').innerHTML = `
+                        <p class="mb-1"><strong>Model Type:</strong> ${info.site_risk_model.type}</p>
+                        <p class="mb-1"><strong>Classes:</strong> ${info.site_risk_model.classes.join(', ')}</p>
+                        <p class="mb-0 text-success"><i class="bi bi-check-circle"></i> Model loaded successfully</p>
+                    `;
+                    document.getElementById('siteModelStatus').className = 'model-status-indicator status-healthy';
+                } else {
+                    document.getElementById('siteModelInfo').innerHTML = '<p class="text-danger mb-0">Model not loaded</p>';
+                    document.getElementById('siteModelStatus').className = 'model-status-indicator status-degraded';
+                }
+
+                // Contamination Model Info
+                if (info.contamination_model.loaded) {
+                    document.getElementById('contaminationModelInfo').innerHTML = `
+                        <p class="mb-1"><strong>Model Type:</strong> ${info.contamination_model.type}</p>
+                        <p class="mb-1"><strong>Classes:</strong> ${info.contamination_model.classes.length} contamination types</p>
+                        <p class="mb-0 text-success"><i class="bi bi-check-circle"></i> Model loaded successfully</p>
+                    `;
+                    document.getElementById('contaminationModelStatus').className = 'model-status-indicator status-healthy';
+                } else {
+                    document.getElementById('contaminationModelInfo').innerHTML = '<p class="text-danger mb-0">Model not loaded</p>';
+                    document.getElementById('contaminationModelStatus').className = 'model-status-indicator status-degraded';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading model info:', error);
+        });
+}
+
+function refreshModels() {
+    loadModelInfo();
+    // Show a toast notification
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 p-3';
+    toast.style.zIndex = '11';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Model Status</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Model information refreshed successfully!
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Site Risk Prediction Form Handler
+document.getElementById('siteRiskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const siteCode = document.getElementById('siteCode').value;
+    const resultDiv = document.getElementById('siteRiskResult');
+    const contentDiv = document.getElementById('siteRiskContent');
+
+    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Predicting...</p></div>';
+    resultDiv.style.display = 'block';
+
+    fetch(`/api/risk/predict/site/${siteCode}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success || data.risk_level) {
+                const riskLevel = data.risk_level;
+                const badgeClass = riskLevel === 'high' ? 'risk-badge-high' :
+                                   riskLevel === 'medium' ? 'risk-badge-medium' : 'risk-badge-low';
+
+                let probabilitiesHTML = '';
+                for (const [level, prob] of Object.entries(data.probabilities)) {
+                    const percentage = (prob * 100).toFixed(1);
+                    probabilitiesHTML += `
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-capitalize">${level}</span>
+                                <span>${percentage}%</span>
+                            </div>
+                            <div class="probability-bar">
+                                <div class="probability-fill" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                contentDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <h5>Site: ${data.site.site_name} (${data.site.site_code})</h5>
+                        <p class="mb-0"><strong>Environment:</strong> ${data.site.environment_type} | <strong>State:</strong> ${data.site.state}</p>
+                    </div>
+                    <div class="text-center mb-3">
+                        <h4>Risk Level: <span class="badge ${badgeClass} fs-5">${riskLevel.toUpperCase()}</span></h4>
+                        <p class="text-muted">Confidence: ${data.confidence}</p>
+                    </div>
+                    <h6>Risk Probabilities:</h6>
+                    ${probabilitiesHTML}
+                    <div class="alert alert-warning mt-3">
+                        <strong><i class="bi bi-lightbulb"></i> Recommendation:</strong><br>
+                        ${data.recommendation}
+                    </div>
+                `;
+            } else {
+                contentDiv.innerHTML = `<div class="alert alert-danger">${data.error || 'Prediction failed'}</div>`;
+            }
+        })
+        .catch(error => {
+            contentDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        });
+});
+
+// Contamination Prediction Form Handler
+document.getElementById('contaminationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const resultDiv = document.getElementById('contaminationResult');
+    const contentDiv = document.getElementById('contaminationContent');
+
+    const data = {
+        ph: parseFloat(document.getElementById('pH').value),
+        turbidity: parseFloat(document.getElementById('turbidity').value),
+        tds: parseFloat(document.getElementById('tds').value),
+        dissolved_oxygen: parseFloat(document.getElementById('dissolvedOxygen').value),
+        temperature: parseFloat(document.getElementById('temperature').value),
+        nitrate: parseFloat(document.getElementById('nitrate').value),
+        total_hardness: parseFloat(document.getElementById('hardness').value),
+        bod: parseFloat(document.getElementById('bod').value),
+        cod: parseFloat(document.getElementById('cod').value),
+        chloride: parseFloat(document.getElementById('chloride').value),
+        iron: parseFloat(document.getElementById('iron').value),
+        arsenic: parseFloat(document.getElementById('arsenic').value),
+        lead: parseFloat(document.getElementById('lead').value),
+        coliform_status: document.getElementById('coliformStatus').value,
+        collection_date: new Date().toISOString().split('T')[0]
+    };
+
+    contentDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Analyzing...</p></div>';
+    resultDiv.style.display = 'block';
+
+    fetch('/api/risk/predict/contamination', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success || data.primary_contamination) {
+                const primaryType = data.primary_contamination.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                let topContaminantsHTML = '';
+                data.top_contaminants.forEach((cont, index) => {
+                    const percentage = (cont.probability * 100).toFixed(1);
+                    const contType = cont.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const badgeColor = index === 0 ? 'danger' : index === 1 ? 'warning' : 'secondary';
+                    topContaminantsHTML += `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-${badgeColor}">${index + 1}</span>
+                            <span class="flex-grow-1 ms-2">${contType}</span>
+                            <span class="badge bg-light text-dark">${percentage}%</span>
+                        </div>
+                    `;
+                });
+
+                contentDiv.innerHTML = `
+                    <div class="text-center mb-3">
+                        <h5>Primary Contamination Type:</h5>
+                        <h4><span class="badge bg-danger fs-5">${primaryType}</span></h4>
+                    </div>
+                    <h6>Top Contaminants:</h6>
+                    ${topContaminantsHTML}
+                    <div class="alert alert-danger mt-3">
+                        <strong><i class="bi bi-exclamation-triangle"></i> Recommendation:</strong><br>
+                        ${data.recommendation}
+                    </div>
+                `;
+            } else {
+                contentDiv.innerHTML = `<div class="alert alert-danger">${data.error || 'Prediction failed'}</div>`;
+            }
+        })
+        .catch(error => {
+            contentDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        });
+});
+</script>
+{% endblock %}

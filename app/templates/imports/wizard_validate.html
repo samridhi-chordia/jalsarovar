@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Validate Import Data - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- Breadcrumbs -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('imports.new_import') }}">New Import</a></li>
+                <li class="breadcrumb-item active">Validate</li>
+            </ol>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body bg-light">
+                <h2 class="mb-0">
+                    <i class="bi bi-shield-check"></i> Validate Import Data
+                </h2>
+            </div>
+        </div>
+
+        <!-- Import Wizard Steps -->
+        <div class="mb-4">
+            <div class="row text-center">
+                <div class="col">
+                    <div class="badge bg-success p-3 w-100">
+                        <i class="bi bi-check-circle-fill"></i><br>
+                        Upload File
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="badge bg-primary p-3 w-100">
+                        <i class="bi bi-2-circle-fill"></i><br>
+                        Validate Data
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="badge bg-secondary p-3 w-100">
+                        <i class="bi bi-3-circle"></i><br>
+                        Confirm Import
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Summary -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Import Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Data Source:</strong> {{ data_source.name }}</p>
+                        <p><strong>File:</strong> {{ wizard_data.filename }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Total Records:</strong> {{ wizard_data.record_count }}</p>
+                        <p><strong>Columns Detected:</strong> {{ wizard_data.columns|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validation Results -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header {% if validation.invalid > 0 %}bg-danger{% elif validation.warnings > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Validation Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-primary">{{ validation.total }}</h3>
+                                <p class="mb-0">Total Records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-success">{{ validation.valid }}</h3>
+                                <p class="mb-0">Valid Records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-danger">{{ validation.invalid }}</h3>
+                                <p class="mb-0">Invalid Records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-warning">{{ validation.warnings }}</h3>
+                                <p class="mb-0">Warnings</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if validation.invalid > 0 %}
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle-fill"></i> Validation Failed</h6>
+                    <p class="mb-0">
+                        {{ validation.invalid }} record(s) have errors that must be fixed before importing.
+                        Please correct the errors in your file and upload again.
+                    </p>
+                </div>
+                {% elif validation.warnings > 0 %}
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-exclamation-circle-fill"></i> Validation Passed with Warnings</h6>
+                    <p class="mb-0">
+                        All records are valid, but {{ validation.warnings }} warning(s) were found.
+                        You can proceed with the import or fix the warnings first.
+                    </p>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle-fill"></i> Validation Passed</h6>
+                    <p class="mb-0">
+                        All {{ validation.total }} records passed validation!
+                        Click "Confirm Import" below to proceed.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Validation Errors (if any) -->
+        {% if validation.error_list and validation.error_list|length > 0 %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-x-circle-fill"></i> Errors ({{ validation.error_list|length }})
+                    <button class="btn btn-sm btn-outline-light float-end" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#errorDetails">
+                        Toggle Details
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse show" id="errorDetails">
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Field</th>
+                                    <th>Error</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in validation.error_list %}
+                                <tr>
+                                    <td>{{ error.row }}</td>
+                                    <td><code>{{ error.field }}</code></td>
+                                    <td>{{ error.error }}</td>
+                                    <td>
+                                        {% if error.value %}
+                                            <code>{{ error.value }}</code>
+                                        {% else %}
+                                            <em class="text-muted">(empty)</em>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Validation Warnings (if any) -->
+        {% if validation.warning_list and validation.warning_list|length > 0 %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Warnings ({{ validation.warning_list|length }})
+                    <button class="btn btn-sm btn-outline-dark float-end" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#warningDetails">
+                        Toggle Details
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="warningDetails">
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Field</th>
+                                    <th>Warning</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for warning in validation.warning_list %}
+                                <tr>
+                                    <td>{{ warning.row }}</td>
+                                    <td><code>{{ warning.field }}</code></td>
+                                    <td>{{ warning.warning }}</td>
+                                    <td>
+                                        {% if warning.value %}
+                                            <code>{{ warning.value }}</code>
+                                        {% else %}
+                                            <em class="text-muted">(empty)</em>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Data Preview -->
+        {% if wizard_data.preview %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-eye"></i> Data Preview (First 5 Rows)
+                    <button class="btn btn-sm btn-outline-light float-end" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#previewDetails">
+                        Toggle Preview
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="previewDetails">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    {% for column in wizard_data.columns %}
+                                    <th>{{ column }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in wizard_data.preview %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    {% for column in wizard_data.columns %}
+                                    <td>{{ record.get(column, '') }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{{ url_for('imports.cancel_import') }}" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Cancel Import
+                        </a>
+                        <a href="{{ url_for('imports.new_import') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left-circle"></i> Upload Different File
+                        </a>
+                    </div>
+                    <div>
+                        {% if validation.invalid == 0 %}
+                        <form action="{{ url_for('imports.confirm_import') }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle-fill"></i> Confirm Import
+                            </button>
+                        </form>
+                        {% else %}
+                        <button type="button" class="btn btn-secondary btn-lg" disabled>
+                            <i class="bi bi-x-circle"></i> Cannot Import (Errors Present)
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+</style>
+{% endblock %}

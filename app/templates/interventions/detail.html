@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}{{ intervention.title }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('interventions.list_interventions') }}">Interventions</a></li>
+            <li class="breadcrumb-item active">{{ intervention.title }}</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>
+            <i class="bi bi-tools"></i> {{ intervention.title }}
+        </h1>
+        <div>
+            <a href="{{ url_for('interventions.edit_intervention', intervention_id=intervention.id) }}"
+               class="btn btn-outline-secondary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Status Badge -->
+<div class="mb-4">
+    <span class="badge bg-{{ intervention.get_status_color(intervention.status) }} fs-5">
+        {{ intervention.status|replace('_', ' ')|title }}
+    </span>
+    {% if intervention.was_effective is not none %}
+    {% if intervention.was_effective %}
+    <span class="badge bg-success fs-5">
+        <i class="bi bi-check-circle"></i> Effective
+    </span>
+    {% else %}
+    <span class="badge bg-warning fs-5">
+        <i class="bi bi-exclamation-triangle"></i> Limited Effectiveness
+    </span>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Basic Information -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Basic Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Intervention Type:</div>
+                    <div class="col-sm-8">{{ intervention.intervention_type|replace('_', ' ')|title }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Treatment Method:</div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-secondary">{{ intervention.treatment_method.name }}</span>
+                        ({{ intervention.treatment_method.category }})
+                    </div>
+                </div>
+                {% if intervention.description %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Description:</div>
+                    <div class="col-sm-8">{{ intervention.description }}</div>
+                </div>
+                {% endif %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Site:</div>
+                    <div class="col-sm-8">
+                        {% if intervention.site %}
+                        <a href="{{ url_for('samples.index', site_id=intervention.site.id) }}">
+                            {{ intervention.site.name }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if intervention.sample %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Baseline Sample:</div>
+                    <div class="col-sm-8">
+                        <a href="{{ url_for('samples.view', sample_id=intervention.sample.id) }}">
+                            {{ intervention.sample.sample_id }}
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if intervention.followup_sample %}
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Followup Sample:</div>
+                    <div class="col-sm-8">
+                        <a href="{{ url_for('samples.view', sample_id=intervention.followup_sample.id) }}">
+                            {{ intervention.followup_sample.sample_id }}
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline & Cost -->
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar"></i> Timeline
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if intervention.planned_date %}
+                <div class="mb-2">
+                    <small class="text-muted">Planned:</small><br>
+                    {{ intervention.planned_date.strftime('%Y-%m-%d') }}
+                </div>
+                {% endif %}
+                {% if intervention.implementation_date %}
+                <div class="mb-2">
+                    <small class="text-muted">Started:</small><br>
+                    {{ intervention.implementation_date.strftime('%Y-%m-%d') }}
+                </div>
+                {% endif %}
+                {% if intervention.completion_date %}
+                <div class="mb-2">
+                    <small class="text-muted">Completed:</small><br>
+                    {{ intervention.completion_date.strftime('%Y-%m-%d') }}
+                </div>
+                {% endif %}
+                {% if intervention.duration_days %}
+                <div class="mt-3 pt-3 border-top">
+                    <strong>Duration:</strong> {{ intervention.duration_days }} days
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-currency-rupee"></i> Cost
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if intervention.cost %}
+                <h3 class="mb-0">{{ intervention.cost_display }}</h3>
+                {% if intervention.funding_source %}
+                <small class="text-muted">Funded by: {{ intervention.funding_source }}</small>
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-0">Cost not recorded</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Implementation Details -->
+{% if intervention.implemented_by %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-people"></i> Implementation Details
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% if intervention.implemented_by %}
+            <div class="col-md-6">
+                <strong>Implemented By:</strong><br>
+                {{ intervention.implemented_by }}
+            </div>
+            {% endif %}
+            {% if intervention.funding_source %}
+            <div class="col-md-6">
+                <strong>Funding Source:</strong><br>
+                {{ intervention.funding_source }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Effectiveness Analysis -->
+{% if analysis %}
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-graph-up"></i> Effectiveness Analysis
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Summary Metrics -->
+        {% if analysis.improvement_metrics %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h2 class="mb-0 {% if analysis.improvement_metrics.average_improvement > 30 %}text-success{% elif analysis.improvement_metrics.average_improvement > 10 %}text-info{% else %}text-warning{% endif %}">
+                        {{ "{:.1f}".format(analysis.improvement_metrics.average_improvement) }}%
+                    </h2>
+                    <small class="text-muted">Average Improvement</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h2 class="mb-0 text-success">{{ "{:.1f}".format(analysis.improvement_metrics.best_improvement) }}%</h2>
+                    <small class="text-muted">Best Parameter</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h2 class="mb-0 text-danger">{{ "{:.1f}".format(analysis.improvement_metrics.worst_improvement) }}%</h2>
+                    <small class="text-muted">Worst Parameter</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h4 class="mb-0">{{ analysis.improvement_metrics.effectiveness }}</h4>
+                    <small class="text-muted">Rating</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Pre/Post Comparison Table -->
+        {% if analysis.pre_post_comparison and analysis.pre_post_comparison.parameters %}
+        <h6 class="mt-4">Parameter-by-Parameter Comparison</h6>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Before</th>
+                        <th>After</th>
+                        <th>Change</th>
+                        <th>Improvement</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for param_name, param_data in analysis.pre_post_comparison.parameters.items() %}
+                    <tr>
+                        <td><strong>{{ param_name|replace('_', ' ')|title }}</strong></td>
+                        <td>{{ "{:.4f}".format(param_data.baseline) }}</td>
+                        <td>{{ "{:.4f}".format(param_data.followup) }}</td>
+                        <td>{{ "{:.4f}".format(param_data.absolute_change) }}</td>
+                        <td>
+                            {% if param_data.improvement_pct is not none %}
+                            <span class="{% if param_data.improvement_pct > 20 %}text-success{% elif param_data.improvement_pct > 0 %}text-info{% else %}text-danger{% endif %}">
+                                {{ "{:.1f}".format(param_data.improvement_pct) }}%
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if param_data.direction == 'improved' %}
+                            <span class="badge bg-success"><i class="bi bi-arrow-up"></i> Improved</span>
+                            {% elif param_data.direction == 'worsened' %}
+                            <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> Worsened</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-dash"></i> Unchanged</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <strong>Baseline Sample:</strong> {{ analysis.pre_post_comparison.baseline_sample_id }} ({{ analysis.pre_post_comparison.baseline_date }})
+            <br>
+            <strong>Followup Sample:</strong> {{ analysis.pre_post_comparison.followup_sample_id }} ({{ analysis.pre_post_comparison.followup_date }})
+        </div>
+        {% endif %}
+
+        <!-- Cost Effectiveness -->
+        {% if analysis.cost_effectiveness and analysis.cost_effectiveness.cost %}
+        <h6 class="mt-4">Cost-Effectiveness Analysis</h6>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h4 class="mb-0">{{ analysis.cost_effectiveness.cost_currency }} {{ "{:,.0f}".format(analysis.cost_effectiveness.cost) }}</h4>
+                    <small class="text-muted">Total Cost</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h4 class="mb-0">{{ analysis.cost_effectiveness.cost_currency }} {{ "{:,.0f}".format(analysis.cost_effectiveness.cost_per_percent_improvement) }}</h4>
+                    <small class="text-muted">Cost per % Improvement</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h4 class="mb-0">{{ analysis.cost_effectiveness.value_rating }}</h4>
+                    <small class="text-muted">Value Rating</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if analysis.recommendations %}
+        <div class="alert alert-warning mt-4">
+            <h6><i class="bi bi-lightbulb"></i> Recommendations:</h6>
+            <ul class="mb-0">
+                {% for recommendation in analysis.recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% elif intervention.status == 'completed' %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Effectiveness analysis is not available. Please ensure both baseline and followup samples are linked to this intervention.
+</div>
+{% endif %}
+
+<!-- Lessons Learned -->
+{% if intervention.lessons_learned %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-journal-text"></i> Lessons Learned
+        </h5>
+    </div>
+    <div class="card-body">
+        <p>{{ intervention.lessons_learned }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Metadata -->
+<div class="card">
+    <div class="card-body">
+        <small class="text-muted">
+            <strong>Created:</strong> {{ intervention.created_at.strftime('%Y-%m-%d %H:%M') }} by {{ intervention.created_by.username }}
+            {% if intervention.updated_at and intervention.updated_at != intervention.created_at %}
+            | <strong>Last Updated:</strong> {{ intervention.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            {% endif %}
+        </small>
+    </div>
+</div>
+{% endblock %}

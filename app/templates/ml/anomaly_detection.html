@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Detection Dashboard - Jal Sarovar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --info-color: #17a2b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .dashboard-header h1 {
+            color: var(--dark-color);
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .dashboard-header p {
+            color: #7f8c8d;
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.primary .icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card.success .icon {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+
+        .stat-card.danger .icon {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .stat-card.warning .icon {
+            background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
+            color: white;
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-card .description {
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .content-card h2 {
+            color: var(--dark-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .alert-item {
+            background: #fff;
+            border-left: 4px solid;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .alert-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateX(5px);
+        }
+
+        .alert-item.critical {
+            border-left-color: #e74c3c;
+            background: #fef5f5;
+        }
+
+        .alert-item.high {
+            border-left-color: #f39c12;
+            background: #fef9f5;
+        }
+
+        .alert-item.medium {
+            border-left-color: #3498db;
+            background: #f5f9fe;
+        }
+
+        .alert-item.low {
+            border-left-color: #95a5a6;
+            background: #f8f9fa;
+        }
+
+        .alert-item .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .alert-item .alert-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--dark-color);
+        }
+
+        .alert-item .alert-time {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+        }
+
+        .alert-item .alert-details {
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .severity-badge.critical {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .severity-badge.high {
+            background: #f39c12;
+            color: white;
+        }
+
+        .severity-badge.medium {
+            background: #3498db;
+            color: white;
+        }
+
+        .severity-badge.low {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .drift-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .drift-indicator.upward {
+            background: #fff5f5;
+            color: #e74c3c;
+        }
+
+        .drift-indicator.downward {
+            background: #f5f9fe;
+            color: #3498db;
+        }
+
+        .drift-indicator i {
+            margin-right: 6px;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid #ecf0f1;
+            margin-bottom: 25px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: #7f8c8d;
+            font-weight: 600;
+            padding: 12px 24px;
+            margin-right: 10px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--primary-color);
+            background: #f8f9fa;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background: white;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .btn-custom {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .table-custom {
+            margin-top: 20px;
+        }
+
+        .table-custom thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table-custom thead th {
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table-custom tbody tr {
+            transition: background 0.3s;
+        }
+
+        .table-custom tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .table-custom td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: var(--primary-color);
+        }
+
+        .chart-container {
+            min-height: 400px;
+            margin-top: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-10">
+                    <h1><i class="fas fa-exclamation-triangle"></i> Anomaly Detection Dashboard</h1>
+                    <p>Real-time water quality anomaly detection using Isolation Forest + CUSUM drift monitoring</p>
+                </div>
+                <div class="col-md-2 text-end">
+                    <a href="/ml" class="btn btn-primary-custom btn-custom">
+                        <i class="fas fa-arrow-left"></i> Back to ML
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card primary">
+                    <div class="icon">
+                        <i class="fas fa-vial"></i>
+                    </div>
+                    <h3>Measurements Analyzed</h3>
+                    <div class="value" id="total-measurements">-</div>
+                    <div class="description">Last 24 hours</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card danger">
+                    <div class="icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3>Active Anomalies</h3>
+                    <div class="value" id="active-anomalies">-</div>
+                    <div class="description">Requiring attention</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card warning">
+                    <div class="icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Drift Detected</h3>
+                    <div class="value" id="drift-count">-</div>
+                    <div class="description">Parameters drifting</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card success">
+                    <div class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Model Accuracy</h3>
+                    <div class="value">92%</div>
+                    <div class="description">Isolation Forest</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="content-card">
+            <ul class="nav nav-tabs" id="anomalyTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="sudden-tab" data-bs-toggle="tab" data-bs-target="#sudden" type="button" role="tab">
+                        <i class="fas fa-bolt"></i> Sudden Anomalies
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="drift-tab" data-bs-toggle="tab" data-bs-target="#drift" type="button" role="tab">
+                        <i class="fas fa-chart-line"></i> Drift Detection
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                        <i class="fas fa-history"></i> Historical Trends
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test" type="button" role="tab">
+                        <i class="fas fa-flask"></i> Test Detection
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="anomalyTabsContent">
+                <!-- Sudden Anomalies Tab -->
+                <div class="tab-pane fade show active" id="sudden" role="tabpanel">
+                    <h2>Recent Sudden Anomalies (Isolation Forest)</h2>
+                    <div id="sudden-anomalies-container">
+                        <div class="loading-spinner">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3">Loading anomaly data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drift Detection Tab -->
+                <div class="tab-pane fade" id="drift" role="tabpanel">
+                    <h2>CUSUM Drift Detection Status</h2>
+                    <div id="drift-status-container">
+                        <div class="loading-spinner">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3">Loading drift detection data...</p>
+                        </div>
+                    </div>
+
+                    <div id="drift-chart-container" class="chart-container"></div>
+                </div>
+
+                <!-- Historical Trends Tab -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <h2>Anomaly Detection Trends (Last 30 Days)</h2>
+                    <div id="history-chart-container" class="chart-container"></div>
+                </div>
+
+                <!-- Test Detection Tab -->
+                <div class="tab-pane fade" id="test" role="tabpanel">
+                    <h2>Test Anomaly Detection</h2>
+                    <p class="text-muted">Enter water quality measurements to test the anomaly detection system</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">pH Value</label>
+                                <input type="number" class="form-control" id="test-ph" step="0.1" value="7.2">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">TDS (ppm)</label>
+                                <input type="number" class="form-control" id="test-tds" step="1" value="250">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Temperature (°C)</label>
+                                <input type="number" class="form-control" id="test-temp" step="0.1" value="25">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Turbidity (NTU)</label>
+                                <input type="number" class="form-control" id="test-turbidity" step="0.1" value="1.0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Conductivity (µS/cm)</label>
+                                <input type="number" class="form-control" id="test-conductivity" step="1" value="400">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Free Chlorine (mg/L)</label>
+                                <input type="number" class="form-control" id="test-chlorine" step="0.01" value="0.5">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ORP (mV)</label>
+                                <input type="number" class="form-control" id="test-orp" step="1" value="650">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary-custom btn-custom" onclick="testAnomalyDetection()">
+                        <i class="fas fa-search"></i> Detect Anomalies
+                    </button>
+
+                    <div id="test-result-container" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load sudden anomalies on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSuddenAnomalies();
+            loadDriftStatus();
+            loadHistoricalTrends();
+        });
+
+        // Tab change event listeners
+        document.getElementById('sudden-tab').addEventListener('shown.bs.tab', loadSuddenAnomalies);
+        document.getElementById('drift-tab').addEventListener('shown.bs.tab', loadDriftStatus);
+        document.getElementById('history-tab').addEventListener('shown.bs.tab', loadHistoricalTrends);
+
+        // Load sudden anomalies (mock data for demo)
+        function loadSuddenAnomalies() {
+            // In production, this would fetch from /ml/api/anomaly-history endpoint
+            const mockAnomalies = [
+                {
+                    timestamp: '2024-01-15 14:30:00',
+                    site_id: 1,
+                    site_name: 'Laxmi Sarovar, Indore',
+                    anomaly_type: 'sudden_tds_spike',
+                    severity: 'critical',
+                    parameters: { ph_value: 7.2, tds_ppm: 850, turbidity_ntu: 5.2 },
+                    description: 'TDS spiked from 250 ppm to 850 ppm - possible contamination event'
+                },
+                {
+                    timestamp: '2024-01-15 13:15:00',
+                    site_id: 3,
+                    site_name: 'Hanuman Sarovar, Bhopal',
+                    anomaly_type: 'chlorine_depletion',
+                    severity: 'high',
+                    parameters: { ph_value: 7.1, free_chlorine_mg_l: 0.05 },
+                    description: 'Free chlorine dropped to 0.05 mg/L - disinfection system may have failed'
+                },
+                {
+                    timestamp: '2024-01-15 12:00:00',
+                    site_id: 5,
+                    site_name: 'Ganga Sarovar, Jabalpur',
+                    anomaly_type: 'ph_anomaly',
+                    severity: 'medium',
+                    parameters: { ph_value: 5.8 },
+                    description: 'pH dropped to 5.8 (safe range: 6.5-8.5)'
+                }
+            ];
+
+            renderAnomalies(mockAnomalies);
+            updateStats();
+        }
+
+        function renderAnomalies(anomalies) {
+            const container = document.getElementById('sudden-anomalies-container');
+
+            if (anomalies.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No Anomalies Detected</h3>
+                        <p>All water quality measurements are within normal ranges</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            anomalies.forEach(anomaly => {
+                html += `
+                    <div class="alert-item ${anomaly.severity}">
+                        <div class="alert-header">
+                            <div>
+                                <span class="alert-title">
+                                    <i class="fas fa-map-marker-alt"></i> ${anomaly.site_name}
+                                </span>
+                                <span class="severity-badge ${anomaly.severity}">${anomaly.severity}</span>
+                            </div>
+                            <span class="alert-time">
+                                <i class="far fa-clock"></i> ${anomaly.timestamp}
+                            </span>
+                        </div>
+                        <div class="alert-details">
+                            <strong>Type:</strong> ${anomaly.anomaly_type.replace(/_/g, ' ').toUpperCase()}<br>
+                            <strong>Description:</strong> ${anomaly.description}<br>
+                            <strong>Parameters:</strong> ${JSON.stringify(anomaly.parameters, null, 2).replace(/[{},"]/g, '').trim()}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function loadDriftStatus() {
+            // Mock drift data
+            const mockDrift = {
+                parameters_with_drift: ['tds_ppm', 'conductivity_us_cm'],
+                drift_details: {
+                    tds_ppm: {
+                        direction: 'upward',
+                        magnitude_sigma: 2.3,
+                        duration_hours: 48,
+                        cusum_value: 5.8
+                    },
+                    conductivity_us_cm: {
+                        direction: 'upward',
+                        magnitude_sigma: 2.1,
+                        duration_hours: 48,
+                        cusum_value: 5.2
+                    }
+                }
+            };
+
+            renderDriftStatus(mockDrift);
+        }
+
+        function renderDriftStatus(driftData) {
+            const container = document.getElementById('drift-status-container');
+
+            if (driftData.parameters_with_drift.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No Drift Detected</h3>
+                        <p>All parameters are stable - no gradual changes detected</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="row">';
+            driftData.parameters_with_drift.forEach(param => {
+                const drift = driftData.drift_details[param];
+                const icon = drift.direction === 'upward' ? 'fa-arrow-up' : 'fa-arrow-down';
+
+                html += `
+                    <div class="col-md-6 mb-4">
+                        <div class="alert-item ${drift.magnitude_sigma > 2.5 ? 'high' : 'medium'}">
+                            <div class="alert-header">
+                                <div class="alert-title">
+                                    <i class="fas fa-chart-line"></i> ${param.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                                <span class="drift-indicator ${drift.direction}">
+                                    <i class="fas ${icon}"></i> ${drift.direction}
+                                </span>
+                            </div>
+                            <div class="alert-details">
+                                <strong>Magnitude:</strong> ${drift.magnitude_sigma.toFixed(2)} σ (std deviations)<br>
+                                <strong>Duration:</strong> ${drift.duration_hours} hours<br>
+                                <strong>CUSUM Value:</strong> ${drift.cusum_value.toFixed(2)} (threshold: 5.0)<br>
+                                <strong>Status:</strong> Gradual ${drift.direction} trend detected - investigate source
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function loadHistoricalTrends() {
+            // Mock historical data
+            const dates = [];
+            const anomalyCounts = [];
+            for (let i = 30; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(date.toISOString().split('T')[0]);
+                anomalyCounts.push(Math.floor(Math.random() * 10));
+            }
+
+            const trace = {
+                x: dates,
+                y: anomalyCounts,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Anomalies Detected',
+                line: { color: '#e74c3c', width: 3 },
+                marker: { size: 8 }
+            };
+
+            const layout = {
+                title: 'Daily Anomaly Detection Count',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Number of Anomalies' },
+                hovermode: 'closest',
+                plot_bgcolor: '#f8f9fa',
+                paper_bgcolor: '#fff'
+            };
+
+            Plotly.newPlot('history-chart-container', [trace], layout, {responsive: true});
+        }
+
+        function updateStats() {
+            document.getElementById('total-measurements').textContent = '248';
+            document.getElementById('active-anomalies').textContent = '3';
+            document.getElementById('drift-count').textContent = '2';
+        }
+
+        function testAnomalyDetection() {
+            const measurement = {
+                ph_value: parseFloat(document.getElementById('test-ph').value),
+                tds_ppm: parseFloat(document.getElementById('test-tds').value),
+                temperature_celsius: parseFloat(document.getElementById('test-temp').value),
+                turbidity_ntu: parseFloat(document.getElementById('test-turbidity').value),
+                conductivity_us_cm: parseFloat(document.getElementById('test-conductivity').value),
+                free_chlorine_mg_l: parseFloat(document.getElementById('test-chlorine').value),
+                orp_mv: parseFloat(document.getElementById('test-orp').value)
+            };
+
+            const resultContainer = document.getElementById('test-result-container');
+            resultContainer.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-3">Analyzing measurement...</p>
+                </div>
+            `;
+
+            // In production, call API: POST /ml/api/detect-anomalies
+            // For demo, simulate API call
+            setTimeout(() => {
+                const mockResult = {
+                    overall_anomaly_detected: measurement.tds_ppm > 600 || measurement.ph_value < 6.5,
+                    sudden_anomaly: {
+                        detected: measurement.tds_ppm > 600,
+                        type: 'sudden_tds_spike',
+                        severity: 'high',
+                        score: -0.15
+                    },
+                    drift: {
+                        detected: false,
+                        parameters_affected: []
+                    },
+                    overall_severity: measurement.tds_ppm > 600 ? 'high' : 'normal'
+                };
+
+                renderTestResult(mockResult, measurement);
+            }, 1000);
+        }
+
+        function renderTestResult(result, measurement) {
+            const container = document.getElementById('test-result-container');
+
+            if (!result.overall_anomaly_detected) {
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4 class="alert-heading"><i class="fas fa-check-circle"></i> No Anomalies Detected</h4>
+                        <p>All water quality parameters are within normal ranges.</p>
+                        <hr>
+                        <p class="mb-0">This measurement appears to be normal and safe.</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Anomaly Detected!</h4>
+                        <p><strong>Type:</strong> ${result.sudden_anomaly.type.replace(/_/g, ' ').toUpperCase()}</p>
+                        <p><strong>Severity:</strong> <span class="severity-badge ${result.sudden_anomaly.severity}">${result.sudden_anomaly.severity}</span></p>
+                        <p><strong>Anomaly Score:</strong> ${result.sudden_anomaly.score.toFixed(3)}</p>
+                        <hr>
+                        <p class="mb-0"><i class="fas fa-info-circle"></i> This measurement deviates significantly from normal patterns. Investigation recommended.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
