@@ -175,7 +175,7 @@ function makeAjaxRequest(url, method = 'GET', data = null) {
 }
 
 // Export functions for global use
-window.Lab4All = {
+window.JalSarovar = {
     showLoadingSpinner,
     hideLoadingSpinner,
     formatDate,

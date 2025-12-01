@@ -1,6 +1,6 @@
 # Jal Sarovar - Water Quality Testing System
 
-A comprehensive water quality monitoring system combining a Flask web application with autonomous Raspberry Pi robots for large-scale water testing at 68,000+ Amrit Sarovar sites across India. Developed for Samridhi's Lab4All initiative.
+A comprehensive water quality monitoring system combining a Flask web application with autonomous Raspberry Pi robots for large-scale water testing at 68,000+ Amrit Sarovar sites across India.
 
 ## 🚀 Major Components
 
@@ -856,11 +856,11 @@ response = requests.post(
 
 ## License
 
-Copyright © 2025 Samridhi - Lab4All Initiative
+Copyright © 2025 Samridhi
 
 ## Contact
 
-For questions or support, contact the Samridhi team at Lab4All.
+For questions or support, contact the Samridhi team.
 
 ---
 

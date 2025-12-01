@@ -64,8 +64,8 @@ class Config:
     NOTIFICATION_RETRY_DELAY = int(os.environ.get('NOTIFICATION_RETRY_DELAY', 5))  # seconds
 
     # Application Settings
-    ORGANIZATION_NAME = "Samridhi Lab4All"
-    PROJECT_NAME = "WFLOW - Water Quality Testing"
+    ORGANIZATION_NAME = "Samridhi"
+    PROJECT_NAME = "Jal Sarovar - Water Quality Monitoring"
     VERSION = "1.0.0"
 
 
