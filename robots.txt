@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://jalsarovar.com/sitemap.xml
+
+# Disallow admin areas
+Disallow: /admin/
+Disallow: /auth/

@@ -1,0 +1,19 @@
+Revision Requested
+
+Hello {{ user_name }},
+
+Your data submission needs revision before approval.
+
+Revision Notes:
+{{ revision_notes }}
+
+Please make the necessary changes and resubmit.
+
+Revise submission: {{ submissions_url }}
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

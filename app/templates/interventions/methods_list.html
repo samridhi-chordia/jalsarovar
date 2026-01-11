@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Treatment Methods - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('interventions.index') }}">Interventions</a></li>
+                    <li class="breadcrumb-item active">Treatment Methods</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="bi bi-gear"></i> Treatment Methods
+                    </h2>
+                    <small class="text-muted">Manage water treatment methods and procedures</small>
+                </div>
+                <div>
+                    <a href="{{ url_for('interventions.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <a href="{{ url_for('interventions.new_method') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> New Method
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Methods Grid -->
+            {% if methods %}
+            <div class="row">
+                {% for method in methods %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100 {% if not method.is_active %}border-secondary{% endif %}">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                {% if method.method_code %}
+                                <span class="badge bg-secondary me-2">{{ method.method_code }}</span>
+                                {% endif %}
+                                {{ method.method_name }}
+                            </h5>
+                            {% if not method.is_active %}
+                            <span class="badge bg-warning text-dark">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if method.description %}
+                            <p class="text-muted small">{{ method.description[:150] }}{% if method.description|length > 150 %}...{% endif %}</p>
+                            {% endif %}
+
+                            <div class="row g-2 mb-3">
+                                {% if method.average_effectiveness_percent %}
+                                <div class="col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <h5 class="mb-0 text-success">{{ method.average_effectiveness_percent }}%</h5>
+                                        <small class="text-muted">Effectiveness</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if method.time_to_effect_days %}
+                                <div class="col-6">
+                                    <div class="border rounded p-2 text-center">
+                                        <h5 class="mb-0 text-primary">{{ method.time_to_effect_days }}</h5>
+                                        <small class="text-muted">Days to Effect</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Cost Range -->
+                            {% if method.estimated_cost_min_inr or method.estimated_cost_max_inr %}
+                            <div class="mb-2">
+                                <i class="bi bi-currency-rupee text-muted"></i>
+                                <span class="text-muted">Est. Cost:</span>
+                                <strong>
+                                    {% if method.estimated_cost_min_inr %}Rs {{ '{:,.0f}'.format(method.estimated_cost_min_inr) }}{% endif %}
+                                    {% if method.estimated_cost_min_inr and method.estimated_cost_max_inr %} - {% endif %}
+                                    {% if method.estimated_cost_max_inr %}Rs {{ '{:,.0f}'.format(method.estimated_cost_max_inr) }}{% endif %}
+                                </strong>
+                            </div>
+                            {% endif %}
+
+                            {% if method.cost_per_kl %}
+                            <div class="mb-2">
+                                <i class="bi bi-droplet text-muted"></i>
+                                <span class="text-muted">Cost per KL:</span>
+                                <strong>Rs {{ '{:,.2f}'.format(method.cost_per_kl) }}</strong>
+                            </div>
+                            {% endif %}
+
+                            <!-- Requirements -->
+                            <div class="d-flex gap-2 mb-2">
+                                {% if method.requires_specialist %}
+                                <span class="badge bg-info"><i class="bi bi-person-badge"></i> Specialist Required</span>
+                                {% endif %}
+                                {% if method.requires_equipment %}
+                                <span class="badge bg-secondary"><i class="bi bi-tools"></i> Equipment Required</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Duration -->
+                            {% if method.duration_effectiveness_months %}
+                            <div class="mb-0">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> Effectiveness lasts ~{{ method.duration_effectiveness_months }} months
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
+                        <div class="card-footer bg-white">
+                            <a href="{{ url_for('interventions.edit_method', method_id=method.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h4 class="mt-3 text-muted">No treatment methods defined</h4>
+                    <p class="text-muted">Start by creating your first treatment method.</p>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <a href="{{ url_for('interventions.new_method') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> New Method
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

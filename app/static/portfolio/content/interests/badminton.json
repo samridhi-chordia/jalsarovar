@@ -1,0 +1,22 @@
+{
+  "id": "badminton",
+  "title": "District-Level Badminton Player & School Team Captain",
+  "category": "Extracurricular Activity",
+  "short_description": "7+ year competitive career, U-17 District Championship Silver Medal, School Team Captain",
+  "full_description": "District-level badminton player with a 7+ year competitive career. U-17 District Championship - Silver Medalist. Competed in over 50 tournaments at regional and state levels. Mentored junior players to strengthen club performance and tournament representation. First School Captain to lead three teams (Badminton, Basketball, Throwball) to district semifinals. Introduced required practice sessions for the badminton team. Mentored juniors through an effective pairing system to improve team performance. Organized inter-school tournaments with local schools. Raised $500 for charity through these tournaments.",
+  "grades": ["9", "10", "11", "12"],
+  "hours_per_week": 3,
+  "weeks_per_year": 30,
+  "start_date": "",
+  "highlights": [
+    "U-17 District Championship Silver Medal",
+    "50+ tournaments competed",
+    "School Team Captain (3 teams to semifinals)",
+    "$500 raised for charity",
+    "Mentored junior players"
+  ],
+  "skills": ["Sports", "Leadership", "Team Management", "Mentorship", "Event Organization"],
+  "images": [],
+  "videos": [],
+  "links": []
+}

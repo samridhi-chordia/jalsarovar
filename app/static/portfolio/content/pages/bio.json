@@ -1,0 +1,43 @@
+{
+  "page_type": "bio",
+  "hero": {
+    "title": "About Me",
+    "subtitle": "Student, Researcher, Developer - Building technology for social impact"
+  },
+  "introduction": {
+    "greeting": "Hi, I'm Samridhi Chordia",
+    "paragraphs": [
+      "I'm a passionate student, researcher, and developer dedicated to building technology that makes a real difference in people's lives. My work spans machine learning, IoT systems, and software development, with a focus on solving real-world problems.",
+      "Currently, I'm working on the Jal Sarovar project - India's first ML-based water quality monitoring system, which serves 800+ residents across multiple public and private sites. I've also conducted research at Johns Hopkins University on autonomous robotic systems for solar cell optimization."
+    ]
+  },
+  "education": [
+    {
+      "description": "Research in autonomous ML systems",
+      "institution": "Johns Hopkins University",
+      "order": 1
+    },
+    {
+      "description": "Research internship in atmospheric water generation",
+      "institution": "IIT Madras",
+      "order": 2
+    }
+  ],
+  "skills": [
+    "Python",
+    "Machine Learning",
+    "IoT",
+    "Flask/Django",
+    "React",
+    "JavaScript",
+    "PostgreSQL",
+    "Git"
+  ],
+  "cta": {
+    "title": "Want to collaborate?",
+    "subtitle": "I'm always interested in new projects and opportunities.",
+    "button_text": "Get in Touch"
+  },
+  "id": "bio",
+  "last_updated": "2025-12-29T09:08:19.032802"
+}

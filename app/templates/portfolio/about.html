@@ -1,0 +1,85 @@
+{% extends "portfolio_base.html" %}
+{% block title %}About Samridhi Chordia | Researcher & Founder of Jal Sarovar{% endblock %}
+{% block meta_description %}Learn about Samridhi Chordia - Selected from 16,000+ applicants for Y Combinator AI Startup School, conducted research at Johns Hopkins and IIT Madras, founder of Jal Sarovar.{% endblock %}
+{% block meta_keywords %}Samridhi Chordia bio, Y Combinator student, Johns Hopkins researcher, IIT Madras, ML researcher India, water quality researcher{% endblock %}
+{% block og_title %}About Samridhi Chordia | Student, Researcher, Developer{% endblock %}
+
+{% block portfolio_content %}
+<!-- About Hero -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-title">{{ page.hero.title if page and page.hero else 'About Me' }}</h1>
+        <p class="page-subtitle">{{ page.hero.subtitle if page and page.hero else 'Student, Researcher, Developer - Building technology for social impact' }}</p>
+    </div>
+</section>
+
+<!-- About Content -->
+<section class="about-content">
+    <div class="container">
+        <div class="about-grid">
+            <div class="about-text">
+                <h2>{{ page.introduction.greeting if page and page.introduction else "Hi, I'm Samridhi Chordia" }}</h2>
+                {% if page and page.introduction and page.introduction.paragraphs %}
+                    {% for paragraph in page.introduction.paragraphs %}
+                        <p>{{ paragraph }}</p>
+                    {% endfor %}
+                {% else %}
+                <p>
+                    I'm a passionate student, researcher, and developer dedicated to building technology
+                    that makes a real difference in people's lives. My work spans machine learning, IoT systems,
+                    and software development, with a focus on solving real-world problems.
+                </p>
+                <p>
+                    Currently, I'm working on the Jal Sarovar project - India's first ML-based water quality
+                    monitoring system, which serves 800+ residents across multiple public sites. I've also
+                    conducted research at Johns Hopkins University on autonomous robotic systems for solar
+                    cell optimization.
+                </p>
+                {% endif %}
+
+                <h3>Education & Experience</h3>
+                <ul>
+                    {% if page and page.education %}
+                        {% for edu in page.education|sort(attribute='order') %}
+                            <li><strong>{{ edu.institution }}</strong> - {{ edu.description }}</li>
+                        {% endfor %}
+                    {% else %}
+                    <li><strong>Y Combinator AI Startup School</strong> - Selected from 16,000+ applicants</li>
+                    <li><strong>Johns Hopkins University</strong> - Research in autonomous ML systems</li>
+                    <li><strong>IIT Madras</strong> - Research internship in atmospheric water generation</li>
+                    {% endif %}
+                </ul>
+
+                <h3>Skills & Technologies</h3>
+                <div class="skills-grid">
+                    {% if page and page.skills %}
+                        {% for skill in page.skills %}
+                            <span class="skill-tag">{{ skill }}</span>
+                        {% endfor %}
+                    {% else %}
+                    <span class="skill-tag">Python</span>
+                    <span class="skill-tag">Machine Learning</span>
+                    <span class="skill-tag">IoT</span>
+                    <span class="skill-tag">Flask/Django</span>
+                    <span class="skill-tag">React</span>
+                    <span class="skill-tag">JavaScript</span>
+                    <span class="skill-tag">PostgreSQL</span>
+                    <span class="skill-tag">Git</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+    <div class="container">
+        <div class="cta-content">
+            <h2>{{ page.cta.title if page and page.cta else 'Want to collaborate?' }}</h2>
+            <p>{{ page.cta.subtitle if page and page.cta else "I'm always interested in new projects and opportunities." }}</p>
+            <a href="{{ url_for('portfolio.contact') }}" class="btn btn-primary btn-large">{{ page.cta.button_text if page and page.cta else 'Get in Touch' }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

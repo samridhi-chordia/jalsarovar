@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Site Map - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map { height: 70vh; border-radius: 0.5rem; }
+    .risk-marker-critical { background-color: #dc3545; }
+    .risk-marker-high { background-color: #ffc107; }
+    .risk-marker-medium { background-color: #17a2b8; }
+    .risk-marker-low { background-color: #28a745; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-map"></i> Site Map</h2>
+        <p class="text-muted mb-0">Geographic view of Amrit Sarovar water bodies</p>
+    </div>
+    <a href="{{ url_for('sites.index') }}" class="btn btn-outline-primary">
+        <i class="bi bi-list"></i> List View
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>Risk Levels:</strong>
+                <span class="badge bg-danger me-2">Critical</span>
+                <span class="badge bg-warning text-dark me-2">High</span>
+                <span class="badge bg-info me-2">Medium</span>
+                <span class="badge bg-success">Low</span>
+            </div>
+            <div class="col-md-6">
+                <strong>Site Categories:</strong>
+                <span class="badge bg-primary me-2" style="border: 2px solid white;">Public</span>
+                <span class="badge bg-primary" style="border: 2px dashed white;">Residential</span>
+            </div>
+        </div>
+        <div id="map"></div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Site Statistics</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h3 class="text-danger">{{ sites|selectattr('risk', 'equalto', 'critical')|list|length }}</h3>
+                <p class="text-muted">Critical</p>
+            </div>
+            <div class="col-md-3">
+                <h3 class="text-warning">{{ sites|selectattr('risk', 'equalto', 'high')|list|length }}</h3>
+                <p class="text-muted">High Risk</p>
+            </div>
+            <div class="col-md-3">
+                <h3 class="text-info">{{ sites|selectattr('risk', 'equalto', 'medium')|list|length }}</h3>
+                <p class="text-muted">Medium Risk</p>
+            </div>
+            <div class="col-md-3">
+                <h3 class="text-success">{{ sites|selectattr('risk', 'equalto', 'low')|list|length }}</h3>
+                <p class="text-muted">Low Risk</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const sites = {{ sites|tojson }};
+
+// Initialize map centered on India
+const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// Color by risk level
+const riskColors = {
+    'critical': '#dc3545',
+    'high': '#ffc107',
+    'medium': '#17a2b8',
+    'low': '#28a745',
+    null: '#6c757d'
+};
+
+// Add markers
+sites.forEach(site => {
+    if (site.lat && site.lng) {
+        const color = riskColors[site.risk] || riskColors[null];
+        const isResidential = site.category === 'residential';
+
+        const marker = L.circleMarker([site.lat, site.lng], {
+            radius: 8,
+            fillColor: color,
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8,
+            dashArray: isResidential ? '5, 5' : null  // Dashed border for residential
+        }).addTo(map);
+
+        const categoryLabel = isResidential ? 'Residential' : 'Public';
+        marker.bindPopup(`
+            <strong>${site.name}</strong><br>
+            Category: ${categoryLabel}<br>
+            Type: ${site.type}<br>
+            State: ${site.state}<br>
+            Risk: ${(site.risk || 'Not assessed').charAt(0).toUpperCase() + (site.risk || 'Not assessed').slice(1)}<br>
+            <a href="/sites/${site.id}">View Details</a>
+        `);
+    }
+});
+</script>
+{% endblock %}

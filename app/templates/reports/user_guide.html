@@ -1,0 +1,1584 @@
+{% extends "base.html" %}
+{% block title %}User Guide - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .page-break { page-break-before: always; }
+        body { font-size: 10pt; }
+        .card { border: 1px solid #ddd !important; }
+    }
+
+    .research-paper {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+    }
+
+    .paper-title {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .paper-title h1 {
+        font-size: 1.8rem;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .paper-subtitle {
+        font-size: 1rem;
+        color: #666;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        color: #2c5282;
+        border-bottom: 2px solid #2c5282;
+        padding-bottom: 5px;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        scroll-margin-top: 20px;
+    }
+
+    .subsection-title {
+        font-size: 1.1rem;
+        color: #4a5568;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        scroll-margin-top: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.9rem;
+    }
+
+    .data-table th, .data-table td {
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+        text-align: left;
+    }
+
+    .data-table th {
+        background-color: #f7fafc;
+        font-weight: 600;
+    }
+
+    .data-table tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .metric-card h4 {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        margin-bottom: 5px;
+    }
+
+    .metric-card .value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .toc-box {
+        background: #ebf8ff;
+        border-left: 4px solid #4299e1;
+        padding: 20px;
+        margin: 30px 0;
+    }
+
+    .toc-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2c5282;
+        margin-bottom: 15px;
+    }
+
+    .toc-list {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .toc-list li {
+        margin: 8px 0;
+    }
+
+    .toc-list a {
+        color: #2c5282;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .toc-list a:hover {
+        color: #4299e1;
+        text-decoration: underline;
+    }
+
+    .toc-subsection {
+        list-style: none;
+        padding-left: 20px;
+        margin-top: 5px;
+    }
+
+    .toc-subsection li {
+        margin: 5px 0;
+        font-size: 0.9rem;
+    }
+
+    .back-to-top {
+        display: inline-block;
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: #4299e1;
+        text-decoration: none;
+    }
+
+    .back-to-top:hover {
+        text-decoration: underline;
+    }
+
+    /* User Guide Specific Styles */
+    .permission-matrix {
+        font-size: 0.85rem;
+    }
+
+    .permission-matrix td {
+        text-align: center;
+    }
+
+    .role-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .role-public {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .role-restricted {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .role-system {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .step-box {
+        border-left: 4px solid #4299e1;
+        padding: 15px;
+        margin: 15px 0;
+        background: #f7fafc;
+    }
+
+    .step-number {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        background: #4299e1;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 30px;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+
+    .screenshot-placeholder {
+        border: 2px dashed #cbd5e0;
+        padding: 40px;
+        text-align: center;
+        background: #f7fafc;
+        color: #718096;
+        margin: 15px 0;
+        border-radius: 8px;
+    }
+
+    .faq-item {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f7fafc;
+        border-radius: 8px;
+    }
+
+    .faq-question {
+        font-weight: 600;
+        color: #2c5282;
+        margin-bottom: 8px;
+    }
+
+    .glossary-term {
+        font-weight: 600;
+        color: #2c5282;
+    }
+
+    .info-box {
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 15px;
+        margin: 15px 0;
+    }
+
+    .warning-box {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 15px;
+        margin: 15px 0;
+    }
+
+    .success-box {
+        background: #d1fae5;
+        border-left: 4px solid #10b981;
+        padding: 15px;
+        margin: 15px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-print mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2><i class="bi bi-book"></i> User Guide</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-outline-primary">
+                <i class="bi bi-printer"></i> Print / Save PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="research-paper">
+    <!-- Title Page -->
+    <div class="paper-title">
+        <h1>Jal Sarovar User Guide</h1>
+        <p class="paper-subtitle">Complete Documentation for Water Quality Monitoring Platform</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc-box" id="table-of-contents">
+        <div class="toc-title"><i class="bi bi-list-ul"></i> Table of Contents</div>
+        <ul class="toc-list">
+            <li><a href="#section-1">1. Welcome to Jal Sarovar</a></li>
+            <li><a href="#section-2">2. Getting Started</a>
+                <ul class="toc-subsection">
+                    <li><a href="#section-2-1">2.1 Creating an Account</a></li>
+                    <li><a href="#section-2-2">2.2 Email Verification</a></li>
+                    <li><a href="#section-2-3">2.3 Role Approval Process</a></li>
+                </ul>
+            </li>
+            <li><a href="#section-3">3. User Roles & Permissions</a></li>
+            <li><a href="#section-4">4. Dashboard Navigation</a></li>
+            <li><a href="#section-5">5. Managing Water Body Sites</a>
+                <ul class="toc-subsection">
+                    <li><a href="#section-5-1">5.1 Viewing Sites</a></li>
+                    <li><a href="#section-5-2">5.2 Creating a New Site</a></li>
+                    <li><a href="#section-5-3">5.3 Editing Site Information</a></li>
+                </ul>
+            </li>
+            <li><a href="#section-6">6. Submitting Water Samples</a>
+                <ul class="toc-subsection">
+                    <li><a href="#section-6-1">6.1 Sample Collection Workflow</a></li>
+                    <li><a href="#section-6-2">6.2 Recording Observations</a></li>
+                </ul>
+            </li>
+            <li><a href="#section-7">7. Submitting Test Results</a>
+                <ul class="toc-subsection">
+                    <li><a href="#section-7-1">7.1 Physical Parameters</a></li>
+                    <li><a href="#section-7-2">7.2 Chemical Parameters</a></li>
+                    <li><a href="#section-7-3">7.3 Heavy Metals</a></li>
+                    <li><a href="#section-7-4">7.4 Biological Parameters</a></li>
+                </ul>
+            </li>
+            <li><a href="#section-8">8. Understanding ML Reports</a>
+                <ul class="toc-subsection">
+                    <li><a href="#section-8-1">8.1 Site Risk Classification</a></li>
+                    <li><a href="#section-8-2">8.2 Contamination Detection</a></li>
+                    <li><a href="#section-8-3">8.3 Water Quality Index (WQI)</a></li>
+                    <li><a href="#section-8-4">8.4 Forecasting & Predictions</a></li>
+                </ul>
+            </li>
+            <li><a href="#section-9">9. Analytics Dashboard</a></li>
+            <li><a href="#section-10">10. Intervention Management</a></li>
+            <li><a href="#section-11">11. Bulk Data Import</a></li>
+            <li><a href="#section-12">12. Geographic Map View</a></li>
+            <li><a href="#section-13">13. FAQs</a></li>
+            <li><a href="#section-14">14. Glossary of Terms</a></li>
+            <li><a href="#section-15">15. Resources & Support</a></li>
+        </ul>
+    </div>
+
+    <!-- Section 1: Welcome -->
+    <h2 class="section-title" id="section-1">1. Welcome to Jal Sarovar</h2>
+    <p>
+        Jal Sarovar is India's comprehensive ML-driven water quality monitoring platform, designed to support
+        <strong>Mission Amrit Sarovar</strong> and the <strong>Jal Jeevan Mission</strong>. Our platform enables
+        stakeholders across government agencies, research institutions, laboratories, and field teams to collaborate
+        on ensuring safe drinking water for all.
+    </p>
+
+    <h3 class="subsection-title">Platform Statistics</h3>
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <h4>Water Bodies</h4>
+                <div class="value">{{ stats.total_sites|number_format }}</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <h4>Water Samples</h4>
+                <div class="value">{{ stats.total_samples|number_format }}</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="metric-card">
+                <h4>ML Predictions</h4>
+                <div class="value">{{ stats.total_predictions|number_format }}</div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-title">Coverage</h3>
+    <p>The platform currently monitors water bodies across <strong>{{ stats.states|length }} states</strong> in India,
+       covering {{ stats.site_types|length }} different types of water bodies including ponds, lakes, tanks, reservoirs,
+       rivers, and stepwells.</p>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 2: Getting Started -->
+    <h2 class="section-title" id="section-2">2. Getting Started</h2>
+    <p>
+        This section will guide you through creating an account, verifying your email, and understanding
+        the role approval process.
+    </p>
+
+    <h3 class="subsection-title" id="section-2-1">2.1 Creating an Account</h3>
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Navigate to Registration</strong>
+        <p>Click "Login/Register" in the sidebar navigation, then select the "Register" link below the login form.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Fill in Your Details</strong>
+        <p>Provide the following information:</p>
+        <ul>
+            <li><strong>Full Name:</strong> Your complete name as it should appear in the system</li>
+            <li><strong>Username:</strong> Choose a unique username (will be checked in real-time)</li>
+            <li><strong>Email:</strong> A valid email address for account verification</li>
+            <li><strong>Password:</strong> A secure password (strength meter will guide you)</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Select Your Role</strong>
+        <p>Choose the role that best describes your function. Each role has different permissions and requirements.
+           See <a href="#section-3">Section 3</a> for detailed role descriptions.</p>
+    </div>
+
+    <div class="info-box">
+        <strong><i class="bi bi-info-circle"></i> Note:</strong> If you select a restricted role (Field Collector, Analyst,
+        Lab Partner, Industry Partner, Government Official, Site Manager), you may need to provide organization details
+        and wait for admin approval before gaining full access.
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">4</span>
+        <strong>Submit Registration</strong>
+        <p>Review your information and click "Register". You'll be redirected to a confirmation page.</p>
+    </div>
+
+    <h3 class="subsection-title" id="section-2-2">2.2 Email Verification</h3>
+    <p>
+        After registration, a verification email will be sent to your registered email address. This email contains
+        a unique link that expires in 24 hours.
+    </p>
+
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Check Your Email</strong>
+        <p>Look for an email from Jal Sarovar with the subject "Verify Your Email Address".</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Click Verification Link</strong>
+        <p>Click the verification link in the email. You'll be redirected to the Jal Sarovar platform with a confirmation message.</p>
+    </div>
+
+    <div class="warning-box">
+        <strong><i class="bi bi-exclamation-triangle"></i> Important:</strong> You cannot log in until your email is verified.
+        If you don't receive the email within 10 minutes, check your spam folder or request a new verification email.
+    </div>
+
+    <h3 class="subsection-title" id="section-2-3">2.3 Role Approval Process</h3>
+    <p>
+        Public roles (Viewer, Citizen Contributor, Researcher) are automatically approved upon email verification.
+        Restricted roles require admin review and approval.
+    </p>
+
+    <h4>Automatic Approval (Public Roles)</h4>
+    <ul>
+        <li><strong>Viewer:</strong> Immediate access after email verification</li>
+        <li><strong>Citizen Contributor:</strong> Immediate access after email verification</li>
+        <li><strong>Researcher:</strong> Immediate access after email verification</li>
+    </ul>
+
+    <h4>Manual Approval (Restricted Roles)</h4>
+    <p>If you requested a restricted role, the following process applies:</p>
+
+    <ol>
+        <li><strong>Pending Status:</strong> Your account is created with "Viewer" permissions and marked as "Pending Approval"</li>
+        <li><strong>Admin Review:</strong> System administrators review your request (typically within 24-48 hours)</li>
+        <li><strong>Email Notification:</strong> You'll receive an email when your role is approved or if additional information is needed</li>
+        <li><strong>Full Access:</strong> Once approved, you can log in with full permissions for your role</li>
+    </ol>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 3: User Roles & Permissions -->
+    <h2 class="section-title" id="section-3">3. User Roles & Permissions</h2>
+    <p>
+        Jal Sarovar uses a role-based access control system with 10 distinct user roles. Each role has specific
+        permissions designed to match real-world responsibilities in water quality monitoring.
+    </p>
+
+    <h3 class="subsection-title">Permission Matrix</h3>
+    <table class="data-table permission-matrix">
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Category</th>
+                <th>Auto-Approved</th>
+                <th>View Sites</th>
+                <th>Create Sites</th>
+                <th>Submit Samples</th>
+                <th>Submit Test Results</th>
+                <th>ML Reports</th>
+                <th>Bulk Import</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Viewer</strong></td>
+                <td><span class="role-badge role-public">Public</span></td>
+                <td>✓</td>
+                <td>Public only</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Citizen Contributor</strong></td>
+                <td><span class="role-badge role-public">Public</span></td>
+                <td>✓</td>
+                <td>Public only</td>
+                <td>✗</td>
+                <td>Observations</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Researcher</strong></td>
+                <td><span class="role-badge role-public">Public</span></td>
+                <td>✓</td>
+                <td>All sites</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Field Collector</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>Assigned only</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Analyst</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>All sites</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Lab Partner</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>Assigned only</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td><strong>Industry Partner</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>Assigned only</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td><strong>Government Official</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>All sites</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+            <tr>
+                <td><strong>Site Manager</strong></td>
+                <td><span class="role-badge role-restricted">Restricted</span></td>
+                <td>✗</td>
+                <td>Assigned only</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td>✗</td>
+            </tr>
+            <tr>
+                <td><strong>Admin</strong></td>
+                <td><span class="role-badge role-system">System</span></td>
+                <td>✗</td>
+                <td>All sites</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title">Role Descriptions</h3>
+
+    <h4>Public Roles (Auto-Approved)</h4>
+    <ul>
+        <li><strong>Viewer:</strong> Read-only access to public water quality data. Ideal for citizens, students, and general public interest.</li>
+        <li><strong>Citizen Contributor:</strong> Can submit visual observations and photos of water bodies. Helps crowdsource water quality monitoring.</li>
+        <li><strong>Researcher:</strong> Access all datasets for research purposes. Can submit samples but not test results. Ideal for academic researchers.</li>
+    </ul>
+
+    <h4>Restricted Roles (Requires Approval)</h4>
+    <ul>
+        <li><strong>Field Collector:</strong> Collects water samples from assigned sites. Records physical observations. Cannot submit lab results.</li>
+        <li><strong>Analyst:</strong> Data scientist or analyst role. Access to ML models, analytics dashboards, and API endpoints.</li>
+        <li><strong>Lab Partner:</strong> Laboratory personnel who submit test results. Requires organization credentials. Can bulk import data.</li>
+        <li><strong>Industry Partner:</strong> Industry compliance monitoring for assigned sites. Submit test results and manage interventions.</li>
+        <li><strong>Government Official:</strong> Government agency personnel. Full access to create sites, submit data, access reports.</li>
+        <li><strong>Site Manager:</strong> Manages specific water body sites. Can create/edit site info and submit samples.</li>
+    </ul>
+
+    <h4>System Roles</h4>
+    <ul>
+        <li><strong>Admin:</strong> Full system access including user management, role approvals, and system settings.</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 4: Dashboard Navigation -->
+    <h2 class="section-title" id="section-4">4. Dashboard Navigation</h2>
+    <p>
+        The Jal Sarovar dashboard provides a comprehensive overview of water quality monitoring activities.
+        This section explains the main navigation menu and dashboard features.
+    </p>
+
+    <h3 class="subsection-title">Main Navigation Menu</h3>
+    <p>The left sidebar contains the main navigation menu with the following sections:</p>
+
+    <ul>
+        <li><strong><i class="bi bi-speedometer2"></i> Dashboard:</strong> System overview with key metrics and alerts</li>
+        <li><strong><i class="bi bi-geo-alt"></i> Sites:</strong> View and manage water body monitoring sites</li>
+        <li><strong><i class="bi bi-droplet"></i> Samples:</strong> Water sample collection records</li>
+        <li><strong><i class="bi bi-graph-up"></i> Analysis:</strong> Statistical analysis and trends</li>
+        <li><strong><i class="bi bi-bar-chart"></i> Trends:</strong> Time-series trend analysis</li>
+        <li><strong><i class="bi bi-file-earmark-bar-graph"></i> ML Reports:</strong> Machine learning model reports (submenu)</li>
+        <li><strong><i class="bi bi-journal-text"></i> Project Overview:</strong> Research summary and system documentation</li>
+        <li><strong><i class="bi bi-graph-up-arrow"></i> Analytics:</strong> Advanced analytics dashboard</li>
+        <li><strong><i class="bi bi-wrench-adjustable-circle"></i> Interventions:</strong> Water treatment intervention tracking</li>
+        <li><strong><i class="bi bi-map"></i> Map View:</strong> Geographic visualization of monitoring sites</li>
+        <li><strong><i class="bi bi-calculator"></i> WQI Calculator:</strong> Water Quality Index calculation tool</li>
+    </ul>
+
+    <div class="info-box">
+        <strong><i class="bi bi-info-circle"></i> Visibility Note:</strong> Menu items are filtered based on your role permissions.
+        If you don't see certain options, they may be restricted to higher-privilege roles.
+    </div>
+
+    <h3 class="subsection-title">Dashboard Overview</h3>
+    <p>The main dashboard displays:</p>
+    <ul>
+        <li><strong>Summary Cards:</strong> Total sites, samples, critical alerts, and recent activity</li>
+        <li><strong>Risk Distribution:</strong> Chart showing sites by risk level (Critical/High/Medium/Low)</li>
+        <li><strong>Recent Samples:</strong> Latest water samples collected across the system</li>
+        <li><strong>Critical Sites:</strong> Water bodies requiring immediate attention</li>
+        <li><strong>Quick Actions:</strong> Common tasks like creating sites or submitting samples</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 5: Managing Water Body Sites -->
+    <h2 class="section-title" id="section-5">5. Managing Water Body Sites</h2>
+
+    <h3 class="subsection-title" id="section-5-1">5.1 Viewing Sites</h3>
+    <p>Navigate to <code>/sites</code> from the sidebar menu to view all water body monitoring sites.</p>
+
+    <h4>Filtering Sites</h4>
+    <p>Use the filter controls to narrow down the site list:</p>
+    <ul>
+        <li><strong>Country:</strong> Filter by country (defaults to India)</li>
+        <li><strong>State:</strong> Select specific state (cascading filter)</li>
+        <li><strong>Site Type:</strong> Pond, Lake, Tank, Reservoir, River, Stepwell, etc.</li>
+        <li><strong>Category:</strong> Public or Residential</li>
+        <li><strong>Risk Level:</strong> Critical, High, Medium, Low (based on ML predictions)</li>
+    </ul>
+
+    <h4>Site Information Displayed</h4>
+    <p>Each site card shows:</p>
+    <ul>
+        <li>Site name and location (state, district)</li>
+        <li>Risk level badge with color coding</li>
+        <li>Latest WQI score</li>
+        <li>Number of samples collected</li>
+        <li>Contamination status</li>
+        <li>Quick action buttons (View Details, Add Sample)</li>
+    </ul>
+
+    <h3 class="subsection-title" id="section-5-2">5.2 Creating a New Site</h3>
+    <p><strong>Required Role:</strong> Admin, Government Official, or Site Manager</p>
+
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Click "New Site" Button</strong>
+        <p>Navigate to /sites and click the "New Site" button in the top-right corner.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Fill in Site Identification</strong>
+        <ul>
+            <li><strong>Site Code:</strong> Unique identifier (auto-generated or custom)</li>
+            <li><strong>Site Name:</strong> Descriptive name of the water body</li>
+            <li><strong>AMRIT Sarovar ID:</strong> Official Mission Amrit Sarovar identifier (if applicable)</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Enter Location Details</strong>
+        <ul>
+            <li><strong>Country:</strong> Select India (default)</li>
+            <li><strong>State:</strong> Choose from dropdown</li>
+            <li><strong>District:</strong> Select district within state</li>
+            <li><strong>Block/Village:</strong> More specific location</li>
+            <li><strong>Coordinates:</strong> Latitude and Longitude (decimal degrees)</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">4</span>
+        <strong>Select Site Type and Category</strong>
+        <ul>
+            <li><strong>Site Type:</strong> Pond, Lake, Tank, Reservoir, River, Stepwell, etc.</li>
+            <li><strong>Category:</strong> Public (monitored by government) or Residential (private households)</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">5</span>
+        <strong>Add Infrastructure Details</strong>
+        <ul>
+            <li><strong>Surface Area:</strong> In hectares</li>
+            <li><strong>Water Source:</strong> Groundwater, rainwater, surface water, etc.</li>
+            <li><strong>Population Served:</strong> Estimated number of people</li>
+            <li><strong>Environmental Factors:</strong> Coastal, Industrial Nearby, Agricultural Nearby, Urban Area</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">6</span>
+        <strong>Submit Site</strong>
+        <p>Review all information and click "Create Site". The site will be added to the monitoring system.</p>
+    </div>
+
+    <h3 class="subsection-title" id="section-5-3">5.3 Editing Site Information</h3>
+    <p><strong>Required Role:</strong> Admin, Government Official, or Site Manager (for assigned sites)</p>
+
+    <p>To edit an existing site:</p>
+    <ol>
+        <li>Navigate to the site detail page</li>
+        <li>Click the "Edit Site" button</li>
+        <li>Update the necessary fields</li>
+        <li>Click "Save Changes"</li>
+    </ol>
+
+    <div class="warning-box">
+        <strong><i class="bi bi-exclamation-triangle"></i> Note:</strong> Changing site coordinates or type may trigger
+        automatic ML model re-evaluation. Risk predictions and recommendations may be updated.
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 6: Submitting Water Samples -->
+    <h2 class="section-title" id="section-6">6. Submitting Water Samples</h2>
+    <p><strong>Required Role:</strong> Citizen Contributor (observations only), Researcher, Field Collector, Analyst, Lab Partner, Industry Partner, Government Official, Site Manager, or Admin</p>
+
+    <h3 class="subsection-title" id="section-6-1">6.1 Sample Collection Workflow</h3>
+
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Navigate to Sample Creation</strong>
+        <p>Go to /samples and click "New Sample" or click "Add Sample" from a site detail page.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Select Site</strong>
+        <p>Choose the water body site where the sample was collected. Sites are filtered based on your permissions.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Enter Collection Metadata</strong>
+        <ul>
+            <li><strong>Collection Date:</strong> Date sample was collected (YYYY-MM-DD format)</li>
+            <li><strong>Collection Time:</strong> Time of day (HH:MM)</li>
+            <li><strong>Source Point:</strong> Specific location within water body (e.g., "North Shore", "Inlet")</li>
+            <li><strong>Depth:</strong> Sampling depth in meters (surface, mid-depth, bottom)</li>
+            <li><strong>Collected By:</strong> Name of person collecting the sample</li>
+        </ul>
+    </div>
+
+    <h3 class="subsection-title" id="section-6-2">6.2 Recording Observations</h3>
+
+    <div class="step-box">
+        <span class="step-number">4</span>
+        <strong>Weather Conditions</strong>
+        <ul>
+            <li><strong>Weather:</strong> Sunny, Cloudy, Rainy, Windy</li>
+            <li><strong>Recent Rainfall:</strong> Yes/No and amount if known</li>
+            <li><strong>Air Temperature:</strong> Ambient temperature in °C</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">5</span>
+        <strong>Visual Observations</strong>
+        <ul>
+            <li><strong>Color:</strong> Colorless, Yellowish, Brownish, Greenish, etc.</li>
+            <li><strong>Odor:</strong> None, Chlorinous, Musty, Fishy, etc.</li>
+            <li><strong>Turbidity (Visual):</strong> Clear, Slightly Turbid, Very Turbid</li>
+            <li><strong>Algae Presence:</strong> None, Light, Moderate, Heavy</li>
+            <li><strong>Floating Matter:</strong> None, Leaves, Debris, Oil Film, etc.</li>
+        </ul>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">6</span>
+        <strong>Submit Sample Record</strong>
+        <p>Click "Submit Sample". The sample will be created with status "Collected" and await lab test results.</p>
+    </div>
+
+    <div class="success-box">
+        <strong><i class="bi bi-check-circle"></i> What Happens Next:</strong> The sample appears in the system with
+        "Awaiting Testing" status. Lab partners can now submit test results for this sample. Once test results are submitted,
+        the ML pipeline automatically analyzes the data and generates predictions.
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 7: Submitting Test Results -->
+    <h2 class="section-title" id="section-7">7. Submitting Test Results</h2>
+    <p><strong>Required Role:</strong> Lab Partner, Industry Partner, Government Official, or Admin</p>
+
+    <p>
+        Test results contain 40+ water quality parameters measured in a laboratory. Results are compared against
+        WHO and BIS (Bureau of Indian Standards) drinking water quality standards.
+    </p>
+
+    <h3 class="subsection-title" id="section-7-1">7.1 Physical Parameters</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>WHO/BIS Limit</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>pH</strong></td>
+                <td>-</td>
+                <td>6.5 - 8.5</td>
+                <td>Measure of acidity/alkalinity</td>
+            </tr>
+            <tr>
+                <td><strong>Temperature</strong></td>
+                <td>°C</td>
+                <td>Ambient</td>
+                <td>Water temperature</td>
+            </tr>
+            <tr>
+                <td><strong>Turbidity</strong></td>
+                <td>NTU</td>
+                <td>&lt; 5</td>
+                <td>Cloudiness or haziness of water</td>
+            </tr>
+            <tr>
+                <td><strong>Color</strong></td>
+                <td>Hazen Units</td>
+                <td>&lt; 15</td>
+                <td>Visual color of water</td>
+            </tr>
+            <tr>
+                <td><strong>Odor</strong></td>
+                <td>-</td>
+                <td>Unobjectionable</td>
+                <td>Smell of water</td>
+            </tr>
+            <tr>
+                <td><strong>Taste</strong></td>
+                <td>-</td>
+                <td>Agreeable</td>
+                <td>Taste of water</td>
+            </tr>
+            <tr>
+                <td><strong>Conductivity</strong></td>
+                <td>μS/cm</td>
+                <td>-</td>
+                <td>Electrical conductivity</td>
+            </tr>
+            <tr>
+                <td><strong>TDS (Total Dissolved Solids)</strong></td>
+                <td>mg/L</td>
+                <td>&lt; 500</td>
+                <td>Dissolved mineral content</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title" id="section-7-2">7.2 Chemical Parameters</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>WHO/BIS Limit</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Total Hardness</td><td>mg/L as CaCO₃</td><td>&lt; 300</td></tr>
+            <tr><td>Calcium</td><td>mg/L</td><td>&lt; 75</td></tr>
+            <tr><td>Magnesium</td><td>mg/L</td><td>&lt; 30</td></tr>
+            <tr><td>Total Alkalinity</td><td>mg/L as CaCO₃</td><td>&lt; 200</td></tr>
+            <tr><td>Free Chlorine</td><td>mg/L</td><td>0.2 - 1.0</td></tr>
+            <tr><td>Total Chlorine</td><td>mg/L</td><td>&lt; 5</td></tr>
+            <tr><td>Chloride</td><td>mg/L</td><td>&lt; 250</td></tr>
+            <tr><td>Fluoride</td><td>mg/L</td><td>&lt; 1.5</td></tr>
+            <tr><td>Sulfate</td><td>mg/L</td><td>&lt; 200</td></tr>
+            <tr><td>Nitrate</td><td>mg/L as NO₃</td><td>&lt; 50</td></tr>
+            <tr><td>Nitrite</td><td>mg/L as NO₂</td><td>&lt; 3</td></tr>
+            <tr><td>Phosphate</td><td>mg/L as PO₄</td><td>-</td></tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title" id="section-7-3">7.3 Heavy Metals</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>WHO/BIS Limit</th>
+                <th>Health Impact</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Iron</td>
+                <td>mg/L</td>
+                <td>&lt; 0.3</td>
+                <td>Aesthetic concern, staining</td>
+            </tr>
+            <tr>
+                <td>Manganese</td>
+                <td>mg/L</td>
+                <td>&lt; 0.1</td>
+                <td>Aesthetic concern, staining</td>
+            </tr>
+            <tr>
+                <td>Copper</td>
+                <td>mg/L</td>
+                <td>&lt; 2.0</td>
+                <td>Gastrointestinal effects at high levels</td>
+            </tr>
+            <tr>
+                <td>Zinc</td>
+                <td>mg/L</td>
+                <td>&lt; 3.0</td>
+                <td>Aesthetic concern</td>
+            </tr>
+            <tr>
+                <td>Lead</td>
+                <td>mg/L</td>
+                <td>&lt; 0.01</td>
+                <td>Neurological damage, especially children</td>
+            </tr>
+            <tr>
+                <td>Arsenic</td>
+                <td>mg/L</td>
+                <td>&lt; 0.01</td>
+                <td>Carcinogenic, skin lesions</td>
+            </tr>
+            <tr>
+                <td>Chromium</td>
+                <td>mg/L</td>
+                <td>&lt; 0.05</td>
+                <td>Carcinogenic</td>
+            </tr>
+            <tr>
+                <td>Cadmium</td>
+                <td>mg/L</td>
+                <td>&lt; 0.003</td>
+                <td>Kidney damage, bone effects</td>
+            </tr>
+            <tr>
+                <td>Mercury</td>
+                <td>mg/L</td>
+                <td>&lt; 0.001</td>
+                <td>Neurological damage</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title" id="section-7-4">7.4 Biological Parameters</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>WHO/BIS Limit</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Total Coliform</td><td>CFU/100mL</td><td>&lt; 10</td></tr>
+            <tr><td>Fecal Coliform</td><td>CFU/100mL</td><td>0</td></tr>
+            <tr><td>E. coli</td><td>MPN/100mL</td><td>0</td></tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title">Organic Parameters</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>Limit</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Dissolved Oxygen (DO)</td><td>mg/L</td><td>&gt; 5</td></tr>
+            <tr><td>Biochemical Oxygen Demand (BOD)</td><td>mg/L</td><td>&lt; 5</td></tr>
+            <tr><td>Chemical Oxygen Demand (COD)</td><td>mg/L</td><td>&lt; 10</td></tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        <strong><i class="bi bi-info-circle"></i> Data Entry:</strong> Not all parameters need to be filled for every sample.
+        Enter available test results. The ML pipeline will work with available data and flag missing critical parameters.
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 8: Understanding ML Reports -->
+    <h2 class="section-title" id="section-8">8. Understanding ML Reports</h2>
+    <p>
+        Jal Sarovar uses 6 machine learning models to analyze water quality data and provide actionable insights.
+        This section explains how to interpret ML-generated reports.
+    </p>
+
+    <h3 class="subsection-title" id="section-8-1">8.1 Site Risk Classification</h3>
+    <p><strong>Model:</strong> Random Forest Classifier</p>
+    <p><strong>Purpose:</strong> Predict the contamination risk level of a water body site</p>
+
+    <h4>Risk Levels</h4>
+    <ul>
+        <li><strong class="text-danger">Critical:</strong> Immediate action required. High probability of contamination. Test weekly.</li>
+        <li><strong class="text-warning">High:</strong> Elevated risk. Monitor closely. Test bi-weekly.</li>
+        <li><strong class="text-info">Medium:</strong> Moderate risk. Regular monitoring recommended. Test monthly.</li>
+        <li><strong class="text-success">Low:</strong> Minimal risk. Standard monitoring adequate. Test quarterly.</li>
+    </ul>
+
+    <h4>How to Interpret</h4>
+    <p>Risk predictions are based on:</p>
+    <ul>
+        <li>Site type and environmental factors</li>
+        <li>Historical contamination patterns</li>
+        <li>Proximity to industrial/agricultural areas</li>
+        <li>Population density served</li>
+        <li>Water source characteristics</li>
+    </ul>
+
+    <div class="info-box">
+        <strong><i class="bi bi-lightbulb"></i> Recommended Actions:</strong>
+        <ul>
+            <li><strong>Critical Sites:</strong> Conduct immediate testing, consider water treatment interventions</li>
+            <li><strong>High Risk Sites:</strong> Increase testing frequency, monitor for changes</li>
+            <li><strong>Medium/Low Risk:</strong> Maintain regular testing schedule</li>
+        </ul>
+    </div>
+
+    <h3 class="subsection-title" id="section-8-2">8.2 Contamination Detection</h3>
+    <p><strong>Model:</strong> XGBoost Classifier with SHAP Explanations</p>
+    <p><strong>Purpose:</strong> Identify the type of contamination present in water samples</p>
+
+    <h4>Contamination Types</h4>
+    <ul>
+        <li><strong>Runoff & Sediment:</strong> Agricultural or urban runoff carrying sediments and nutrients</li>
+        <li><strong>Sewage Ingress:</strong> Fecal contamination from sewage leaks or overflows</li>
+        <li><strong>Salt Intrusion:</strong> Saline water contamination (coastal areas or brackish sources)</li>
+        <li><strong>Pipe Corrosion:</strong> Metal contamination from corroding distribution pipes</li>
+        <li><strong>Disinfectant Decay:</strong> Chlorine degradation allowing bacterial growth</li>
+    </ul>
+
+    <h4>Confidence Scores</h4>
+    <p>Each prediction includes a confidence percentage (0-100%):</p>
+    <ul>
+        <li><strong>&gt; 80%:</strong> High confidence - Act on this prediction</li>
+        <li><strong>60-80%:</strong> Moderate confidence - Consider additional testing</li>
+        <li><strong>&lt; 60%:</strong> Low confidence - More data needed</li>
+    </ul>
+
+    <h3 class="subsection-title" id="section-8-3">8.3 Water Quality Index (WQI)</h3>
+    <p><strong>Method:</strong> Penalty Scoring Algorithm (Rule-Based)</p>
+    <p><strong>Purpose:</strong> Provide a single numeric score representing overall water quality</p>
+
+    <h4>WQI Score Ranges</h4>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>WQI Score</th>
+                <th>Classification</th>
+                <th>Drinkability</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="table-success">
+                <td>90-100</td>
+                <td><strong>Excellent</strong></td>
+                <td>Safe</td>
+                <td>Suitable for drinking without treatment</td>
+            </tr>
+            <tr class="table-info">
+                <td>70-89</td>
+                <td><strong>Compliant</strong></td>
+                <td>Safe</td>
+                <td>Meets WHO/BIS standards, safe for drinking</td>
+            </tr>
+            <tr class="table-warning">
+                <td>50-69</td>
+                <td><strong>Warning</strong></td>
+                <td>Marginal</td>
+                <td>Some parameters exceed limits, treatment recommended</td>
+            </tr>
+            <tr class="table-danger">
+                <td>0-49</td>
+                <td><strong>Unsafe</strong></td>
+                <td>Not Safe</td>
+                <td>Not suitable for drinking, treatment required</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>How WQI is Calculated</h4>
+    <p>The WQI uses a penalty scoring method:</p>
+    <ol>
+        <li>Each parameter is compared to WHO/BIS standards</li>
+        <li>Exceedances are assigned penalty points based on severity</li>
+        <li>Total penalties are subtracted from 100</li>
+        <li>Critical parameters (e.g., E. coli, lead) have higher penalty weights</li>
+    </ol>
+
+    <h3 class="subsection-title" id="section-8-4">8.4 Forecasting & Predictions</h3>
+    <p><strong>Model:</strong> Gaussian Process Regression</p>
+    <p><strong>Purpose:</strong> Predict future parameter values and identify degradation trends</p>
+
+    <h4>Forecast Outputs</h4>
+    <ul>
+        <li><strong>Predicted Value:</strong> Expected parameter level in 30/60/90 days</li>
+        <li><strong>95% Confidence Interval:</strong> Range of likely values (uncertainty quantification)</li>
+        <li><strong>Threshold Exceedance Probability:</strong> Likelihood of exceeding WHO/BIS limits</li>
+        <li><strong>Days Until Exceedance:</strong> Estimated time before parameter becomes unsafe</li>
+    </ul>
+
+    <h4>Common Forecasted Parameters</h4>
+    <ul>
+        <li><strong>pH:</strong> Track acidification or alkalinization trends</li>
+        <li><strong>Turbidity:</strong> Predict seasonal changes in water clarity</li>
+        <li><strong>TDS:</strong> Monitor mineral content accumulation</li>
+        <li><strong>Free Chlorine:</strong> Forecast disinfectant decay in distribution systems</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 9: Analytics Dashboard -->
+    <h2 class="section-title" id="section-9">9. Analytics Dashboard</h2>
+    <p>
+        The Analytics Dashboard (<code>/analytics</code>) provides advanced trend analysis and early warning capabilities.
+    </p>
+
+    <h3 class="subsection-title">Dashboard Features</h3>
+    <ul>
+        <li><strong>Site Trends:</strong> 90-365 day trend analysis for individual sites</li>
+        <li><strong>Warning Scores:</strong> 0-100 score indicating likelihood of quality degradation</li>
+        <li><strong>Alerts Page:</strong> All sites with critical or high warnings sorted by urgency</li>
+        <li><strong>Site Comparison:</strong> Side-by-side comparison of up to 5 sites</li>
+        <li><strong>Parameter Forecasting:</strong> 30-90 day forecasts for key parameters</li>
+    </ul>
+
+    <h3 class="subsection-title">Warning Levels</h3>
+    <ul>
+        <li><strong>Critical (80-100):</strong> Immediate intervention recommended</li>
+        <li><strong>High (60-79):</strong> Close monitoring required</li>
+        <li><strong>Medium (40-59):</strong> Watch for changes</li>
+        <li><strong>Low (0-39):</strong> Stable conditions</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 10: Intervention Management -->
+    <h2 class="section-title" id="section-10">10. Intervention Management</h2>
+    <p><strong>Required Role:</strong> Analyst, Industry Partner, Government Official, Site Manager, or Admin</p>
+
+    <p>
+        Interventions are water treatment actions taken to improve water quality. The system tracks intervention
+        effectiveness by comparing water quality before and after treatment.
+    </p>
+
+    <h3 class="subsection-title">Creating an Intervention</h3>
+    <ol>
+        <li>Navigate to /interventions</li>
+        <li>Click "New Intervention"</li>
+        <li>Select the site</li>
+        <li>Choose intervention type (Chemical Treatment, Filtration, Disinfection, Infrastructure Repair, etc.)</li>
+        <li>Record start date and estimated cost</li>
+        <li>Document treatment details</li>
+        <li>Submit intervention</li>
+    </ol>
+
+    <h3 class="subsection-title">Tracking Effectiveness</h3>
+    <p>The system automatically:</p>
+    <ul>
+        <li>Compares WQI scores before and after intervention</li>
+        <li>Calculates percentage improvement</li>
+        <li>Tracks cost-effectiveness (improvement per rupee spent)</li>
+        <li>Generates intervention effectiveness reports</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 11: Bulk Data Import -->
+    <h2 class="section-title" id="section-11">11. Bulk Data Import</h2>
+    <p><strong>Required Role:</strong> Lab Partner, Industry Partner, Government Official, or Admin</p>
+
+    <p>
+        Bulk import allows uploading multiple samples and test results via CSV files, ideal for laboratories
+        submitting batch results.
+    </p>
+
+    <h3 class="subsection-title">CSV Import Process</h3>
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Download CSV Template</strong>
+        <p>Navigate to /imports/history and click "Download Template". Choose the appropriate template (Sites, Samples, or Test Results).</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Fill in Your Data</strong>
+        <p>Open the template in Excel or Google Sheets. Fill in your data following the column headers exactly.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Upload CSV File</strong>
+        <p>Click "New Import", select your CSV file, and choose the import type.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">4</span>
+        <strong>Review Validation</strong>
+        <p>The system validates your data and shows any errors. Fix errors and re-upload if needed.</p>
+    </div>
+
+    <div class="step-box">
+        <span class="step-number">5</span>
+        <strong>Confirm Import</strong>
+        <p>Once validation passes, confirm the import. Data will be added to the system.</p>
+    </div>
+
+    <div class="warning-box">
+        <strong><i class="bi bi-exclamation-triangle"></i> Important:</strong> Bulk imports trigger ML analysis for all
+        samples. Large imports (>100 samples) may take several minutes to process.
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 12: Geographic Map View -->
+    <h2 class="section-title" id="section-12">12. Geographic Map View</h2>
+    <p>
+        The Map View (<code>/sites/map</code>) provides a geographic visualization of all monitoring sites with
+        risk indicators.
+    </p>
+
+    <h3 class="subsection-title">Map Features</h3>
+    <ul>
+        <li><strong>Site Markers:</strong> Color-coded by risk level (Red=Critical, Orange=High, Yellow=Medium, Green=Low)</li>
+        <li><strong>Cluster View:</strong> Sites cluster at higher zoom levels for performance</li>
+        <li><strong>Site Info Popup:</strong> Click any marker to view site name, risk level, latest WQI, and sample count</li>
+        <li><strong>Filter Controls:</strong> Filter by state, risk level, or site type</li>
+        <li><strong>Legend:</strong> Color coding reference</li>
+    </ul>
+
+    <h3 class="subsection-title">Use Cases</h3>
+    <ul>
+        <li><strong>Geographic Coverage:</strong> Visualize monitoring network distribution</li>
+        <li><strong>Regional Patterns:</strong> Identify contamination hotspots by geography</li>
+        <li><strong>Field Planning:</strong> Plan sampling routes efficiently</li>
+        <li><strong>Stakeholder Communication:</strong> Present data geographically to decision-makers</li>
+    </ul>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 13: FAQs -->
+    <h2 class="section-title" id="section-13">13. Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> How long does role approval take?</div>
+        <p><strong>Answer:</strong> Role approvals for restricted roles are typically processed within 24-48 hours.
+           Admins review requests during business hours. You'll receive an email notification once your role is approved or
+           if additional information is needed.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> What if I forget my password?</div>
+        <p><strong>Answer:</strong> Click "Forgot Password" on the login page. Enter your registered email address.
+           You'll receive a password reset link valid for 2 hours. Click the link and set a new password.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> Can I submit data without lab test results?</div>
+        <p><strong>Answer:</strong> Yes! Citizen Contributors can submit visual observations and photos.
+           Field Collectors can create sample records with physical observations. Lab test results are submitted separately
+           by Lab Partners.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> How accurate are the ML predictions?</div>
+        <p><strong>Answer:</strong> Model accuracy varies by type:
+        <ul>
+            <li>Site Risk Classification: 84.6% accuracy</li>
+            <li>Contamination Type Detection: 87.3% accuracy</li>
+            <li>WQI Calculation: ±10 points MAE (Mean Absolute Error)</li>
+            <li>Time-series Forecasting: R² = 0.94 (very high correlation)</li>
+        </ul>
+        All predictions include confidence scores to help you assess reliability.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> Who can see my submitted data?</div>
+        <p><strong>Answer:</strong> Data visibility depends on site category:
+        <ul>
+            <li><strong>Public Sites:</strong> All authenticated users can view (read-only for most roles)</li>
+            <li><strong>Residential Sites:</strong> Only assigned users and admins can view</li>
+        </ul>
+        Personal information (your name, email) is never shared publicly. Only site and sample data is visible.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> How often should we test water quality?</div>
+        <p><strong>Answer:</strong> Testing frequency depends on risk level (based on ML predictions):
+        <ul>
+            <li><strong>Critical Risk:</strong> Weekly testing recommended</li>
+            <li><strong>High Risk:</strong> Bi-weekly (every 2 weeks)</li>
+            <li><strong>Medium Risk:</strong> Monthly</li>
+            <li><strong>Low Risk:</strong> Quarterly (every 3 months)</li>
+        </ul>
+        The Cost Optimizer model provides customized recommendations for each site.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> Can I export data for my own analysis?</div>
+        <p><strong>Answer:</strong> Yes! Users with appropriate permissions can export data in CSV or JSON format.
+           Navigate to the Sites or Samples page and click the "Export" button. Researchers have access to bulk export
+           functionality.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> What do I do if I find incorrect data?</div>
+        <p><strong>Answer:</strong> Contact your admin or use the "Report Issue" feature on the specific sample or site page.
+           Lab Partners can edit their own submitted test results. Admins can correct or delete erroneous data.</p>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question"><i class="bi bi-question-circle"></i> Is there a mobile app?</div>
+        <p><strong>Answer:</strong> The web application is mobile-responsive and works on smartphones and tablets.
+           A dedicated mobile app for Android/iOS is planned for future releases to support offline sample collection.</p>
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 14: Glossary -->
+    <h2 class="section-title" id="section-14">14. Glossary of Terms</h2>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Term</th>
+                <th>Definition</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="glossary-term">WQI</td>
+                <td>Water Quality Index - A single numeric score (0-100) representing overall water quality</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">TDS</td>
+                <td>Total Dissolved Solids - Measure of dissolved mineral content in water (mg/L)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">BOD</td>
+                <td>Biochemical Oxygen Demand - Amount of oxygen consumed by bacteria decomposing organic matter (mg/L)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">COD</td>
+                <td>Chemical Oxygen Demand - Measure of organic pollution (mg/L)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">NTU</td>
+                <td>Nephelometric Turbidity Units - Measure of water cloudiness/clarity</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">CFU</td>
+                <td>Colony Forming Units - Measure of viable bacterial cells in microbiology</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">MPN</td>
+                <td>Most Probable Number - Statistical method for estimating bacterial concentration</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">WHO</td>
+                <td>World Health Organization - Sets international water quality standards</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">BIS</td>
+                <td>Bureau of Indian Standards - India's national standards body (IS 10500:2012 for drinking water)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">LEGOLAS</td>
+                <td>Low-cost Environmental Geospatial Observation and Laboratory Aquatic System - Autonomous robotic platform for water sampling</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">ML</td>
+                <td>Machine Learning - Algorithms that learn patterns from data to make predictions</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">SHAP</td>
+                <td>SHapley Additive exPlanations - Method for explaining ML model predictions</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">R²</td>
+                <td>R-squared - Statistical measure of how well predictions fit actual data (0-1, higher is better)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">MAE</td>
+                <td>Mean Absolute Error - Average prediction error magnitude</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">CUSUM</td>
+                <td>Cumulative Sum - Statistical method for detecting changes in data over time</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Amrit Sarovar</td>
+                <td>Government of India mission to conserve and develop 68,000+ water bodies nationwide</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Jal Jeevan Mission</td>
+                <td>Government initiative to provide safe drinking water to all rural households</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Site</td>
+                <td>A water body monitoring location (pond, lake, tank, river, etc.)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Sample</td>
+                <td>A water specimen collected at a specific date/time from a site</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Test Result</td>
+                <td>Laboratory analysis results for water quality parameters</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Intervention</td>
+                <td>Water treatment action taken to improve quality (filtration, disinfection, etc.)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Contamination Type</td>
+                <td>Classification of pollution source (sewage, runoff, corrosion, etc.)</td>
+            </tr>
+            <tr>
+                <td class="glossary-term">Risk Level</td>
+                <td>ML-predicted likelihood of contamination (Critical/High/Medium/Low)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <!-- Section 15: Resources & Support -->
+    <h2 class="section-title" id="section-15">15. Resources & Support</h2>
+
+    <h3 class="subsection-title">Government Initiatives</h3>
+    <ul>
+        <li>
+            <strong>Mission Amrit Sarovar:</strong>
+            <a href="https://amritsarovar.gov.in/" target="_blank" rel="noopener noreferrer">amritsarovar.gov.in</a>
+            <br>
+            <small>Government of India's initiative to conserve water bodies across the nation</small>
+        </li>
+        <li>
+            <strong>Jal Jeevan Mission:</strong>
+            <a href="https://jaljeevanmission.gov.in/" target="_blank" rel="noopener noreferrer">jaljeevanmission.gov.in</a>
+            <br>
+            <small>Providing safe drinking water to all rural households</small>
+        </li>
+        <li>
+            <strong>Jal Shakti Ministry:</strong>
+            <a href="https://jalshakti-dowr.gov.in/" target="_blank" rel="noopener noreferrer">jalshakti-dowr.gov.in</a>
+            <br>
+            <small>Ministry of Jal Shakti, Department of Water Resources</small>
+        </li>
+    </ul>
+
+    <h3 class="subsection-title">Standards & Guidelines</h3>
+    <ul>
+        <li>
+            <strong>WHO Drinking Water Quality Guidelines:</strong>
+            <a href="https://www.who.int/water_sanitation_health/publications/drinking-water-quality-guidelines/en/" target="_blank" rel="noopener noreferrer">WHO Guidelines</a>
+        </li>
+        <li>
+            <strong>BIS IS 10500:2012:</strong> Indian Standard for Drinking Water Specifications
+        </li>
+    </ul>
+
+    <h3 class="subsection-title">Technical Support</h3>
+    <p>For technical assistance, contact:</p>
+    <ul>
+        <li><strong>System Administrators:</strong> Use the "Help & Support" link in your dashboard</li>
+        <li><strong>General Inquiries:</strong> See the <a href="{{ url_for('portfolio.contact') }}">Contact page</a></li>
+        <li><strong>Project Overview:</strong> <a href="{{ url_for('reports.research_summary') }}">Research Summary</a></li>
+    </ul>
+
+    <h3 class="subsection-title">Training Resources</h3>
+    <p>Additional training materials (coming soon):</p>
+    <ul>
+        <li>Video tutorials for each user role</li>
+        <li>Field sampling best practices guide</li>
+        <li>Laboratory testing standard operating procedures</li>
+        <li>ML interpretation workshop materials</li>
+    </ul>
+
+    <div class="success-box">
+        <strong><i class="bi bi-check2-circle"></i> Thank You!</strong> Thank you for using Jal Sarovar to monitor
+        and protect India's water resources. Together, we can ensure safe drinking water for all communities.
+    </div>
+
+    <a href="#table-of-contents" class="back-to-top">
+        <i class="bi bi-arrow-up"></i> Back to Table of Contents
+    </a>
+
+    <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #718096;">
+        <p>
+            <strong>Jal Sarovar User Guide</strong> | Version 1.0 
+        </p>
+        <p class="small">
+            Supporting Mission Amrit Sarovar & Jal Jeevan Mission | ML-Driven Water Quality Monitoring for India
+        </p>
+    </div>
+
+</div>
+{% endblock %}

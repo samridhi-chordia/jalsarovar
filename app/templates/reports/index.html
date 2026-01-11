@@ -1,0 +1,637 @@
+{% extends "base.html" %}
+{% block title %}ML Performance Reports - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .model-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .model-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .metric-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .performance-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .perf-excellent { background: #d4edda; color: #155724; }
+    .perf-good { background: #cce5ff; color: #004085; }
+    .perf-fair { background: #fff3cd; color: #856404; }
+    .perf-poor { background: #f8d7da; color: #721c24; }
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    .site-row:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-graph-up-arrow me-2"></i>ML Performance Reports</h2>
+        <p class="text-muted mb-0">Walk-forward validation analysis comparing predictions vs actual results</p>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-calendar me-1"></i> <span id="periodLabel">Last 90 Days</span>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="setTimePeriod(30, 'Last 30 Days')">Last 30 Days</a></li>
+            <li><a class="dropdown-item" href="#" onclick="setTimePeriod(90, 'Last 90 Days')">Last 90 Days</a></li>
+            <li><a class="dropdown-item" href="#" onclick="setTimePeriod(180, 'Last 6 Months')">Last 6 Months</a></li>
+            <li><a class="dropdown-item" href="#" onclick="setTimePeriod(365, 'Last Year')">Last Year</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Loading ML performance data...</p>
+</div>
+
+<!-- Overview Cards -->
+<div id="overviewSection" style="display:none;">
+    <div class="row g-4 mb-4">
+        <!-- Water Quality Forecaster -->
+        <div class="col-md-4">
+            <div class="card model-card h-100" onclick="showModelDetails('forecaster')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-graph-up text-primary me-1"></i> Water Quality Forecaster
+                            </h6>
+                            <small class="text-muted">Gaussian Process Model</small>
+                        </div>
+                        <span class="performance-badge perf-good" id="forecaster-badge">Good</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="metric-value text-primary" id="forecaster-r2">--</div>
+                            <div class="metric-label">R2 Score</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-info" id="forecaster-mae">--</div>
+                            <div class="metric-label">MAE</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-secondary" id="forecaster-count">--</div>
+                            <div class="metric-label">Forecasts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contamination Classifier -->
+        <div class="col-md-4">
+            <div class="card model-card h-100" onclick="showModelDetails('contamination')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-shield-exclamation text-warning me-1"></i> Contamination Classifier
+                            </h6>
+                            <small class="text-muted">XGBoost Model</small>
+                        </div>
+                        <span class="performance-badge perf-good" id="contamination-badge">Good</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="metric-value text-warning" id="contamination-f1">--</div>
+                            <div class="metric-label">F1 Score</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-info" id="contamination-conf">--</div>
+                            <div class="metric-label">Confidence</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-secondary" id="contamination-count">--</div>
+                            <div class="metric-label">Predictions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Site Risk Predictor -->
+        <div class="col-md-4">
+            <div class="card model-card h-100" onclick="showModelDetails('risk')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-exclamation-triangle text-danger me-1"></i> Site Risk Predictor
+                            </h6>
+                            <small class="text-muted">Random Forest Model</small>
+                        </div>
+                        <span class="performance-badge perf-good" id="risk-badge">Good</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="metric-value text-danger" id="risk-accuracy">--</div>
+                            <div class="metric-label">Accuracy</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-info" id="risk-conf">--</div>
+                            <div class="metric-label">Confidence</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-secondary" id="risk-count">--</div>
+                            <div class="metric-label">Predictions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- WQI Calculator -->
+        <div class="col-md-6">
+            <div class="card model-card h-100" onclick="showModelDetails('wqi')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-droplet-half text-info me-1"></i> WQI Calculator
+                            </h6>
+                            <small class="text-muted">Penalty Scoring Algorithm</small>
+                        </div>
+                        <span class="performance-badge perf-excellent" id="wqi-badge">Excellent</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <div class="metric-value text-info" id="wqi-avg">--</div>
+                            <div class="metric-label">Avg WQI</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-value text-success" id="wqi-excellent">--</div>
+                            <div class="metric-label">Excellent</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-value text-warning" id="wqi-warning">--</div>
+                            <div class="metric-label">Warning</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="metric-value text-secondary" id="wqi-count">--</div>
+                            <div class="metric-label">Readings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anomaly Detection -->
+        <div class="col-md-6">
+            <div class="card model-card h-100" onclick="showModelDetails('anomaly')">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-lightning text-purple me-1"></i> Anomaly Detection
+                            </h6>
+                            <small class="text-muted">Isolation Forest + CUSUM</small>
+                        </div>
+                        <span class="performance-badge perf-good" id="anomaly-badge">Good</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="metric-value text-purple" id="anomaly-found">--</div>
+                            <div class="metric-label">Anomalies</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-info" id="anomaly-rate">--</div>
+                            <div class="metric-label">Rate %</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="metric-value text-secondary" id="anomaly-count">--</div>
+                            <div class="metric-label">Detections</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Guide Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-12">
+            <div class="card h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 10%), white; background-size: 100% 80px; background-repeat: no-repeat;">
+                <div class="card-body" style="padding-top: 100px;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                <i class="bi bi-book text-primary me-2"></i> User Guide
+                            </h5>
+                            <p class="card-text">
+                                Comprehensive documentation for all user roles including registration workflows,
+                                data submission processes, ML report interpretation, and analytics dashboard usage.
+                                Perfect for new users getting started or experienced users looking for detailed reference material.
+                            </p>
+                            <ul class="small text-muted mb-3">
+                                <li>User roles and permissions explained</li>
+                                <li>Step-by-step data submission guides</li>
+                                <li>ML predictions interpretation</li>
+                                <li>40+ water quality parameters reference</li>
+                                <li>FAQs and troubleshooting</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('reports.user_guide') }}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-book me-2"></i> View User Guide
+                            </a>
+                            <p class="small text-muted mt-2 mb-0">
+                                <i class="bi bi-people me-1"></i> For all user types
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Site-wise Performance Table -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-table me-2"></i>Site-wise ML Performance</h5>
+            <span class="badge bg-primary" id="siteCount">0 sites</span>
+        </div>
+        <div class="card-body">
+            <!-- Filter Controls -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Country</label>
+                    <select class="form-select form-select-sm" id="filterCountry" onchange="updateDependentDropdowns(); filterSites();">
+                        <option value="">All Countries</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Category</label>
+                    <select class="form-select form-select-sm" id="filterCategory" onchange="updateDependentDropdowns(); filterSites();">
+                        <option value="">All Categories</option>
+                        <option value="public">Public</option>
+                        <option value="residential">Residential</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">State</label>
+                    <select class="form-select form-select-sm" id="filterState" onchange="updateDependentDropdowns(); filterSites();">
+                        <option value="">All States</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Site Type</label>
+                    <select class="form-select form-select-sm" id="filterType" onchange="filterSites()">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Risk Level</label>
+                    <select class="form-select form-select-sm" id="filterRisk" onchange="filterSites()">
+                        <option value="">All Risk Levels</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Search Site Name</label>
+                    <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Type to search..." onkeyup="filterSites()">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="sitesTable">
+                    <thead>
+                        <tr>
+                            <th>Site</th>
+                            <th>Country</th>
+                            <th>Category</th>
+                            <th>State</th>
+                            <th>Type</th>
+                            <th>Samples</th>
+                            <th>Risk Level</th>
+                            <th>Confidence</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sitesTableBody">
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                Loading sites...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Details Modal -->
+<div class="modal fade" id="modelDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modelModalTitle">Model Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modelDetailsContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentDays = 90;
+let overviewData = null;
+let sitesData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadOverviewData();
+    loadSitesData();
+});
+
+function setTimePeriod(days, label) {
+    currentDays = days;
+    document.getElementById('periodLabel').textContent = label;
+    loadOverviewData();
+}
+
+async function loadOverviewData() {
+    try {
+        const response = await fetch(`/reports/api/overview?days=${currentDays}`);
+        const data = await response.json();
+
+        if (data.success) {
+            overviewData = data.data;
+            renderOverview(data.data);
+        }
+    } catch (error) {
+        console.error('Error loading overview:', error);
+    } finally {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('overviewSection').style.display = 'block';
+    }
+}
+
+async function loadSitesData() {
+    try {
+        const response = await fetch('/reports/api/all-sites');
+        const data = await response.json();
+
+        if (data.success) {
+            sitesData = data.sites;
+            populateFilterDropdowns(data.sites);
+            renderSitesTable(data.sites);
+        }
+    } catch (error) {
+        console.error('Error loading sites:', error);
+    }
+}
+
+function populateFilterDropdowns(sites) {
+    // Get unique countries
+    const countries = [...new Set(sites.map(s => s.country).filter(c => c))].sort();
+    const countrySelect = document.getElementById('filterCountry');
+    countries.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country;
+        option.textContent = country;
+        countrySelect.appendChild(option);
+    });
+
+    // Initial population of dependent dropdowns
+    updateDependentDropdowns();
+}
+
+function updateDependentDropdowns() {
+    const countryFilter = document.getElementById('filterCountry').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
+    const stateFilter = document.getElementById('filterState').value.toLowerCase();
+
+    // Filter sites based on selected country and category
+    let filteredSites = sitesData;
+    if (countryFilter) {
+        filteredSites = filteredSites.filter(s => s.country && s.country.toLowerCase() === countryFilter);
+    }
+    if (categoryFilter) {
+        filteredSites = filteredSites.filter(s => (s.site_category || 'public').toLowerCase() === categoryFilter);
+    }
+
+    // Update state dropdown
+    const states = [...new Set(filteredSites.map(s => s.state).filter(s => s))].sort();
+    const stateSelect = document.getElementById('filterState');
+    const currentState = stateSelect.value;
+    stateSelect.innerHTML = '<option value="">All States</option>';
+    states.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.textContent = state;
+        if (state === currentState) option.selected = true;
+        stateSelect.appendChild(option);
+    });
+
+    // Filter sites for type dropdown based on country, category, and state
+    if (stateFilter) {
+        filteredSites = filteredSites.filter(s => s.state && s.state.toLowerCase() === stateFilter);
+    }
+
+    // Update site type dropdown
+    const types = [...new Set(filteredSites.map(s => s.site_type).filter(t => t))].sort();
+    const typeSelect = document.getElementById('filterType');
+    const currentType = typeSelect.value;
+    typeSelect.innerHTML = '<option value="">All Types</option>';
+    types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+        if (type === currentType) option.selected = true;
+        typeSelect.appendChild(option);
+    });
+}
+
+function filterSites() {
+    const countryFilter = document.getElementById('filterCountry').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
+    const stateFilter = document.getElementById('filterState').value.toLowerCase();
+    const typeFilter = document.getElementById('filterType').value.toLowerCase();
+    const riskFilter = document.getElementById('filterRisk').value.toLowerCase();
+    const nameFilter = document.getElementById('filterName').value.toLowerCase();
+
+    const filteredSites = sitesData.filter(site => {
+        // Country filter
+        if (countryFilter && (!site.country || site.country.toLowerCase() !== countryFilter)) {
+            return false;
+        }
+
+        // Category filter
+        if (categoryFilter && (site.site_category || 'public').toLowerCase() !== categoryFilter) {
+            return false;
+        }
+
+        // State filter
+        if (stateFilter && (!site.state || site.state.toLowerCase() !== stateFilter)) {
+            return false;
+        }
+
+        // Type filter
+        if (typeFilter && (!site.site_type || site.site_type.toLowerCase() !== typeFilter)) {
+            return false;
+        }
+
+        // Risk filter
+        if (riskFilter) {
+            const siteRisk = (site.models?.risk?.latest_prediction || '').toLowerCase();
+            if (siteRisk !== riskFilter) {
+                return false;
+            }
+        }
+
+        // Name filter (search)
+        if (nameFilter && !site.name.toLowerCase().includes(nameFilter)) {
+            return false;
+        }
+
+        return true;
+    });
+
+    renderSitesTable(filteredSites);
+}
+
+function renderOverview(data) {
+    // Forecaster
+    const f = data.forecaster || {};
+    document.getElementById('forecaster-r2').textContent = f.avg_r2 || '--';
+    document.getElementById('forecaster-mae').textContent = f.avg_mae || '--';
+    document.getElementById('forecaster-count').textContent = f.total_forecasts || 0;
+    setBadge('forecaster-badge', f.avg_r2 >= 0.8 ? 'excellent' : f.avg_r2 >= 0.6 ? 'good' : 'fair');
+
+    // Contamination
+    const c = data.contamination || {};
+    document.getElementById('contamination-f1').textContent = c.avg_f1 || '--';
+    document.getElementById('contamination-conf').textContent = (c.avg_confidence || '--') + '%';
+    document.getElementById('contamination-count').textContent = c.total_predictions || 0;
+    setBadge('contamination-badge', c.avg_f1 >= 0.8 ? 'excellent' : c.avg_f1 >= 0.6 ? 'good' : 'fair');
+
+    // Site Risk
+    const r = data.site_risk || {};
+    document.getElementById('risk-accuracy').textContent = (r.avg_confidence || '--') + '%';
+    document.getElementById('risk-conf').textContent = (r.avg_confidence || '--') + '%';
+    document.getElementById('risk-count').textContent = r.total_predictions || 0;
+
+    // WQI
+    const w = data.wqi || {};
+    document.getElementById('wqi-avg').textContent = w.avg_wqi || '--';
+    document.getElementById('wqi-excellent').textContent = (w.class_distribution?.Excellent || 0);
+    document.getElementById('wqi-warning').textContent = (w.class_distribution?.Warning || 0);
+    document.getElementById('wqi-count').textContent = w.total_readings || 0;
+
+    // Anomaly
+    const a = data.anomaly || {};
+    document.getElementById('anomaly-found').textContent = a.anomalies_found || 0;
+    document.getElementById('anomaly-rate').textContent = (a.anomaly_rate || 0) + '%';
+    document.getElementById('anomaly-count').textContent = a.total_detections || 0;
+}
+
+function setBadge(elementId, level) {
+    const badge = document.getElementById(elementId);
+    badge.className = 'performance-badge perf-' + level;
+    badge.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+}
+
+function renderSitesTable(sites) {
+    const tbody = document.getElementById('sitesTableBody');
+
+    // Update count badge
+    const countBadge = document.getElementById('siteCount');
+    countBadge.textContent = `${sites.length} site${sites.length !== 1 ? 's' : ''}`;
+
+    if (!sites || sites.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No sites match the selected filters</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = sites.map(site => {
+        const risk = site.models?.risk || {};
+        const riskLevel = risk.latest_prediction || 'N/A';
+        const riskClass = {
+            'critical': 'danger',
+            'high': 'warning',
+            'medium': 'info',
+            'low': 'success'
+        }[riskLevel] || 'secondary';
+
+        const category = site.site_category || 'public';
+        const categoryClass = category === 'residential' ? 'info' : 'primary';
+
+        return `
+            <tr class="site-row">
+                <td>
+                    <strong>${site.name}</strong>
+                </td>
+                <td>${site.country || 'N/A'}</td>
+                <td><span class="badge bg-${categoryClass}">${category}</span></td>
+                <td>${site.state || 'N/A'}</td>
+                <td><span class="badge bg-secondary">${site.site_type || 'N/A'}</span></td>
+                <td>${site.sample_count}</td>
+                <td><span class="badge bg-${riskClass}">${riskLevel}</span></td>
+                <td>${risk.confidence ? risk.confidence + '%' : 'N/A'}</td>
+                <td>
+                    <a href="/reports/site/${site.id}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-bar-chart me-1"></i>View Report
+                    </a>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function showModelDetails(modelType) {
+    const modal = new bootstrap.Modal(document.getElementById('modelDetailsModal'));
+    const titles = {
+        'forecaster': 'Water Quality Forecaster Performance',
+        'contamination': 'Contamination Classifier Performance',
+        'risk': 'Site Risk Predictor Performance',
+        'wqi': 'WQI Calculator Performance',
+        'anomaly': 'Anomaly Detection Performance'
+    };
+    document.getElementById('modelModalTitle').textContent = titles[modelType] || 'Model Details';
+    document.getElementById('modelDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <p class="text-muted">Select a specific site to view detailed ${modelType} performance metrics.</p>
+            <a href="#" class="btn btn-primary" onclick="document.querySelector('[data-bs-dismiss=modal]').click(); document.getElementById('sitesTable').scrollIntoView({behavior: 'smooth'});">
+                View Site Reports
+            </a>
+        </div>
+    `;
+    modal.show();
+}
+</script>
+{% endblock %}

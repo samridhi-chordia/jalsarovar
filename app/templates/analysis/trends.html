@@ -1,0 +1,865 @@
+{% extends "base.html" %}
+{% block title %}Trends & Analytics - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    .metric-card {
+        border-left: 4px solid;
+    }
+    .metric-card.risk { border-left-color: #dc3545; }
+    .metric-card.wqi { border-left-color: #0dcaf0; }
+    .metric-card.anomaly { border-left-color: #6f42c1; }
+    .metric-card.cost { border-left-color: #0d6efd; }
+    .metric-card.contamination { border-left-color: #fd7e14; }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-bar-chart"></i> Trends & Analytics</h2>
+        <p class="text-muted mb-0">Comprehensive view of all ML models and predictions</p>
+    </div>
+    <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-primary">
+        <i class="bi bi-table"></i> View Analysis Table
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Site Category</label>
+                <select name="site_category" class="form-select" id="siteCategoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="public" {% if request.args.get('site_category') == 'public' %}selected{% endif %}>Public</option>
+                    <option value="residential" {% if request.args.get('site_category') == 'residential' %}selected{% endif %}>Residential</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Site</label>
+                <select name="site_id" class="form-select" id="siteFilter">
+                    <option value="">All Sites (Aggregated)</option>
+                    {% for site in sites_list %}
+                    <option value="{{ site.id }}" data-category="{{ site.site_category }}" {% if selected_site == site.id %}selected{% endif %}>
+                        {{ site.site_name }} ({{ site.state }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Parameter</label>
+                <select name="parameter" class="form-select">
+                    <option value="">All Parameters</option>
+                    <option value="ph" {% if request.args.get('parameter') == 'ph' %}selected{% endif %}>pH</option>
+                    <option value="tds" {% if request.args.get('parameter') == 'tds' %}selected{% endif %}>TDS (ppm)</option>
+                    <option value="turbidity" {% if request.args.get('parameter') == 'turbidity' %}selected{% endif %}>Turbidity (NTU)</option>
+                    <option value="temperature" {% if request.args.get('parameter') == 'temperature' %}selected{% endif %}>Temperature (°C)</option>
+                    <option value="chlorine" {% if request.args.get('parameter') == 'chlorine' %}selected{% endif %}>Free Chlorine (mg/L)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Time Period</label>
+                <select name="days" class="form-select" id="daysPeriod">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                    <option value="60" {% if days == 60 %}selected{% endif %}>Last 60 days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                    <option value="120" {% if days == 120 %}selected{% endif %}>Last 120 days</option>
+                    <option value="180" {% if days == 180 %}selected{% endif %}>Last 180 days</option>
+                    <option value="365" {% if days == 365 %}selected{% endif %}>Last 365 days</option>
+                    <option value="730" {% if days == 730 %}selected{% endif %}>Last 2 years</option>
+                    <option value="custom" {% if request.args.get('date_from') %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="customDateFrom" style="{% if not request.args.get('date_from') %}display: none;{% endif %}">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            <div class="col-md-2" id="customDateTo" style="{% if not request.args.get('date_from') %}display: none;{% endif %}">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Apply</button>
+                <a href="{{ url_for('analysis.trends') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ML Model Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card metric-card risk text-center h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-danger">{{ model_metrics.risk_classifier.total_predictions }}</div>
+                <small class="text-muted">Risk Predictions</small>
+                <br><span class="badge bg-danger">{{ model_metrics.risk_classifier.accuracy }}% Acc</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card metric-card contamination text-center h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-warning">{{ model_metrics.contamination_classifier.total_predictions }}</div>
+                <small class="text-muted">Contamination</small>
+                <br><span class="badge bg-warning text-dark">{{ model_metrics.contamination_classifier.f1_score }} F1</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card metric-card wqi text-center h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-info">{{ model_metrics.wqi_calculator.total_readings }}</div>
+                <small class="text-muted">WQI Readings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card metric-card anomaly text-center h-100">
+            <div class="card-body py-3">
+                <div class="stat-number" style="color: #6f42c1;">{{ model_metrics.anomaly_detector.total_detections }}</div>
+                <small class="text-muted">Anomalies</small>
+                <br><span class="badge" style="background: #6f42c1;">{{ model_metrics.anomaly_detector.accuracy }}% Acc</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card metric-card cost text-center h-100">
+            <div class="card-body py-3">
+                <div class="stat-number text-success">{{ "%.0f"|format((cost_summary.savings or 0) / 1000) }}K</div>
+                <small class="text-muted">Cost Saved (Rs)</small>
+                <br><span class="badge bg-success">{{ "%.0f"|format(cost_summary.detection_rate or 0) }}% Det</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100 bg-primary text-white">
+            <div class="card-body py-3">
+                <div class="stat-number">{{ model_metrics.forecaster.active_forecasts }}</div>
+                <small>Active Forecasts</small>
+                <br><span class="badge bg-light text-primary">{{ model_metrics.forecaster.r2_score }} R2</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Charts Row 1 -->
+<div class="row g-4 mb-4">
+    <!-- Daily Contamination Trend -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up text-primary"></i> Daily Sample Analysis Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dailyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Distribution -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-shield-exclamation text-danger"></i> Risk Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="riskDistChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Charts Row 2 -->
+<div class="row g-4 mb-4">
+    <!-- WQI Trend -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-speedometer2 text-info"></i> WQI Score Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="wqiTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WQI Class Distribution -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> WQI Classes</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="wqiDistChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contamination Types -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-virus text-warning"></i> Contamination Types</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="contaminationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Charts Row 3 -->
+<div class="row g-4 mb-4">
+    <!-- Risk Score Trend -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-activity text-danger"></i> Average Risk Score Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="riskTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomaly Detection Trend -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-diamond" style="color: #6f42c1;"></i> Anomaly Detection Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="anomalyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Info Row -->
+<div class="row g-4 mb-4">
+    <!-- Anomaly Types -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Anomaly Types</h5>
+            </div>
+            <div class="card-body">
+                {% if anomaly_by_type %}
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="anomalyTypeChart"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">No anomalies detected</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Severity Distribution -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-thermometer-half"></i> Severity Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Optimization Summary -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-cash-coin text-success"></i> Cost Optimization</h5>
+            </div>
+            <div class="card-body">
+                {% if cost_summary and cost_summary.current %}
+                <table class="table table-sm">
+                    <tr>
+                        <td>Current Cost:</td>
+                        <td class="text-end"><strong>Rs. {{ "{:,.0f}".format(cost_summary.current or 0) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Optimized Cost:</td>
+                        <td class="text-end text-success"><strong>Rs. {{ "{:,.0f}".format(cost_summary.optimized or 0) }}</strong></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td>Total Savings:</td>
+                        <td class="text-end"><strong>Rs. {{ "{:,.0f}".format(cost_summary.savings or 0) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Savings %:</td>
+                        <td class="text-end">
+                            <strong>{{ "%.1f"|format((cost_summary.savings or 0) / (cost_summary.current or 1) * 100) }}%</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Detection Rate:</td>
+                        <td class="text-end"><strong>{{ "%.1f"|format(cost_summary.detection_rate or 0) }}%</strong></td>
+                    </tr>
+                </table>
+                {% else %}
+                <div class="text-center text-muted py-4">No cost optimization data</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Site Performance Table -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Site Performance (Top 15 by Risk)</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Site</th>
+                    <th>State</th>
+                    <th>Risk Level</th>
+                    <th>Risk Score</th>
+                    <th>Samples</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in site_performance %}
+                <tr>
+                    <td><a href="{{ url_for('sites.detail', site_id=site.id) }}">{{ site.site_name }}</a></td>
+                    <td>{{ site.state }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'danger' if site.current_risk_level == 'critical' else 'warning' if site.current_risk_level == 'high' else 'info' if site.current_risk_level == 'medium' else 'success' }}">
+                            {{ (site.current_risk_level or 'N/A')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="progress" style="width: 100px; height: 20px;">
+                            <div class="progress-bar bg-{{ 'danger' if (site.risk_score or 0) >= 70 else 'warning' if (site.risk_score or 0) >= 50 else 'info' if (site.risk_score or 0) >= 30 else 'success' }}"
+                                 style="width: {{ site.risk_score or 0 }}%;">
+                                {{ "%.0f"|format(site.risk_score or 0) }}
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ site.sample_count }}</td>
+                    <td>
+                        <a href="{{ url_for('analysis.trends', site_id=site.id, days=days, site_category=request.args.get('site_category', '')) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-bar-chart"></i> View Trends
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No site data available</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Chart.js configurations
+
+// 1. Daily Trend Chart
+const dailyTrendCtx = document.getElementById('dailyTrendChart').getContext('2d');
+new Chart(dailyTrendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for d in daily_trend %}'{{ d.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Total Samples Analyzed',
+            data: [{% for d in daily_trend %}{{ d.total }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            fill: true,
+            tension: 0.3
+        }, {
+            label: 'Contaminated Samples (Unsafe)',
+            data: [{% for d in daily_trend %}{{ d.contaminated or 0 }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 11 } }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += context.parsed.y + ' samples';
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Samples'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        }
+    }
+});
+
+// 2. Risk Distribution Chart
+const riskDistCtx = document.getElementById('riskDistChart').getContext('2d');
+const riskTotal = {{ risk_distribution.get('critical', 0) }} + {{ risk_distribution.get('high', 0) }} + {{ risk_distribution.get('medium', 0) }} + {{ risk_distribution.get('low', 0) }};
+new Chart(riskDistCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{
+            data: [
+                {{ risk_distribution.get('critical', 0) }},
+                {{ risk_distribution.get('high', 0) }},
+                {{ risk_distribution.get('medium', 0) }},
+                {{ risk_distribution.get('low', 0) }}
+            ],
+            backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0', '#198754']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { font: { size: 11 } }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = context.parsed;
+                        const percentage = riskTotal > 0 ? ((value / riskTotal) * 100).toFixed(1) : 0;
+                        return context.label + ': ' + value + ' sites (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// 3. WQI Trend Chart
+const wqiTrendCtx = document.getElementById('wqiTrendChart').getContext('2d');
+new Chart(wqiTrendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for d in wqi_trend %}'{{ d.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Average WQI Score',
+            data: [{% for d in wqi_trend %}{{ "%.1f"|format(d.avg_wqi or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#0dcaf0',
+            backgroundColor: 'rgba(13, 202, 240, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = context.parsed.y;
+                        let quality = '';
+                        if (value >= 90) quality = ' (Excellent)';
+                        else if (value >= 70) quality = ' (Compliant - Drinkable)';
+                        else if (value >= 50) quality = ' (Warning)';
+                        else quality = ' (Unsafe)';
+                        return 'WQI: ' + value.toFixed(1) + quality;
+                    }
+                }
+            },
+            annotation: {
+                annotations: {
+                    drinkableLine: {
+                        type: 'line',
+                        yMin: 70,
+                        yMax: 70,
+                        borderColor: '#198754',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            display: true,
+                            content: 'Drinkable Threshold (70)',
+                            position: 'end',
+                            backgroundColor: '#198754'
+                        }
+                    },
+                    warningLine: {
+                        type: 'line',
+                        yMin: 50,
+                        yMax: 50,
+                        borderColor: '#ffc107',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            display: true,
+                            content: 'Warning (50)',
+                            position: 'start',
+                            backgroundColor: '#ffc107'
+                        }
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                min: 0,
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'WQI Score (0-100)'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        }
+    }
+});
+
+// 4. WQI Distribution Chart
+const wqiDistCtx = document.getElementById('wqiDistChart').getContext('2d');
+const wqiTotal = {{ wqi_distribution.get('excellent', 0) }} + {{ wqi_distribution.get('compliant', 0) }} + {{ wqi_distribution.get('warning', 0) }} + {{ wqi_distribution.get('unsafe', 0) }};
+new Chart(wqiDistCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Excellent (≥90)', 'Compliant (70-89)', 'Warning (50-69)', 'Unsafe (<50)'],
+        datasets: [{
+            data: [
+                {{ wqi_distribution.get('excellent', 0) }},
+                {{ wqi_distribution.get('compliant', 0) }},
+                {{ wqi_distribution.get('warning', 0) }},
+                {{ wqi_distribution.get('unsafe', 0) }}
+            ],
+            backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { boxWidth: 12, font: { size: 10 } }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = context.parsed;
+                        const percentage = wqiTotal > 0 ? ((value / wqiTotal) * 100).toFixed(1) : 0;
+                        return context.label + ': ' + value + ' readings (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// 5. Contamination Types Chart
+const contaminationCtx = document.getElementById('contaminationChart').getContext('2d');
+new Chart(contaminationCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for k, v in type_distribution.items() %}'{{ k|replace("_", " ")|title }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Contamination Cases',
+            data: [{% for k, v in type_distribution.items() %}{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: ['#fd7e14', '#dc3545', '#6f42c1', '#0dcaf0', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': ' + context.parsed.x + ' cases';
+                    }
+                }
+            }
+        },
+        indexAxis: 'y',
+        scales: {
+            x: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Cases'
+                }
+            }
+        }
+    }
+});
+
+// 6. Risk Score Trend
+const riskTrendCtx = document.getElementById('riskTrendChart').getContext('2d');
+new Chart(riskTrendCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for d in risk_trend %}'{{ d.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Average Risk Score',
+            data: [{% for d in risk_trend %}{{ "%.1f"|format(d.avg_score or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = context.parsed.y;
+                        let level = '';
+                        if (value >= 70) level = ' (Critical)';
+                        else if (value >= 50) level = ' (High)';
+                        else if (value >= 30) level = ' (Medium)';
+                        else level = ' (Low)';
+                        return 'Risk Score: ' + value.toFixed(1) + level;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                min: 0,
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'Risk Score (0-100)'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        }
+    }
+});
+
+// 7. Anomaly Trend
+const anomalyTrendCtx = document.getElementById('anomalyTrendChart').getContext('2d');
+new Chart(anomalyTrendCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for d in anomaly_trend %}'{{ d.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Anomalies Detected',
+            data: [{% for d in anomaly_trend %}{{ d.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: '#6f42c1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const value = context.parsed.y;
+                        return value + ' anomal' + (value === 1 ? 'y' : 'ies') + ' detected';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Anomalies'
+                },
+                ticks: {
+                    stepSize: 1
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            }
+        }
+    }
+});
+
+// 8. Anomaly Types Chart
+{% if anomaly_by_type %}
+const anomalyTypeCtx = document.getElementById('anomalyTypeChart').getContext('2d');
+new Chart(anomalyTypeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for k, v in anomaly_by_type.items() %}'{{ k|title }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for k, v in anomaly_by_type.items() %}{{ v }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: ['#6f42c1', '#d63384', '#fd7e14', '#20c997', '#0dcaf0', '#6c757d']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } }
+    }
+});
+{% endif %}
+
+// 9. Severity Distribution Chart
+const severityCtx = document.getElementById('severityChart').getContext('2d');
+new Chart(severityCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{
+            label: 'Severity Level Count',
+            data: [
+                {{ severity_distribution.get('critical', 0) }},
+                {{ severity_distribution.get('high', 0) }},
+                {{ severity_distribution.get('medium', 0) }},
+                {{ severity_distribution.get('low', 0) }}
+            ],
+            backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0', '#198754']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ' severity: ' + context.parsed.y + ' issues';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Issues'
+                },
+                ticks: {
+                    stepSize: 1
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Severity Level'
+                }
+            }
+        }
+    }
+});
+
+// Custom date range toggle
+document.getElementById('daysPeriod').addEventListener('change', function() {
+    const customDateFrom = document.getElementById('customDateFrom');
+    const customDateTo = document.getElementById('customDateTo');
+
+    if (this.value === 'custom') {
+        customDateFrom.style.display = 'block';
+        customDateTo.style.display = 'block';
+    } else {
+        customDateFrom.style.display = 'none';
+        customDateTo.style.display = 'none';
+    }
+});
+
+// Site category filter - filter sites dropdown based on selected category
+document.getElementById('siteCategoryFilter').addEventListener('change', function() {
+    const selectedCategory = this.value;
+    const siteFilter = document.getElementById('siteFilter');
+    const siteOptions = siteFilter.querySelectorAll('option');
+
+    siteOptions.forEach(function(option) {
+        if (option.value === '') {
+            // Always show "All Sites" option
+            option.style.display = 'block';
+        } else {
+            const siteCategory = option.getAttribute('data-category');
+            if (selectedCategory === '' || siteCategory === selectedCategory) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        }
+    });
+
+    // Reset site selection if current selection is now hidden
+    const currentOption = siteFilter.options[siteFilter.selectedIndex];
+    if (currentOption && currentOption.style.display === 'none') {
+        siteFilter.value = '';
+    }
+});
+</script>
+{% endblock %}

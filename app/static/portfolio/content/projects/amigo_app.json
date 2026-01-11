@@ -1,0 +1,23 @@
+{
+  "id": "amigo_app",
+  "title": "Software Intern - Rigpa Technologies (Amigo App)",
+  "category": "Work Experience",
+  "short_description": "Developed India's first anonymous counseling app with ML-based mood tracking",
+  "full_description": "Developed and tested Amigo, India's first anonymous counseling app providing professional mental health support 24/7. Designed the counselor onboarding system and mood-tracking journal from scratch using JavaScript and React. Incorporated ML for mood pattern analysis to give recommendations to users. Pitched the app to schools and workplaces in the district.",
+  "grades": ["11", "12"],
+  "hours_per_week": 10,
+  "weeks_per_year": 10,
+  "currently_active": true,
+  "start_date": "May 2024",
+  "highlights": [
+    "India's first 100% anonymous counseling app",
+    "Built counselor onboarding system from scratch",
+    "ML-based mood pattern analysis",
+    "Professional mental health support 24/7",
+    "Pitched to schools and workplaces"
+  ],
+  "skills": ["JavaScript", "React", "Machine Learning", "UI/UX Design", "Mental Health Tech"],
+  "images": [],
+  "videos": [],
+  "links": []
+}

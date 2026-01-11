@@ -1,0 +1,18 @@
+Submission Review Update
+
+Hello {{ user_name }},
+
+Your data submission was not approved for import.
+
+Reason: {{ reason }}
+
+Please review the feedback and consider resubmitting with corrections.
+
+View submissions: {{ submissions_url }}
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

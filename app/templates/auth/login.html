@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Login - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="text-primary">
+                                <i class="bi bi-droplet-fill"></i> Jal Sarovar
+                            </h2>
+                            <p class="text-muted">Sign in to your account</p>
+                        </div>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <!-- Google OAuth Login -->
+                        <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-danger w-100 mb-3">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </a>
+
+                        <div class="text-center mb-3">
+                            <span class="text-muted">or sign in with username</span>
+                        </div>
+
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username or Email</label>
+                                <input type="text" class="form-control" id="username" name="username" required autofocus>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                                <div class="form-text text-end">
+                                    <a href="{{ url_for('auth.forgot_password') }}" class="text-decoration-none">Forgot password?</a>
+                                </div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">Remember me</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign In
+                            </button>
+                        </form>
+
+                        {% if show_resend %}
+                        <div class="alert alert-warning mt-3">
+                            <p class="mb-2">Email not verified.</p>
+                            <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+                                <input type="hidden" name="email" value="{{ user_email }}">
+                                <button type="submit" class="btn btn-sm btn-warning">Resend Verification Email</button>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        <hr class="my-4">
+
+                        <p class="text-center text-muted mb-0">
+                            Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a>
+                        </p>
+                    </div>
+                </div>
+
+                <p class="text-center mt-3 text-muted small">
+                    <a href="{{ url_for('main.index') }}"><i class="bi bi-arrow-left"></i> Back to home</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

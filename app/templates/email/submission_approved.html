@@ -1,0 +1,25 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Submission Approved - Jal Sarovar{% endblock %}
+
+{% block content %}
+<h2>Submission Approved!</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>Great news! Your data submission has been reviewed and approved by our admin team. The data has been successfully imported into the Jal Sarovar system.</p>
+
+<div class="alert alert-info">
+    <strong>✅ Status:</strong> Approved and Imported<br>
+    Your contribution is now part of our water quality database and will help in monitoring and analysis.
+</div>
+
+<p>Thank you for contributing to cleaner water through accurate data collection!</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ dashboard_url }}" class="button">View Dashboard</a>
+</div>
+
+<p>Best regards,<br>
+The Jal Sarovar Team</p>
+{% endblock %}

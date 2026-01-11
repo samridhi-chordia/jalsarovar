@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Sites - Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-diagram-3"></i> Compare Sites</h2>
+            <p class="text-muted">Select 2-4 sites to compare water quality trends</p>
+        </div>
+    </div>
+
+    <form method="get" action="{{ url_for('analytics.compare_sites') }}">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-check2-square"></i> Select Sites (2-4 sites required)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="sitesTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">Select</th>
+                                        <th>Site Name</th>
+                                        <th>Site Code</th>
+                                        <th>District</th>
+                                        <th>State</th>
+                                        <th>Samples (Last Year)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for site in sites %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="sites" value="{{ site.id }}"
+                                                   class="form-check-input site-checkbox"
+                                                   {% if site.id|string in selected_sites %}checked{% endif %}
+                                                   {% if site.sample_count < 3 %}disabled title="Insufficient data"{% endif %}>
+                                        </td>
+                                        <td><strong>{{ site.site_name }}</strong></td>
+                                        <td>{{ site.site_code }}</td>
+                                        <td>{{ site.district }}</td>
+                                        <td>{{ site.state }}</td>
+                                        <td>
+                                            {% if site.sample_count >= 10 %}
+                                                <span class="badge bg-success">{{ site.sample_count }}</span>
+                                            {% elif site.sample_count >= 3 %}
+                                                <span class="badge bg-warning text-dark">{{ site.sample_count }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ site.sample_count }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span id="selectedCount" class="badge bg-primary">0 sites selected</span>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary" id="compareBtn" disabled>
+                                    <i class="bi bi-diagram-3"></i> Compare Selected Sites
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.site-checkbox:not([disabled])');
+        const compareBtn = document.getElementById('compareBtn');
+        const selectedCount = document.getElementById('selectedCount');
+
+        function updateSelection() {
+            const checked = document.querySelectorAll('.site-checkbox:checked').length;
+            selectedCount.textContent = checked + ' site' + (checked !== 1 ? 's' : '') + ' selected';
+
+            if (checked >= 2 && checked <= 4) {
+                compareBtn.disabled = false;
+                selectedCount.className = 'badge bg-success';
+            } else {
+                compareBtn.disabled = true;
+                selectedCount.className = checked > 4 ? 'badge bg-danger' : 'badge bg-primary';
+            }
+        }
+
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', updateSelection);
+        });
+
+        // Initial update
+        updateSelection();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Revision Needed - Jal Sarovar{% endblock %}
+
+{% block content %}
+<h2>Revision Requested</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>Our admin team has reviewed your data submission and identified some items that need revision before we can approve it.</p>
+
+<div class="alert alert-info">
+    <strong>Revision Notes:</strong><br>
+    {{ revision_notes }}
+</div>
+
+<p>Please review the notes above and make the necessary changes to your submission.</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ submissions_url }}" class="button">Revise Submission</a>
+</div>
+
+<p>If you have any questions about the requested changes, please don't hesitate to reach out.</p>
+
+<p>Best regards,<br>
+The Jal Sarovar Team</p>
+{% endblock %}

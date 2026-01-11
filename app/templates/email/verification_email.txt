@@ -1,0 +1,17 @@
+Welcome to Jal Sarovar, {{ user_name }}!
+
+Thank you for registering with Jal Sarovar Water Quality Management System.
+
+Please verify your email address by clicking the link below:
+{{ verification_url }}
+
+This verification link will expire in {{ expiry_hours }} hours.
+
+If you didn't create an account with Jal Sarovar, you can safely ignore this email.
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

@@ -1,0 +1,38 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Welcome to Jal Sarovar{% endblock %}
+
+{% block content %}
+<h2>Welcome {{ user_name }}!</h2>
+
+<p>Your email has been verified successfully. You're now part of the Jal Sarovar community working towards cleaner water for everyone.</p>
+
+<div class="alert alert-info">
+    <strong>Your Role:</strong> {{ role }}<br>
+    This role determines what actions you can perform in the system.
+</div>
+
+<h3>Getting Started</h3>
+<ul>
+    <li><strong>Dashboard:</strong> View water quality data and insights</li>
+    <li><strong>Sites:</strong> Explore monitored water bodies across India</li>
+    <li><strong>Analysis:</strong> Access water quality reports and predictions</li>
+    <li><strong>Contribute:</strong> Submit data according to your role permissions</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ dashboard_url }}" style="display: inline-block; padding: 14px 40px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+</div>
+
+<p>Or click here to access your dashboard:</p>
+<p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #0d6efd;">
+    <a href="{{ dashboard_url }}" style="color: #0d6efd; text-decoration: underline;">{{ dashboard_url }}</a>
+</p>
+
+<p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+
+<p>Thank you for joining us in our mission to monitor and improve water quality!</p>
+
+<p>Best regards,<br>
+The Jal Sarovar Team</p>
+{% endblock %}

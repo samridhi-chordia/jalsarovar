@@ -1,0 +1,20 @@
+{
+  "id": "baking",
+  "title": "Baking",
+  "category": "Personal Interest",
+  "short_description": "Creative baking and dessert making",
+  "full_description": "Passionate about baking and creating delicious desserts. Experimented with various recipes and techniques, combining creativity with precision to produce memorable treats for family and friends.",
+  "grades": [],
+  "hours_per_week": 0,
+  "weeks_per_year": 0,
+  "start_date": "",
+  "highlights": [
+    "Creative dessert making",
+    "Recipe experimentation",
+    "Baking for family and friends"
+  ],
+  "skills": ["Baking", "Creativity", "Precision"],
+  "images": [],
+  "videos": [],
+  "links": []
+}

@@ -1,0 +1,171 @@
+{% extends "portfolio_base.html" %}
+{% block title %}Contact Samridhi Chordia | Collaboration Opportunities{% endblock %}
+{% block meta_description %}Get in touch for collaboration on ML projects, research opportunities, educational technology, and social impact initiatives.{% endblock %}
+{% block meta_keywords %}contact Samridhi Chordia, ML collaboration, research collaboration, STEM projects, social impact technology{% endblock %}
+{% block og_title %}Contact Samridhi Chordia | Let's Collaborate{% endblock %}
+
+{% block portfolio_content %}
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <h1>{{ page.hero.title if page and page.hero else 'Get in Touch' }}</h1>
+        <p>{{ page.hero.subtitle if page and page.hero else "Let's collaborate on meaningful projects" }}</p>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="contact-grid">
+
+            <!-- Contact Information -->
+            <div class="contact-info">
+                <h2>{{ page.intro.heading if page and page.intro else "Let's Connect" }}</h2>
+                <p class="contact-intro">
+                    {{ page.intro.text if page and page.intro else "I'm always interested in collaborating on projects related to:" }}
+                </p>
+
+                <ul class="contact-interests">
+                    {% if page and page.interest_areas %}
+                        {% for area in page.interest_areas %}
+                            <li>{{ area }}</li>
+                        {% endfor %}
+                    {% else %}
+                    <li>Machine Learning for social impact</li>
+                    <li>Research in renewable energy and sustainability</li>
+                    <li>Educational technology and STEM outreach</li>
+                    <li>Software development projects</li>
+                    <li>Environmental conservation initiatives</li>
+                    {% endif %}
+                </ul>
+
+                <div class="contact-details">
+                    {% if page and page.contact_details %}
+                        {% for detail in page.contact_details|sort(attribute='order') %}
+                            <div class="contact-item">
+                                <div class="contact-icon">{{ detail.icon }}</div>
+                                <div class="contact-text">
+                                    <h3>{{ detail.label }}</h3>
+                                    <p><a href="{{ detail.link }}" target="_blank" rel="noopener noreferrer">{{ detail.value }}</a></p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-text">
+                            <h3>Email</h3>
+                            <p><em>Email will be added here</em></p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">💼</div>
+                        <div class="contact-text">
+                            <h3>LinkedIn</h3>
+                            <p><em>LinkedIn profile will be added here</em></p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">💻</div>
+                        <div class="contact-text">
+                            <h3>GitHub</h3>
+                            <p><em>GitHub profile will be added here</em></p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if page and page.resume and page.resume.enabled %}
+                <div class="contact-download">
+                    <h3>{{ page.resume.heading }}</h3>
+                    <p>{{ page.resume.description }}</p>
+                    <a href="{{ url_for('static', filename=page.resume.file_path) }}" class="btn btn-outline" target="_blank">
+                        {{ page.resume.button_text }}
+                    </a>
+                </div>
+                {% else %}
+                <div class="contact-download">
+                    <h3>Resume</h3>
+                    <p>Download my complete resume for detailed information about my work and achievements.</p>
+                    <a href="{{ url_for('static', filename='portfolio/downloads/Samridhi_Chordia_Resume.pdf') }}" class="btn btn-outline" target="_blank">
+                        Download Resume (PDF)
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Contact Form -->
+            <div class="contact-form-container">
+                <h2>{{ page.form.heading if page and page.form else 'Send a Message' }}</h2>
+                <p class="form-intro">{{ page.form.intro if page and page.form else 'Have a question or want to collaborate? Fill out the form below!' }}</p>
+
+                <form id="contact-form" class="contact-form" method="POST" action="{{ url_for('portfolio.contact') }}">
+                    <div class="form-group">
+                        <label for="name">Your Name <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            required
+                            placeholder="Enter your full name"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Your Email <span class="required">*</span></label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            placeholder="your.email@example.com"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            id="subject"
+                            name="subject"
+                            required
+                            placeholder="What is this about?"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Message <span class="required">*</span></label>
+                        <textarea
+                            id="message"
+                            name="message"
+                            rows="6"
+                            required
+                            placeholder="Tell me more about your message..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Honeypot field for spam prevention (hidden from users) -->
+                    <div class="honeypot" aria-hidden="true">
+                        <input type="text" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+
+                    <div class="form-message" id="form-message"></div>
+
+                    <button type="submit" class="btn btn-primary">
+                        Send Message
+                    </button>
+                </form>
+
+                <p class="response-time">
+                    <strong>Response Time:</strong> {{ page.form.response_time if page and page.form else 'I typically respond within 2-3 business days.' }}
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<script src="{{ url_for('static', filename='portfolio/js/form.js') }}"></script>
+{% endblock %}

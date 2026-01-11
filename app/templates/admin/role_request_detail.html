@@ -1,0 +1,596 @@
+{% extends "base.html" %}
+{% block title %}Review Role Request - Admin - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-person-check"></i> Review Role Request</h2>
+            <p class="text-muted mb-0">Review and approve user role upgrade request</p>
+        </div>
+        <a href="{{ url_for('admin.role_requests') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Requests
+        </a>
+    </div>
+
+    {% if not user.role_requested %}
+    <!-- No pending request - Allow direct role editing -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- User Profile Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-circle"></i> User Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Full Name:</dt>
+                                <dd class="col-sm-7">{{ user.full_name or 'N/A' }}</dd>
+
+                                <dt class="col-sm-5">Username:</dt>
+                                <dd class="col-sm-7"><code>{{ user.username }}</code></dd>
+
+                                <dt class="col-sm-5">Email:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.email }}
+                                    {% if user.email_verified %}
+                                    <i class="bi bi-check-circle-fill text-success" title="Email verified"></i>
+                                    {% else %}
+                                    <i class="bi bi-exclamation-circle text-warning" title="Email not verified"></i>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Current Role:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-secondary" style="font-size: 0.95rem;">
+                                        {{ user.role.replace('_', ' ').title() }}
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-5">Registered:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}
+                                </dd>
+
+                                <dt class="col-sm-5">Account Status:</dt>
+                                <dd class="col-sm-7">
+                                    {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>No Pending Role Request</strong><br>
+                This user does not have a pending role request. You can directly change their role using the form below.
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Direct Role Change Form -->
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Change User Role</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}">
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Select New Role</label>
+                            <select name="role" id="role" class="form-select" required onchange="toggleSiteAssignment()">
+                                <optgroup label="Public Roles (Auto-Approved)">
+                                    <option value="viewer" {{ 'selected' if user.role == 'viewer' else '' }}>
+                                        Viewer - Read-only access
+                                    </option>
+                                    <option value="citizen_contributor" {{ 'selected' if user.role == 'citizen_contributor' else '' }}>
+                                        Citizen Contributor - Submit visual observations
+                                    </option>
+                                    <option value="researcher" {{ 'selected' if user.role == 'researcher' else '' }}>
+                                        Researcher - Access datasets for research
+                                    </option>
+                                </optgroup>
+                                <optgroup label="Field & Analysis Roles">
+                                    <option value="field_collector" {{ 'selected' if user.role == 'field_collector' else '' }}>
+                                        Field Collector - Collect samples, create sites
+                                    </option>
+                                    <option value="analyst" {{ 'selected' if user.role == 'analyst' else '' }}>
+                                        Analyst - Data analysis & ML models
+                                    </option>
+                                </optgroup>
+                                <optgroup label="Institutional Roles">
+                                    <option value="lab_partner" {{ 'selected' if user.role == 'lab_partner' else '' }}>
+                                        Lab Partner - Submit laboratory results
+                                    </option>
+                                    <option value="industry_partner" {{ 'selected' if user.role == 'industry_partner' else '' }}>
+                                        Industry Partner - Monitor compliance
+                                    </option>
+                                    <option value="government_official" {{ 'selected' if user.role == 'government_official' else '' }}>
+                                        Government Official - Official monitoring
+                                    </option>
+                                </optgroup>
+                                <optgroup label="Management Roles">
+                                    <option value="site_manager" {{ 'selected' if user.role == 'site_manager' else '' }}>
+                                        Site Manager - Manage assigned sites
+                                    </option>
+                                    <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>
+                                        Admin - Full system access
+                                    </option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <!-- Site Assignment Section -->
+                        <div class="mb-3" id="site-assignment-section" style="display: {% if user.role in ['site_manager', 'industry_partner', 'lab_partner'] %}block{% else %}none{% endif %};">
+                            <label for="assigned_sites" class="form-label">
+                                Assign Sites
+                                <span class="text-danger" id="site-required-indicator">*</span>
+                            </label>
+                            <select name="assigned_sites" id="assigned_sites" class="form-select" multiple size="8">
+                                {% for site in sites %}
+                                <option value="{{ site.id }}"
+                                    {% if user.assigned_sites and site.id in user.assigned_sites %}selected{% endif %}>
+                                    {{ site.site_name }} - {{ site.district }}, {{ site.state }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Hold Ctrl (Windows) or Cmd (Mac) to select multiple sites
+                            </small>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Currently assigned:
+                                    <strong id="assigned-count">{{ user.assigned_sites|length if user.assigned_sites else 0 }}</strong> site(s)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields to maintain other user data -->
+                        <input type="hidden" name="email" value="{{ user.email }}">
+                        <input type="hidden" name="full_name" value="{{ user.full_name or '' }}">
+                        <input type="hidden" name="is_active" value="{{ 'on' if user.is_active else '' }}">
+
+                        <div class="alert alert-warning alert-sm">
+                            <small>
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Role changes take effect immediately. User will receive updated permissions on their next login.
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Are you sure you want to change this user\'s role?')">
+                            <i class="bi bi-save"></i> Update Role
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                        <i class="bi bi-pencil"></i> Edit Full Profile
+                    </a>
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-arrow-left"></i> Back to Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="row">
+        <!-- Left Column: User Information -->
+        <div class="col-lg-8">
+            <!-- User Profile Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-circle"></i> User Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Full Name:</dt>
+                                <dd class="col-sm-7">{{ user.full_name or 'N/A' }}</dd>
+
+                                <dt class="col-sm-5">Username:</dt>
+                                <dd class="col-sm-7">
+                                    <code>{{ user.username }}</code>
+                                </dd>
+
+                                <dt class="col-sm-5">Email:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.email }}
+                                    {% if user.email_verified %}
+                                    <i class="bi bi-check-circle-fill text-success" title="Email verified"></i>
+                                    {% else %}
+                                    <i class="bi bi-exclamation-circle text-warning" title="Email not verified"></i>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-5">Registered:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}
+                                </dd>
+
+                                <dt class="col-sm-5">Last Login:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}
+                                </dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Current Role:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-secondary" style="font-size: 0.95rem;">
+                                        {{ user.role.replace('_', ' ').title() }}
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-5">Requested Role:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-primary" style="font-size: 0.95rem;">
+                                        {{ user.role_requested.replace('_', ' ').title() if user.role_requested else 'N/A' }}
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-5">Role Status:</dt>
+                                <dd class="col-sm-7">
+                                    {% if user.role_status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Review</span>
+                                    {% elif user.role_status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ user.role_status }}</span>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-5">Account Status:</dt>
+                                <dd class="col-sm-7">
+                                    {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-5">OAuth Provider:</dt>
+                                <dd class="col-sm-7">
+                                    {% if user.oauth_provider %}
+                                    <i class="bi bi-google"></i> {{ user.oauth_provider.title() }}
+                                    {% else %}
+                                    Email/Password
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Details (if provided) -->
+            {% if user.organization_name or user.organization_type or user.job_title %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-building"></i> Organization Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Organization:</dt>
+                                <dd class="col-sm-7">
+                                    <strong>{{ user.organization_name or 'Not provided' }}</strong>
+                                </dd>
+
+                                <dt class="col-sm-5">Type:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.organization_type.replace('_', ' ').title() if user.organization_type else 'Not specified' }}
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Job Title:</dt>
+                                <dd class="col-sm-7">
+                                    {{ user.job_title or 'Not provided' }}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    {% if user.role_requested in ['lab_partner', 'industry_partner', 'government_official'] %}
+                    {% if not user.organization_name or not user.organization_type or not user.job_title %}
+                    <div class="alert alert-warning mb-0 mt-2">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Incomplete Organization Details</strong>
+                        <p class="mb-0 small">This role typically requires complete organization information. Consider requesting additional details before approval.</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Role Information & Permissions -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Role Change Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-5">
+                            <h6 class="text-muted">Current Role</h6>
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-secondary">{{ user.role.replace('_', ' ').title() }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-arrow-right" style="font-size: 2rem; color: #007bff;"></i>
+                        </div>
+                        <div class="col-md-5">
+                            <h6 class="text-muted">Requested Role</h6>
+                            <div class="p-3 bg-primary text-white rounded">
+                                <h4>{{ user.role_requested.replace('_', ' ').title() if user.role_requested else 'N/A' }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if user.role_requested %}
+                    <hr>
+                    <div class="alert alert-info mb-0">
+                        <h6><i class="bi bi-info-circle"></i> Role Permissions</h6>
+                        {% if user.role_requested == 'field_collector' %}
+                        <ul class="mb-0">
+                            <li>Create and manage water sampling sites</li>
+                            <li>Submit water sample collection data</li>
+                            <li>View all water quality data</li>
+                        </ul>
+                        {% elif user.role_requested == 'analyst' %}
+                        <ul class="mb-0">
+                            <li>Access all water quality datasets</li>
+                            <li>Create and manage ML models</li>
+                            <li>Generate analytical reports</li>
+                        </ul>
+                        {% elif user.role_requested == 'lab_partner' %}
+                        <ul class="mb-0">
+                            <li>Submit laboratory test results</li>
+                            <li>View assigned site data</li>
+                            <li>Manage lab certifications</li>
+                        </ul>
+                        {% elif user.role_requested == 'industry_partner' %}
+                        <ul class="mb-0">
+                            <li>Monitor industrial compliance for assigned sites</li>
+                            <li>Submit compliance reports</li>
+                            <li>View assigned site data</li>
+                        </ul>
+                        {% elif user.role_requested == 'government_official' %}
+                        <ul class="mb-0">
+                            <li>Access all water quality data</li>
+                            <li>Generate official reports</li>
+                            <li>Approve certain submissions</li>
+                        </ul>
+                        {% elif user.role_requested == 'site_manager' %}
+                        <ul class="mb-0">
+                            <li>Manage assigned water body sites</li>
+                            <li>Submit samples for assigned sites</li>
+                            <li>Edit site details and metadata</li>
+                        </ul>
+                        {% else %}
+                        <p class="mb-0">Standard role permissions apply.</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Actions -->
+        <div class="col-lg-4">
+            <!-- Approve Form -->
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle"></i> Approve Request</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.approve_role_request', user_id=user.id) }}" id="approve-form">
+                        <!-- Site Assignment (for Site Manager and Industry Partner roles) -->
+                        {% if user.role_requested in ['site_manager', 'industry_partner'] %}
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-geo-alt"></i> Assign Sites
+                                {% if user.role_requested == 'site_manager' %}
+                                <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            <select class="form-select" name="assigned_sites" multiple size="8"
+                                    {% if user.role_requested == 'site_manager' %}required{% endif %}>
+                                {% if sites %}
+                                    {% for site in sites %}
+                                    <option value="{{ site.id }}">
+                                        {{ site.site_name }} ({{ site.district }}, {{ site.state }})
+                                    </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option disabled>No active sites available</option>
+                                {% endif %}
+                            </select>
+                            <small class="form-text text-muted">
+                                Hold Ctrl/Cmd to select multiple sites
+                                {% if user.role_requested == 'site_manager' %}
+                                <br><strong>Site Managers must have at least one assigned site.</strong>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <div class="alert alert-success">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Approval Actions:</strong>
+                            <ul class="mb-0 mt-2 small">
+                                <li>User role will be upgraded to <strong>{{ user.role_requested.replace('_', ' ').title() if user.role_requested else 'N/A' }}</strong></li>
+                                <li>User will gain new permissions immediately</li>
+                                <li>Approval email will be sent to user</li>
+                                {% if user.role_requested in ['site_manager', 'industry_partner'] %}
+                                <li>Selected sites will be assigned to user</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Are you sure you want to approve this role request?')">
+                            <i class="bi bi-check-circle"></i> Approve Role Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reject Form -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-x-circle"></i> Reject Request</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.reject_role_request', user_id=user.id) }}" id="reject-form">
+                        <div class="mb-3">
+                            <label for="rejection_reason" class="form-label">
+                                Rejection Reason <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="rejection_reason" name="rejection_reason"
+                                      rows="5" required
+                                      placeholder="Explain why this role request is being rejected. This message will be sent to the user."></textarea>
+                            <small class="form-text text-muted">
+                                Provide clear feedback to help the user understand the decision.
+                            </small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Rejection Actions:</strong>
+                            <ul class="mb-0 mt-2 small">
+                                <li>User will keep current role: <strong>{{ user.role.replace('_', ' ').title() }}</strong></li>
+                                <li>Rejection email with feedback will be sent</li>
+                                <li>User can submit a new request later</li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Are you sure you want to reject this role request?')">
+                            <i class="bi bi-x-circle"></i> Reject Role Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card mt-4 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-graph-up"></i> User Activity</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="bi bi-calendar3"></i> Registered: {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}</li>
+                        <li><i class="bi bi-clock-history"></i> Last active: {{ user.last_login.strftime('%b %d, %Y') if user.last_login else 'Never' }}</li>
+                        {% if user.email_verified %}
+                        <li><i class="bi bi-envelope-check"></i> Email verified</li>
+                        {% else %}
+                        <li><i class="bi bi-envelope-x text-warning"></i> Email not verified</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+<script>
+// Toggle site assignment section based on role selection
+function toggleSiteAssignment() {
+    const roleSelect = document.getElementById('role');
+    const siteSection = document.getElementById('site-assignment-section');
+    const siteSelect = document.getElementById('assigned_sites');
+    const siteRequired = document.getElementById('site-required-indicator');
+
+    if (!roleSelect || !siteSection) return;
+
+    const selectedRole = roleSelect.value;
+    const requiresSites = ['site_manager', 'industry_partner', 'lab_partner'].includes(selectedRole);
+
+    if (requiresSites) {
+        siteSection.style.display = 'block';
+        if (selectedRole === 'site_manager') {
+            siteSelect.setAttribute('required', 'required');
+            siteRequired.style.display = 'inline';
+        } else {
+            siteSelect.removeAttribute('required');
+            siteRequired.style.display = 'none';
+        }
+    } else {
+        siteSection.style.display = 'none';
+        siteSelect.removeAttribute('required');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize site assignment visibility on page load
+    toggleSiteAssignment();
+
+    // Form validation for approve
+    const approveForm = document.getElementById('approve-form');
+    if (approveForm) {
+        approveForm.addEventListener('submit', function(e) {
+            const siteSelect = this.querySelector('[name="assigned_sites"]');
+            if (siteSelect && siteSelect.required) {
+                const selectedOptions = Array.from(siteSelect.selectedOptions);
+                if (selectedOptions.length === 0) {
+                    e.preventDefault();
+                    alert('Please assign at least one site to this Site Manager.');
+                    return false;
+                }
+            }
+        });
+    }
+
+    // Form validation for reject
+    const rejectForm = document.getElementById('reject-form');
+    if (rejectForm) {
+        rejectForm.addEventListener('submit', function(e) {
+            const reason = this.querySelector('#rejection_reason').value.trim();
+            if (reason.length < 10) {
+                e.preventDefault();
+                alert('Please provide a more detailed rejection reason (at least 10 characters).');
+                return false;
+            }
+        });
+    }
+
+    // Update assigned count when sites are selected
+    const assignedSitesSelect = document.getElementById('assigned_sites');
+    if (assignedSitesSelect) {
+        assignedSitesSelect.addEventListener('change', function() {
+            const count = this.selectedOptions.length;
+            const countElement = document.getElementById('assigned-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

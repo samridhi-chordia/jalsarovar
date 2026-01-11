@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}User Management - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-people"></i> User Management</h2>
+        <p class="text-muted mb-0">Manage system users and permissions</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.role_requests') }}" class="btn btn-warning">
+            <i class="bi bi-person-check"></i> Role Approvals
+            {% set pending_count = users|selectattr('role_status', 'equalto', 'pending')|list|length %}
+            {% if pending_count > 0 %}
+            <span class="badge bg-danger">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Add User
+        </a>
+    </div>
+</div>
+
+<!-- Filters and Legend -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <small class="text-muted">
+                    <strong>Legend:</strong>
+                    <span class="badge bg-warning text-dark ms-2"><i class="bi bi-clock"></i> Pending Approval</span>
+                    <span class="badge bg-success ms-1"><i class="bi bi-check-circle"></i> Active</span>
+                    <span class="badge bg-danger ms-1"><i class="bi bi-x-circle"></i> Rejected</span>
+                    <span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> Email Verified</span>
+                    <span class="badge bg-warning text-dark ms-1"><i class="bi bi-exclamation-triangle"></i> Email Unverified</span>
+                </small>
+            </div>
+            <div class="col-md-4 text-end">
+                <small class="text-muted">
+                    Total Users: <strong>{{ users|length }}</strong> |
+                    Pending: <strong class="text-warning">{{ users|selectattr('role_status', 'equalto', 'pending')|list|length }}</strong>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Full Name</th>
+                    <th>Current Role</th>
+                    <th>Requested Role</th>
+                    <th>Role Status</th>
+                    <th>Email</th>
+                    <th>Account</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="{{ 'table-warning' if user.role_status == 'pending' else '' }}">
+                    <td>
+                        <strong>{{ user.username }}</strong>
+                        {% if user.oauth_provider %}
+                        <span class="badge bg-info badge-sm ms-1" title="OAuth User">
+                            <i class="bi bi-google"></i>
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.full_name or '-' }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' if user.role in ['analyst', 'field_collector'] else 'info' if user.role == 'researcher' else 'secondary' }}">
+                            {{ user.role.replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.role_requested %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-arrow-right"></i> {{ user.role_requested.replace('_', ' ')|title }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.role_status == 'pending' %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-clock"></i> Pending Approval
+                        </span>
+                        {% elif user.role_status == 'rejected' %}
+                        <span class="badge bg-danger">
+                            <i class="bi bi-x-circle"></i> Rejected
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Active
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.email_verified %}
+                        <span class="badge bg-success" title="Email Verified">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark" title="Email Not Verified">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                            {{ 'Active' if user.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Edit User">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if user.role_status == 'pending' %}
+                        <a href="{{ url_for('admin.role_requests') }}" class="btn btn-sm btn-warning" title="Approve Role">
+                            <i class="bi bi-check-square"></i>
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-{{ 'danger' if user.is_active else 'success' }}"
+                                onclick="toggleUser({{ user.id }})"
+                                title="{{ 'Deactivate' if user.is_active else 'Activate' }}">
+                            <i class="bi bi-{{ 'x-circle' if user.is_active else 'check-circle' }}"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center py-4 text-muted">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleUser(userId) {
+    if (confirm('Are you sure you want to toggle this user\'s status?')) {
+        fetch(`/admin/users/${userId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to toggle user status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+}
+</script>
+{% endblock %}

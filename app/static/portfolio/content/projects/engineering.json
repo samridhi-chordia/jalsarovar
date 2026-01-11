@@ -1,0 +1,20 @@
+{
+  "id": "engineering",
+  "title": "Johns Hopkins University, Engineering innovation, College Course",
+  "category": "Educational Preparation Program",
+  "short_description": "Completed 4 credit College-Level course spanning multiple areas of Engineering with full scholarship",
+  "full_description": "Participated in a college-level program designed for high school students with strong math and science aptitude.\r\nEngaged in interdisciplinary collaboration with students from various engineering disciplines, including civil, chemical, electrical/computer, mechanical, and materials science.\r\nEnded the course by building a spaghetti bridge with specific criteria and testing its durability using loads\r\nUsed a CPX (Circuit Playground Express) to create a fitness and water tracker by coding it to monitor the steps and provide water reminders at regular time intervals. \r\nAwarded full scholarship for the program from Johns Hopkins University\r\nReceived 4 college level credits for the completion of this course\r\n",
+  "start_date": "Jun 2024",
+  "currently_active": false,
+  "highlights": [],
+  "skills": [
+    "Materials Science",
+    "Computer Programming",
+    "Structural Design",
+    "CPX",
+    "CAD Design"
+  ],
+  "images": [],
+  "videos": [],
+  "links": []
+}

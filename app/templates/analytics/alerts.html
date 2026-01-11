@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Site Alerts - Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-exclamation-triangle"></i> Site Alerts</h2>
+            <p class="text-muted">View all sites with water quality warnings</p>
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('analytics.alerts', level='all') }}"
+                   class="btn btn-{% if level_filter == 'all' %}primary{% else %}outline-primary{% endif %}">
+                    All
+                </a>
+                <a href="{{ url_for('analytics.alerts', level='critical') }}"
+                   class="btn btn-{% if level_filter == 'critical' %}danger{% else %}outline-danger{% endif %}">
+                    Critical
+                </a>
+                <a href="{{ url_for('analytics.alerts', level='high') }}"
+                   class="btn btn-{% if level_filter == 'high' %}warning{% else %}outline-warning{% endif %}">
+                    High
+                </a>
+                <a href="{{ url_for('analytics.alerts', level='medium') }}"
+                   class="btn btn-{% if level_filter == 'medium' %}info{% else %}outline-info{% endif %}">
+                    Medium
+                </a>
+                <a href="{{ url_for('analytics.alerts', level='low') }}"
+                   class="btn btn-{% if level_filter == 'low' %}success{% else %}outline-success{% endif %}">
+                    Low
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list"></i> {{ alerts|length }} Sites
+                        {% if level_filter != 'all' %}({{ level_filter|title }} Warning Level){% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Site</th>
+                                    <th>Warning Level</th>
+                                    <th>Warning Score</th>
+                                    <th>Trend</th>
+                                    <th>Change Points</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in alerts %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ alert.site_name }}</strong><br>
+                                        <small class="text-muted">{{ alert.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        {% if alert.warning_level == 'critical' %}
+                                            <span class="badge bg-danger">CRITICAL</span>
+                                        {% elif alert.warning_level == 'high' %}
+                                            <span class="badge bg-warning text-dark">HIGH</span>
+                                        {% elif alert.warning_level == 'medium' %}
+                                            <span class="badge bg-info">MEDIUM</span>
+                                        {% else %}
+                                            <span class="badge bg-success">LOW</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="width: 100px; height: 20px;">
+                                            {% if alert.warning_score >= 70 %}
+                                                <div class="progress-bar bg-danger" style="width: {{ alert.warning_score }}%">
+                                                    {{ alert.warning_score|round(0) }}
+                                                </div>
+                                            {% elif alert.warning_score >= 50 %}
+                                                <div class="progress-bar bg-warning" style="width: {{ alert.warning_score }}%">
+                                                    {{ alert.warning_score|round(0) }}
+                                                </div>
+                                            {% elif alert.warning_score >= 30 %}
+                                                <div class="progress-bar bg-info" style="width: {{ alert.warning_score }}%">
+                                                    {{ alert.warning_score|round(0) }}
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar bg-success" style="width: {{ [alert.warning_score, 10]|max }}%">
+                                                    {{ alert.warning_score|round(0) }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if alert.overall_trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% elif alert.overall_trend == 'stable' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if alert.change_points > 0 %}
+                                            <span class="badge bg-warning text-dark">{{ alert.change_points }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('analytics.site_trends', site_id=alert.site_id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-graph-up"></i> View Trends
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No alerts found for the selected filter.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

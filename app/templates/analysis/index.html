@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Water Quality Analysis - Jal Sarovar | ML-Powered Contamination Detection{% endblock %}
+{% block meta_description %}AI-powered water quality analysis with 92% accuracy. Detect contamination types, predict water safety, and get treatment recommendations using machine learning.{% endblock %}
+{% block meta_keywords %}water quality analysis, ML water analysis, contamination detection, water safety prediction, AI water testing, XGBoost water quality, water treatment recommendations{% endblock %}
+{% block og_title %}Water Quality Analysis - Jal Sarovar | AI-Powered Detection{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-graph-up"></i> Contamination Analysis</h2>
+        <p class="text-muted mb-0">Water quality analysis results</p>
+    </div>
+    <a href="{{ url_for('analysis.trends') }}" class="btn btn-outline-primary">
+        <i class="bi bi-bar-chart"></i> View Trends
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Country</label>
+                <select name="country" class="form-select">
+                    <option value="">All Countries</option>
+                    {% for country in countries %}
+                    <option value="{{ country }}" {% if request.args.get('country') == country %}selected{% endif %}>{{ country }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Category</label>
+                <select name="site_category" class="form-select">
+                    <option value="">All Categories</option>
+                    <option value="public" {% if request.args.get('site_category') == 'public' %}selected{% endif %}>Public</option>
+                    <option value="residential" {% if request.args.get('site_category') == 'residential' %}selected{% endif %}>Residential</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">State</label>
+                <select name="state" class="form-select">
+                    <option value="">All States</option>
+                    {% for state in states %}
+                    <option value="{{ state }}" {% if request.args.get('state') == state %}selected{% endif %}>{{ state }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Site Type</label>
+                <select name="site_type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for type in types %}
+                    <option value="{{ type }}" {% if request.args.get('site_type') == type %}selected{% endif %}>{{ type|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Site</label>
+                <select name="site_id" class="form-select">
+                    <option value="">All Sites</option>
+                    {% for site in sites %}
+                    <option value="{{ site.id }}" {% if request.args.get('site_id')|int == site.id %}selected{% endif %}>
+                        {{ site.site_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Contamination Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="runoff_sediment" {% if request.args.get('type') == 'runoff_sediment' %}selected{% endif %}>Runoff/Sediment</option>
+                    <option value="sewage_ingress" {% if request.args.get('type') == 'sewage_ingress' %}selected{% endif %}>Sewage Ingress</option>
+                    <option value="salt_intrusion" {% if request.args.get('type') == 'salt_intrusion' %}selected{% endif %}>Salt Intrusion</option>
+                    <option value="pipe_corrosion" {% if request.args.get('type') == 'pipe_corrosion' %}selected{% endif %}>Pipe Corrosion</option>
+                    <option value="disinfectant_decay" {% if request.args.get('type') == 'disinfectant_decay' %}selected{% endif %}>Disinfectant Decay</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Severity</label>
+                <select name="severity" class="form-select">
+                    <option value="">All</option>
+                    <option value="critical" {% if request.args.get('severity') == 'critical' %}selected{% endif %}>Critical</option>
+                    <option value="high" {% if request.args.get('severity') == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if request.args.get('severity') == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if request.args.get('severity') == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Compliance</label>
+                <select name="compliant" class="form-select">
+                    <option value="">All</option>
+                    <option value="who" {% if request.args.get('compliant') == 'who' %}selected{% endif %}>WHO Compliant</option>
+                    <option value="bis" {% if request.args.get('compliant') == 'bis' %}selected{% endif %}>BIS Compliant</option>
+                    <option value="none" {% if request.args.get('compliant') == 'none' %}selected{% endif %}>Non-Compliant</option>
+                </select>
+            </div>
+            <div class="col-md-12 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Analysis Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Sample</th>
+                    <th>Site</th>
+                    <th>Date</th>
+                    <th>Contamination</th>
+                    <th>Severity</th>
+                    <th>WQI</th>
+                    <th>WHO</th>
+                    <th>BIS</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in analyses.items %}
+                <tr>
+                    <td><a href="{{ url_for('samples.detail', sample_id=analysis.sample_id) }}">{{ analysis.sample.sample_id }}</a></td>
+                    <td>{{ analysis.sample.site.site_name }}</td>
+                    <td>{{ analysis.analysis_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if analysis.is_contaminated %}
+                        <span class="badge bg-{{ 'danger' if analysis.severity_level == 'critical' else 'warning' if analysis.severity_level == 'high' else 'info' }}">
+                            {{ analysis.contamination_type|replace('_', ' ')|title }}
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success">Clean</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="risk-badge risk-{{ analysis.severity_level }}">{{ analysis.severity_level|title }}</span>
+                    </td>
+                    <td>
+                        <span class="badge {% if analysis.wqi_score >= 90 %}wqi-excellent{% elif analysis.wqi_score >= 70 %}wqi-compliant{% elif analysis.wqi_score >= 50 %}wqi-warning{% else %}wqi-unsafe{% endif %}">
+                            {{ analysis.wqi_score|round(1) }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if analysis.is_compliant_who %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% else %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if analysis.is_compliant_bis %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% else %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('analysis.detail', analysis_id=analysis.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-muted">No analyses found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if analyses.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if analyses.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('analysis.index', page=analyses.prev_num, site_id=request.args.get('site_id', ''), site_category=request.args.get('site_category', ''), type=request.args.get('type', ''), severity=request.args.get('severity', ''), compliant=request.args.get('compliant', '')) }}">Previous</a>
+        </li>
+        {% endif %}
+        {% for page_num in analyses.iter_pages() %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == analyses.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('analysis.index', page=page_num, site_id=request.args.get('site_id', ''), site_category=request.args.get('site_category', ''), type=request.args.get('type', ''), severity=request.args.get('severity', ''), compliant=request.args.get('compliant', '')) }}">{{ page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if analyses.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('analysis.index', page=analyses.next_num, site_id=request.args.get('site_id', ''), site_category=request.args.get('site_category', ''), type=request.args.get('type', ''), severity=request.args.get('severity', ''), compliant=request.args.get('compliant', '')) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

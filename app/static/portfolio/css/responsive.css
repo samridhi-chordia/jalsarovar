@@ -1,0 +1,414 @@
+/*
+ * Responsive Styles
+ * Mobile-first approach with breakpoints for tablet and desktop
+ */
+
+/* ===================================
+   Breakpoints
+   =================================== */
+/*
+   Mobile: < 640px (default)
+   Tablet: 640px - 1024px
+   Desktop: > 1024px
+*/
+
+/* ===================================
+   Tablet (max-width: 1024px)
+   =================================== */
+@media (max-width: 1024px) {
+    /* Typography */
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    h2 {
+        font-size: 2rem;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+    }
+
+    /* Layout */
+    section {
+        padding: 3rem 0;
+    }
+
+    /* Projects Grid */
+    .projects-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Highlights Grid */
+    .highlights-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Footer */
+    .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ===================================
+   Mobile (max-width: 640px)
+   =================================== */
+@media (max-width: 640px) {
+    /* Typography */
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.75rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .hero-description {
+        font-size: 1rem;
+    }
+
+    /* Layout */
+    .container {
+        padding: 0 1rem;
+    }
+
+    section {
+        padding: 2rem 0;
+    }
+
+    /* Navigation */
+    .navbar {
+        height: auto;
+        min-height: var(--header-height);
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .nav-menu {
+        position: fixed;
+        left: -100%;
+        top: var(--header-height);
+        flex-direction: column;
+        background-color: var(--background);
+        width: 100%;
+        text-align: center;
+        transition: left 0.3s ease-in-out;
+        box-shadow: var(--shadow-lg);
+        padding: 1rem 0;
+        gap: 0;
+    }
+
+    .nav-menu.active {
+        left: 0;
+    }
+
+    .nav-menu li {
+        margin: 0;
+    }
+
+    .nav-menu a {
+        display: block;
+        padding: 1rem;
+        margin: 0;
+    }
+
+    /* Toggle animation */
+    .nav-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .nav-toggle.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .nav-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    /* Hero */
+    .hero {
+        min-height: auto;
+        padding: 3rem 0;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+    }
+
+    .hero-buttons .btn {
+        width: 100%;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+    }
+
+    /* Projects Grid */
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Highlights Grid */
+    .highlights-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Page Header */
+    .page-header {
+        padding: 2rem 0;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+    }
+
+    .page-header p {
+        font-size: 1rem;
+    }
+
+    /* Footer */
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    /* Scroll to Top */
+    .scroll-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    /* About Page - Bio Grid */
+    .bio-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Skills Grid */
+    .skills-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Timeline */
+    .timeline-items {
+        padding-left: 1rem;
+    }
+
+    /* Awards Grid */
+    .awards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Contact Page */
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Blog Grid */
+    .blog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Interests Grid */
+    .interests-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Filter Buttons */
+    .filter-buttons {
+        flex-direction: column;
+    }
+
+    .filter-btn {
+        width: 100%;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+        margin: 2rem auto;
+    }
+
+    /* Lightbox */
+    .lightbox-content img {
+        max-width: 95%;
+        max-height: 80vh;
+    }
+
+    .lightbox-prev,
+    .lightbox-next {
+        padding: 0.5rem;
+        font-size: 2rem;
+    }
+
+    /* Forms */
+    .contact-form .btn {
+        width: 100%;
+    }
+
+    /* Tables (if any) */
+    table {
+        font-size: 0.875rem;
+    }
+
+    /* Spacing adjustments */
+    .section-cta {
+        margin-top: 2rem;
+    }
+
+    /* Project Tags */
+    .project-tags {
+        font-size: 0.75rem;
+    }
+
+    /* Stat Badges */
+    .stat-badge {
+        min-width: 80px;
+    }
+
+    .badge-number {
+        font-size: 2rem;
+    }
+}
+
+/* ===================================
+   Very Small Mobile (max-width: 375px)
+   =================================== */
+@media (max-width: 375px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+
+    .project-placeholder {
+        font-size: 2rem;
+    }
+}
+
+/* ===================================
+   Print Styles
+   =================================== */
+@media print {
+    .navbar,
+    .scroll-top,
+    .hero-buttons,
+    .cta,
+    .contact-form,
+    footer {
+        display: none;
+    }
+
+    body {
+        font-size: 12pt;
+    }
+
+    a {
+        text-decoration: underline;
+    }
+
+    .page-header {
+        background: none;
+        color: black;
+    }
+}
+
+/* ===================================
+   Landscape Orientation (Mobile)
+   =================================== */
+@media (max-width: 896px) and (orientation: landscape) {
+    .hero {
+        min-height: auto;
+        padding: 2rem 0;
+    }
+
+    .page-header {
+        padding: 1.5rem 0;
+    }
+}
+
+/* ===================================
+   Accessibility: Reduced Motion
+   =================================== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+/* ===================================
+   High Contrast Mode Support
+   =================================== */
+@media (prefers-contrast: high) {
+    :root {
+        --text-dark: #000000;
+        --text-light: #333333;
+        --border-color: #000000;
+    }
+
+    .btn {
+        border-width: 2px;
+    }
+
+    a {
+        text-decoration: underline;
+    }
+}
+
+/* ===================================
+   Dark Mode Support (Future Enhancement)
+   =================================== */
+@media (prefers-color-scheme: dark) {
+    /* Can be implemented when needed */
+    /* :root {
+        --background: #1f2937;
+        --background-alt: #111827;
+        --text-dark: #f9fafb;
+        --text-light: #d1d5db;
+    } */
+}

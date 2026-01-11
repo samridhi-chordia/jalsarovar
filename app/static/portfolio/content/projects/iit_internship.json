@@ -1,0 +1,26 @@
+{
+  "id": "iit_internship",
+  "title": "Research Intern - IIT Madras ICCW",
+  "category": "Research",
+  "short_description": "Improved VayuJal atmospheric water generator efficiency by 18% through sensor calibration optimization",
+  "full_description": "Conducted lab research across 50+ experimental conditions and improved the efficiency of the VayuJal atmospheric water generator by 18% through sensor calibration optimization. Studied ML models to predict water contamination levels based on air quality. Solution adopted by two environmental startups. Presented findings to IIT professors.",
+  "start_date": "",
+  "currently_active": false,
+  "highlights": [
+    "18% efficiency improvement in water generator",
+    "50+ experimental conditions tested",
+    "ML models for contamination prediction",
+    "Solution adopted by 2 environmental startups",
+    "Presented to IIT faculty"
+  ],
+  "skills": [
+    "Research",
+    "Machine Learning",
+    "Sensor Calibration",
+    "Data Analysis",
+    "Environmental Engineering"
+  ],
+  "images": [],
+  "videos": [],
+  "links": []
+}

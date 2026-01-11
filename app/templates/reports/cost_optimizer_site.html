@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+{% block title %}Site Cost Optimization Detail - {{ site.site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        border-left: 4px solid #0d6efd;
+        margin-bottom: 1rem;
+    }
+    .metric-card.success { border-left-color: #198754; }
+    .metric-card.warning { border-left-color: #ffc107; }
+    .metric-card.danger { border-left-color: #dc3545; }
+    .metric-card.info { border-left-color: #0dcaf0; }
+
+    .comparison-table td {
+        vertical-align: middle;
+    }
+
+    .change-positive {
+        color: #198754;
+        font-weight: bold;
+    }
+
+    .change-negative {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .change-neutral {
+        color: #6c757d;
+    }
+
+    .scenario-row.recommended {
+        background-color: #d1e7dd;
+        font-weight: bold;
+    }
+
+    .recommendation-box {
+        border: 2px solid #198754;
+        border-radius: 8px;
+        padding: 20px;
+        background-color: #f8f9fa;
+    }
+
+    .recommendation-box.warning {
+        border-color: #ffc107;
+    }
+
+    .recommendation-box.danger {
+        border-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back Button -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{{ url_for('reports.cost_optimizer') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Cost Optimizer
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="text-center my-5" id="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading site optimization details...</p>
+    </div>
+
+    <!-- Main Content (hidden until loaded) -->
+    <div id="main-content" style="display:none;">
+
+        <!-- 1. Site Overview Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card metric-card info">
+                    <div class="card-body">
+                        <h3><i class="bi bi-geo-alt"></i> <span id="site-name"></span></h3>
+                        <div class="row mt-3">
+                            <div class="col-md-2">
+                                <strong>Site Code:</strong><br>
+                                <span id="site-code" class="text-muted"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>Risk Level:</strong><br>
+                                <span id="risk-badge"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>Risk Score:</strong><br>
+                                <span id="risk-score" class="text-muted"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>Location:</strong><br>
+                                <span id="location" class="text-muted"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>Type:</strong><br>
+                                <span id="site-type" class="text-muted"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>Category:</strong><br>
+                                <span id="site-category" class="text-muted"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Testing Schedule Comparison -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Testing Schedule Comparison</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table comparison-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th class="text-center">Current Schedule</th>
+                                    <th class="text-center">Recommended Schedule</th>
+                                    <th class="text-center">Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Frequency</strong></td>
+                                    <td class="text-center" id="current-freq"></td>
+                                    <td class="text-center" id="recommended-freq"></td>
+                                    <td class="text-center" id="freq-change"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tests/Year</strong></td>
+                                    <td class="text-center" id="current-tests"></td>
+                                    <td class="text-center" id="recommended-tests"></td>
+                                    <td class="text-center" id="tests-change"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cost/Year</strong></td>
+                                    <td class="text-center" id="current-cost"></td>
+                                    <td class="text-center" id="recommended-cost"></td>
+                                    <td class="text-center" id="cost-change"></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Annual Savings</strong></td>
+                                    <td colspan="3" class="text-center">
+                                        <h4 class="mb-0 text-success" id="annual-savings"></h4>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Historical Performance Analysis -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Historical Performance Analysis (Last 12 Months)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-2">
+                                <div class="card metric-card">
+                                    <div class="card-body">
+                                        <h3 class="mb-0" id="actual-tests"></h3>
+                                        <small class="text-muted">Actual Tests</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card metric-card">
+                                    <div class="card-body">
+                                        <h3 class="mb-0" id="total-samples"></h3>
+                                        <small class="text-muted">Total Samples</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card metric-card danger">
+                                    <div class="card-body">
+                                        <h3 class="mb-0 text-danger" id="contaminated-samples"></h3>
+                                        <small class="text-muted">Contaminated</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card metric-card success">
+                                    <div class="card-body">
+                                        <h3 class="mb-0 text-success" id="clean-samples"></h3>
+                                        <small class="text-muted">Clean</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card metric-card warning">
+                                    <div class="card-body">
+                                        <h3 class="mb-0 text-warning" id="contamination-rate"></h3>
+                                        <small class="text-muted">Contamination Rate</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card metric-card">
+                                    <div class="card-body">
+                                        <h3 class="mb-0" id="actual-cost-spent"></h3>
+                                        <small class="text-muted">Actual Cost</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Contamination Detection Analysis -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-bullseye"></i> Contamination Detection Analysis</h5>
+                        <small class="text-muted">What if we used the recommended schedule?</small>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th class="text-center">Current Schedule</th>
+                                    <th class="text-center">Recommended Schedule</th>
+                                    <th class="text-center">Impact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Detection Rate</strong></td>
+                                    <td class="text-center" id="current-detection-rate"></td>
+                                    <td class="text-center" id="recommended-detection-rate"></td>
+                                    <td class="text-center" id="detection-rate-impact"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Expected Catches</strong></td>
+                                    <td class="text-center" id="current-catches"></td>
+                                    <td class="text-center" id="recommended-catches"></td>
+                                    <td class="text-center" id="catches-impact"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Potential Misses</strong></td>
+                                    <td class="text-center" id="current-misses"></td>
+                                    <td class="text-center" id="recommended-misses"></td>
+                                    <td class="text-center" id="misses-impact"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Avg Detection Delay</strong></td>
+                                    <td class="text-center" id="current-delay"></td>
+                                    <td class="text-center" id="recommended-delay"></td>
+                                    <td class="text-center" id="delay-impact"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Cost-Benefit Analysis -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card metric-card success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-currency-rupee"></i> Cost-Benefit Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h2 class="text-success mb-0">
+                                    <i class="bi bi-piggy-bank"></i> <span id="cb-annual-savings"></span>
+                                </h2>
+                                <p class="text-muted mb-0">Annual Savings (<span id="cb-savings-percent"></span>% reduction)</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h4>Cost per Contamination Detected:</h4>
+                                <ul class="list-unstyled">
+                                    <li>Current: <strong id="cb-current-cost-per-detection"></strong></li>
+                                    <li>Recommended: <strong id="cb-optimized-cost-per-detection"></strong></li>
+                                    <li class="text-success">Efficiency: <strong id="cb-efficiency-improvement"></strong>% improvement</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <strong>Risk Trade-off:</strong>
+                                    <span id="risk-tradeoff"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. What-If Scenarios -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-shuffle"></i> What-If Scenarios</h5>
+                        <small class="text-muted">Compare different testing frequencies</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Frequency</th>
+                                        <th class="text-end">Tests/Year</th>
+                                        <th class="text-end">Cost/Year</th>
+                                        <th class="text-end">Detection Rate</th>
+                                        <th class="text-end">Expected Misses/Year</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scenarios-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Recommendation Validation -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="recommendation-box" class="recommendation-box">
+                    <h4><i class="bi bi-check-circle"></i> <span id="rec-title"></span></h4>
+                    <div class="mt-3">
+                        <p><strong>Rationale:</strong></p>
+                        <p id="rec-rationale"></p>
+
+                        <p><strong>Confidence Level:</strong> <span id="rec-confidence" class="badge"></span></p>
+
+                        <p><strong>Recommended Action:</strong></p>
+                        <p class="mb-0"><strong id="rec-action"></strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadSiteDetails();
+});
+
+function loadSiteDetails() {
+    const siteId = {{ site.id }};
+
+    fetch(`/reports/api/cost-optimizer/site/${siteId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displaySiteOverview(data.site);
+                displayScheduleComparison(data.schedule_comparison);
+                displayHistoricalPerformance(data.historical_performance);
+                displayDetectionAnalysis(data.detection_analysis);
+                displayCostBenefit(data.cost_benefit, data.detection_analysis);
+                displayScenarios(data.scenarios);
+                displayRecommendation(data.recommendation);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            document.getElementById('loading').innerHTML =
+                '<div class="alert alert-danger">Error loading data: ' + error.message + '</div>';
+        });
+}
+
+function displaySiteOverview(site) {
+    document.getElementById('site-name').textContent = site.name;
+    document.getElementById('site-code').textContent = site.code;
+
+    const riskColors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'primary',
+        'low': 'success'
+    };
+    const riskColor = riskColors[site.risk_level] || 'secondary';
+    document.getElementById('risk-badge').innerHTML =
+        `<span class="badge bg-${riskColor}">${site.risk_level ? site.risk_level.toUpperCase() : 'N/A'}</span>`;
+
+    document.getElementById('risk-score').textContent = site.risk_score.toFixed(1);
+    document.getElementById('location').textContent = `${site.state}, ${site.country}`;
+    document.getElementById('site-type').textContent = site.type || 'N/A';
+    document.getElementById('site-category').textContent = site.category || 'N/A';
+}
+
+function displayScheduleComparison(schedule) {
+    document.getElementById('current-freq').textContent = schedule.current_frequency;
+    document.getElementById('recommended-freq').textContent = schedule.recommended_frequency;
+
+    document.getElementById('current-tests').textContent = schedule.current_tests_per_year;
+    document.getElementById('recommended-tests').textContent = schedule.recommended_tests_per_year;
+
+    document.getElementById('current-cost').textContent = '₹' + schedule.current_cost_per_year.toLocaleString();
+    document.getElementById('recommended-cost').textContent = '₹' + schedule.recommended_cost_per_year.toLocaleString();
+
+    // Changes
+    const testChange = schedule.test_change_percent;
+    const testChangeClass = testChange < 0 ? 'change-positive' : testChange > 0 ? 'change-negative' : 'change-neutral';
+    const testChangeIcon = testChange < 0 ? '↓' : testChange > 0 ? '↑' : '→';
+    document.getElementById('freq-change').innerHTML = `<span class="${testChangeClass}">${testChangeIcon}</span>`;
+    document.getElementById('tests-change').innerHTML = `<span class="${testChangeClass}">${testChangeIcon} ${Math.abs(testChange)}%</span>`;
+    document.getElementById('cost-change').innerHTML = `<span class="change-positive">↓ ${schedule.cost_reduction_percent}%</span>`;
+
+    document.getElementById('annual-savings').textContent = '₹' + schedule.cost_savings.toLocaleString();
+}
+
+function displayHistoricalPerformance(hist) {
+    document.getElementById('actual-tests').textContent = hist.actual_tests;
+    document.getElementById('total-samples').textContent = hist.total_samples;
+    document.getElementById('contaminated-samples').textContent = hist.contaminated_samples;
+    document.getElementById('clean-samples').textContent = hist.clean_samples;
+    document.getElementById('contamination-rate').textContent = hist.contamination_rate.toFixed(1) + '%';
+    document.getElementById('actual-cost-spent').textContent = '₹' + hist.actual_cost_spent.toLocaleString();
+}
+
+function displayDetectionAnalysis(detection) {
+    // Current
+    document.getElementById('current-detection-rate').textContent = detection.current.detection_rate + '%';
+    document.getElementById('current-catches').textContent = detection.current.expected_catches;
+    document.getElementById('current-misses').textContent = detection.current.expected_misses;
+    document.getElementById('current-delay').textContent = detection.current.avg_detection_delay_days + ' days';
+
+    // Recommended
+    document.getElementById('recommended-detection-rate').textContent = detection.recommended.detection_rate + '%';
+    document.getElementById('recommended-catches').textContent = detection.recommended.expected_catches;
+    document.getElementById('recommended-misses').textContent = detection.recommended.expected_misses;
+    document.getElementById('recommended-delay').textContent = detection.recommended.avg_detection_delay_days + ' days';
+
+    // Impact
+    const formatImpact = (value, suffix = '') => {
+        const sign = value > 0 ? '+' : '';
+        const className = value < 0 ? 'change-positive' : value > 0 ? 'change-negative' : 'change-neutral';
+        return `<span class="${className}">${sign}${value}${suffix}</span>`;
+    };
+
+    document.getElementById('detection-rate-impact').innerHTML = formatImpact(detection.impact.detection_rate_change, '%');
+    document.getElementById('catches-impact').innerHTML = formatImpact(detection.impact.additional_misses * -1);
+    document.getElementById('misses-impact').innerHTML = formatImpact(detection.impact.additional_misses);
+    document.getElementById('delay-impact').innerHTML = formatImpact(detection.impact.delay_increase_days, ' days');
+}
+
+function displayCostBenefit(cost, detection) {
+    document.getElementById('cb-annual-savings').textContent = '₹' + cost.annual_savings.toLocaleString();
+    document.getElementById('cb-savings-percent').textContent = cost.savings_percent.toFixed(1);
+    document.getElementById('cb-current-cost-per-detection').textContent = '₹' + cost.current_cost_per_detection.toLocaleString();
+    document.getElementById('cb-optimized-cost-per-detection').textContent = '₹' + cost.optimized_cost_per_detection.toLocaleString();
+    document.getElementById('cb-efficiency-improvement').textContent = cost.efficiency_improvement.toFixed(1);
+
+    const costPerMiss = cost.cost_per_miss > 0 ? '₹' + cost.cost_per_miss.toLocaleString() : 'N/A';
+    document.getElementById('risk-tradeoff').textContent =
+        `Save ₹${cost.annual_savings.toLocaleString()}/year but may miss ${detection.impact.additional_misses.toFixed(1)} additional contaminations. ` +
+        `Cost per potential miss: ${costPerMiss}`;
+}
+
+function displayScenarios(scenarios) {
+    const tbody = document.getElementById('scenarios-tbody');
+    tbody.innerHTML = '';
+
+    scenarios.forEach(scenario => {
+        const row = document.createElement('tr');
+        row.className = scenario.is_recommended ? 'scenario-row recommended' : 'scenario-row';
+
+        row.innerHTML = `
+            <td>
+                ${scenario.frequency}
+                ${scenario.is_recommended ? '<span class="badge bg-success ms-2">★ Recommended</span>' : ''}
+            </td>
+            <td class="text-end">${scenario.tests_per_year}</td>
+            <td class="text-end">₹${scenario.cost_per_year.toLocaleString()}</td>
+            <td class="text-end">${scenario.detection_rate}%</td>
+            <td class="text-end">${scenario.expected_misses}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+function displayRecommendation(rec) {
+    const box = document.getElementById('recommendation-box');
+
+    // Handle high-risk alerts
+    if (rec.alert === 'HIGH_RISK_SITE') {
+        box.className = 'recommendation-box warning';
+        document.getElementById('rec-title').innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger"></i> HIGH RISK SITE - DO NOT REDUCE TESTING';
+    } else if (rec.alert === 'HIGH_CONTAMINATION') {
+        box.className = 'recommendation-box warning';
+        document.getElementById('rec-title').innerHTML = '<i class="bi bi-exclamation-circle-fill text-warning"></i> HIGH CONTAMINATION - CAUTION ADVISED';
+    } else if (rec.validated) {
+        box.className = 'recommendation-box';
+        document.getElementById('rec-title').innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> RECOMMENDATION VALIDATED';
+    } else {
+        box.className = 'recommendation-box warning';
+        document.getElementById('rec-title').innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning"></i> RECOMMENDATION REQUIRES REVIEW';
+    }
+
+    document.getElementById('rec-rationale').textContent = rec.rationale;
+
+    const confidenceColors = {
+        'HIGH': 'success',
+        'MEDIUM': 'warning',
+        'LOW': 'danger'
+    };
+    const confColor = confidenceColors[rec.confidence] || 'secondary';
+    document.getElementById('rec-confidence').className = `badge bg-${confColor}`;
+    document.getElementById('rec-confidence').textContent = rec.confidence;
+
+    document.getElementById('rec-action').textContent = rec.action;
+}
+</script>
+{% endblock %}

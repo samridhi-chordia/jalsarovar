@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Import Batch #{{ batch.id }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+                    <li class="breadcrumb-item active">Batch #{{ batch.id }}</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="bi bi-file-earmark-check"></i> Import Batch #{{ batch.id }}
+                    </h2>
+                    <small class="text-muted">{{ batch.file_name }}</small>
+                </div>
+                <div>
+                    <a href="{{ url_for('imports.history') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to History
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Left Column - Batch Details -->
+                <div class="col-md-8">
+                    <!-- Status Card -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header
+                            {% if batch.status == 'completed' %}bg-success text-white
+                            {% elif batch.status == 'failed' %}bg-danger text-white
+                            {% elif batch.status == 'rolled_back' %}bg-secondary text-white
+                            {% else %}bg-info text-white{% endif %}">
+                            <h5 class="mb-0">
+                                {% if batch.status == 'completed' %}
+                                <i class="bi bi-check-circle-fill"></i> Import Completed
+                                {% elif batch.status == 'failed' %}
+                                <i class="bi bi-x-circle-fill"></i> Import Failed
+                                {% elif batch.status == 'validation_failed' %}
+                                <i class="bi bi-exclamation-triangle-fill"></i> Validation Failed
+                                {% elif batch.status == 'rolled_back' %}
+                                <i class="bi bi-arrow-counterclockwise"></i> Rolled Back
+                                {% elif batch.status == 'validating' %}
+                                <i class="bi bi-hourglass-split"></i> Validating...
+                                {% elif batch.status == 'importing' %}
+                                <i class="bi bi-arrow-repeat"></i> Importing...
+                                {% else %}
+                                <i class="bi bi-clock"></i> {{ batch.status.title() }}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <h3 class="mb-0">{{ batch.total_records }}</h3>
+                                    <small class="text-muted">Total Records</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h3 class="mb-0 text-success">{{ batch.successful_imports }}</h3>
+                                    <small class="text-muted">Imported</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h3 class="mb-0 text-danger">{{ batch.failed_imports }}</h3>
+                                    <small class="text-muted">Failed</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h3 class="mb-0 text-warning">{{ batch.warnings_count }}</h3>
+                                    <small class="text-muted">Warnings</small>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="mt-3">
+                                <div class="progress" style="height: 25px;">
+                                    {% set success_pct = (batch.successful_imports / batch.total_records * 100) if batch.total_records > 0 else 0 %}
+                                    {% set fail_pct = (batch.failed_imports / batch.total_records * 100) if batch.total_records > 0 else 0 %}
+                                    <div class="progress-bar bg-success" style="width: {{ success_pct }}%">
+                                        {{ '%.0f'|format(success_pct) }}% Success
+                                    </div>
+                                    <div class="progress-bar bg-danger" style="width: {{ fail_pct }}%">
+                                        {{ '%.0f'|format(fail_pct) }}% Failed
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Information -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> File Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th style="width: 30%;">File Name</th>
+                                    <td><code>{{ batch.file_name }}</code></td>
+                                </tr>
+                                {% if batch.file_size_bytes %}
+                                <tr>
+                                    <th>File Size</th>
+                                    <td>{{ '%.2f'|format(batch.file_size_bytes / 1024) }} KB</td>
+                                </tr>
+                                {% endif %}
+                                {% if batch.file_hash %}
+                                <tr>
+                                    <th>File Hash (SHA-256)</th>
+                                    <td><code class="small">{{ batch.file_hash[:32] }}...</code></td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Data Source</th>
+                                    <td>
+                                        {% if batch.data_source %}
+                                        <a href="{{ url_for('imports.view_source', source_id=batch.data_source.id) }}">
+                                            {{ batch.data_source.name }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Validation Errors -->
+                    {% set errors = batch.get_errors() %}
+                    {% if errors %}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Validation Errors
+                                <span class="badge bg-white text-danger ms-2">{{ errors|length }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Row</th>
+                                            <th>Field</th>
+                                            <th>Error</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for error in errors[:50] %}
+                                        <tr>
+                                            <td><span class="badge bg-secondary">{{ error.row }}</span></td>
+                                            <td><code>{{ error.field }}</code></td>
+                                            <td>{{ error.message }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if errors|length > 50 %}
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                ... and {{ errors|length - 50 }} more errors
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Warnings -->
+                    {% set warnings = batch.get_warnings() %}
+                    {% if warnings %}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-warning">
+                            <h5 class="mb-0">
+                                <i class="bi bi-exclamation-circle-fill"></i> Warnings
+                                <span class="badge bg-dark ms-2">{{ warnings|length }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Row</th>
+                                            <th>Field</th>
+                                            <th>Warning</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for warning in warnings[:30] %}
+                                        <tr>
+                                            <td><span class="badge bg-secondary">{{ warning.row }}</span></td>
+                                            <td><code>{{ warning.field }}</code></td>
+                                            <td>{{ warning.message }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if warnings|length > 30 %}
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                ... and {{ warnings|length - 30 }} more warnings
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Processing Log -->
+                    {% set log = batch.get_log() %}
+                    {% if log %}
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-journal-text"></i> Processing Log</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 180px;">Timestamp</th>
+                                            <th>Message</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in log %}
+                                        <tr>
+                                            <td><small class="text-muted">{{ entry.timestamp }}</small></td>
+                                            <td>{{ entry.message }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column - Metadata -->
+                <div class="col-md-4">
+                    <!-- Import Info -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Import Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <strong><i class="bi bi-person"></i> Imported By:</strong><br>
+                                    {% if batch.imported_by %}
+                                    {{ batch.imported_by.username }}
+                                    {% else %}
+                                    <span class="text-muted">System</span>
+                                    {% endif %}
+                                </li>
+                                <li class="mb-2">
+                                    <strong><i class="bi bi-calendar"></i> Import Date:</strong><br>
+                                    {{ batch.import_date.strftime('%Y-%m-%d %H:%M:%S') }}
+                                </li>
+                                {% if batch.processing_start %}
+                                <li class="mb-2">
+                                    <strong><i class="bi bi-play"></i> Started:</strong><br>
+                                    {{ batch.processing_start.strftime('%H:%M:%S') }}
+                                </li>
+                                {% endif %}
+                                {% if batch.processing_end %}
+                                <li class="mb-2">
+                                    <strong><i class="bi bi-stop"></i> Completed:</strong><br>
+                                    {{ batch.processing_end.strftime('%H:%M:%S') }}
+                                </li>
+                                {% endif %}
+                                {% if batch.processing_time_seconds %}
+                                <li class="mb-2">
+                                    <strong><i class="bi bi-clock"></i> Duration:</strong><br>
+                                    {{ '%.2f'|format(batch.processing_time_seconds) }} seconds
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Rollback Info -->
+                    {% if batch.status == 'rolled_back' %}
+                    <div class="card shadow-sm mb-4 border-warning">
+                        <div class="card-header bg-warning">
+                            <h5 class="mb-0"><i class="bi bi-arrow-counterclockwise"></i> Rollback Info</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <strong>Rolled Back By:</strong><br>
+                                    {% if batch.rolled_back_by %}
+                                    {{ batch.rolled_back_by.username }}
+                                    {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                </li>
+                                {% if batch.rolled_back_at %}
+                                <li>
+                                    <strong>Rollback Date:</strong><br>
+                                    {{ batch.rolled_back_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Contamination Check -->
+                    {% if batch.status == 'completed' and batch.successful_imports > 0 %}
+                    <div class="card shadow-sm mb-4 border-warning">
+                        <div class="card-header bg-warning">
+                            <h5 class="mb-0"><i class="bi bi-droplet-half"></i> Water Quality Check</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-3">
+                                Check imported samples for contamination and get treatment recommendations.
+                            </p>
+                            <button type="button" class="btn btn-warning w-100" id="checkContaminationBtn"
+                                    onclick="checkBatchContamination({{ batch.id }})">
+                                <i class="bi bi-search"></i> Check for Contamination
+                            </button>
+                            <div id="contaminationResults" class="mt-3" style="display: none;">
+                                <!-- Results will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    {% if batch.status == 'completed' and batch.can_rollback %}
+                    <div class="card shadow-sm mb-4 border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-3">
+                                Rolling back this import will delete all {{ batch.successful_imports }} records that were imported.
+                            </p>
+                            <form action="{{ url_for('imports.rollback_batch', batch_id=batch.id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure you want to rollback this import? This will delete {{ batch.successful_imports }} records.');">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Rollback Import
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quick Stats -->
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Quick Stats</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Success Rate:</span>
+                                <strong class="{% if batch.success_rate >= 90 %}text-success{% elif batch.success_rate >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ '%.1f'|format(batch.success_rate) }}%
+                                </strong>
+                            </div>
+                            {% if batch.processing_time_seconds and batch.total_records > 0 %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Records/Second:</span>
+                                <strong>{{ '%.1f'|format(batch.total_records / batch.processing_time_seconds) }}</strong>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between">
+                                <span>Can Rollback:</span>
+                                <strong>
+                                    {% if batch.can_rollback and batch.status == 'completed' %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Yes</span>
+                                    {% else %}
+                                    <span class="text-muted"><i class="bi bi-x-circle"></i> No</span>
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkBatchContamination(batchId) {
+    const btn = document.getElementById('checkContaminationBtn');
+    const resultsDiv = document.getElementById('contaminationResults');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Checking...';
+
+    fetch('/interventions/api/batch/' + batchId + '/check-all')
+        .then(response => response.json())
+        .then(data => {
+            resultsDiv.style.display = 'block';
+
+            if (data.samples_needing_intervention && data.samples_needing_intervention.length > 0) {
+                let html = '<div class="alert alert-warning">';
+                html += '<strong><i class="bi bi-exclamation-triangle"></i> ' + data.samples_needing_intervention.length + ' samples need intervention</strong>';
+                html += '<ul class="mt-2 mb-0">';
+
+                data.samples_needing_intervention.forEach(sample => {
+                    html += '<li><strong>' + sample.site_name + '</strong> - ';
+                    sample.issues.forEach(issue => {
+                        html += issue.parameter + ' (' + issue.value + ') ';
+                    });
+                    html += '</li>';
+                });
+
+                html += '</ul>';
+                html += '<a href="/interventions/recommendations" class="btn btn-sm btn-warning mt-2">';
+                html += '<i class="bi bi-lightbulb"></i> View Treatment Recommendations</a>';
+                html += '</div>';
+
+                resultsDiv.innerHTML = html;
+            } else {
+                resultsDiv.innerHTML = '<div class="alert alert-success">' +
+                    '<i class="bi bi-check-circle"></i> All ' + data.samples_checked + ' samples are within acceptable limits. No intervention needed.' +
+                    '</div>';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check Again';
+        })
+        .catch(error => {
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="alert alert-danger">' +
+                '<i class="bi bi-x-circle"></i> Error checking contamination: ' + error.message +
+                '</div>';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search"></i> Check for Contamination';
+        });
+}
+</script>
+{% endblock %}

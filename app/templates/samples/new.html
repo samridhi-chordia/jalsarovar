@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}New Sample - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('samples.index') }}">Samples</a></li>
+            <li class="breadcrumb-item active">New Sample</li>
+        </ol>
+    </nav>
+    <h2><i class="bi bi-plus-lg"></i> Collect New Water Sample</h2>
+</div>
+
+<form method="POST" class="needs-validation" novalidate>
+    <div class="row g-4">
+        <!-- Site Selection -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Collection Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="site_id" class="form-label">Site *</label>
+                        <select name="site_id" id="site_id" class="form-select" required>
+                            <option value="">Select a site...</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}" {% if request.args.get('site_id')|int == site.id %}selected{% endif %}>
+                                {{ site.site_name }} ({{ site.site_code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="collection_date" class="form-label">Collection Date *</label>
+                            <input type="date" name="collection_date" id="collection_date" class="form-control" required value="{{ today }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="collection_time" class="form-label">Time</label>
+                            <input type="time" name="collection_time" id="collection_time" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="source_point" class="form-label">Source Point</label>
+                        <select name="source_point" id="source_point" class="form-select">
+                            <option value="">Select...</option>
+                            <option value="inlet">Inlet</option>
+                            <option value="center">Center</option>
+                            <option value="outlet">Outlet</option>
+                            <option value="tap">Tap</option>
+                            <option value="borewell">Borewell</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="depth_meters" class="form-label">Depth (meters)</label>
+                        <input type="number" step="0.1" name="depth_meters" id="depth_meters" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather & Observations -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Field Observations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="weather_condition" class="form-label">Weather</label>
+                            <select name="weather_condition" id="weather_condition" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="sunny">Sunny</option>
+                                <option value="cloudy">Cloudy</option>
+                                <option value="rainy">Rainy</option>
+                                <option value="stormy">Stormy</option>
+                                <option value="foggy">Foggy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="air_temperature" class="form-label">Air Temp (°C)</label>
+                            <input type="number" step="0.1" name="air_temperature" id="air_temperature" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="rained_recently" id="rained_recently" class="form-check-input">
+                                <label class="form-check-label" for="rained_recently">Rained in last 24h</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="rainfall_mm_24h" class="form-label">Rainfall (mm)</label>
+                            <input type="number" step="0.1" name="rainfall_mm_24h" id="rainfall_mm_24h" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="apparent_color" class="form-label">Apparent Color</label>
+                            <select name="apparent_color" id="apparent_color" class="form-select">
+                                <option value="clear">Clear</option>
+                                <option value="slight_yellow">Slight Yellow</option>
+                                <option value="brown">Brown</option>
+                                <option value="green">Green</option>
+                                <option value="milky">Milky</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="odor" class="form-label">Odor</label>
+                            <select name="odor" id="odor" class="form-select">
+                                <option value="none">None</option>
+                                <option value="earthy">Earthy</option>
+                                <option value="chlorine">Chlorine</option>
+                                <option value="sewage">Sewage</option>
+                                <option value="chemical">Chemical</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input type="checkbox" name="visible_algae" id="visible_algae" class="form-check-input">
+                            <label class="form-check-label" for="visible_algae">Visible Algae</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input type="checkbox" name="floating_matter" id="floating_matter" class="form-check-input">
+                            <label class="form-check-label" for="floating_matter">Floating Matter</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea name="notes" id="notes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> Create Sample
+                </button>
+                <a href="{{ url_for('samples.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

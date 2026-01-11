@@ -1,0 +1,22 @@
+{
+  "id": "harvard_precollege",
+  "title": "Harvard University Pre-College - Quantum Computing",
+  "category": "Educational Preparation Program",
+  "short_description": "Studied quantum information and quantum computation in intensive college-level course with full scholarship",
+  "full_description": "Quantum Information and Quantum Computation (CSCIP-14340) - two-week intensive, college-level course. Studied Hermitian conjugation, Hilbert spaces, the Bloch sphere, and quantum hardware systems. Designed a quantum circuit simulation in Mathematica to model quantum entanglement. Received a full scholarship for the residential program.",
+  "grades": ["10"],
+  "hours_per_week": 15,
+  "weeks_per_year": 2,
+  "start_date": "",
+  "highlights": [
+    "Full scholarship recipient",
+    "Quantum circuit simulation in Mathematica",
+    "Advanced topics: Hilbert spaces, Bloch sphere",
+    "Quantum entanglement modeling",
+    "College-level intensive program"
+  ],
+  "skills": ["Quantum Computing", "Mathematica", "Physics", "Computer Science"],
+  "images": [],
+  "videos": [],
+  "links": []
+}

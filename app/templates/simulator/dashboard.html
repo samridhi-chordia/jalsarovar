@@ -1,0 +1,1562 @@
+{% extends "base.html" %}
+{% block title %}ML Simulator - Jal Sarovar POC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .model-card {
+        border-left: 4px solid;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .model-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .model-card.risk { border-left-color: #dc3545; }
+    .model-card.contamination { border-left-color: #fd7e14; }
+    .model-card.wqi { border-left-color: #0dcaf0; }
+    .model-card.anomaly { border-left-color: #6f42c1; }
+    .model-card.forecast { border-left-color: #20c997; }
+    .model-card.cost { border-left-color: #0d6efd; }
+
+    .last-run {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    .last-run.recent { color: #198754; }
+    .last-run.old { color: #dc3545; }
+
+    .simulation-btn {
+        font-size: 1.25rem;
+        padding: 1rem 2rem;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    }
+
+    .step-indicator {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .step-indicator.pending { background: #e9ecef; color: #6c757d; }
+    .step-indicator.running { background: #0d6efd; color: white; animation: spin 1s linear infinite; }
+    .step-indicator.complete { background: #198754; color: white; }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .metric-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .history-item {
+        border-left: 3px solid #0d6efd;
+        padding-left: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .simulation-progress {
+        display: none;
+    }
+    .simulation-progress.active {
+        display: block;
+    }
+
+    /* Investor Comparison Styles */
+    .comparison-card {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        transition: all 0.3s;
+    }
+    .comparison-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.15);
+    }
+    .before-after-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .before-after-row:last-child {
+        border-bottom: none;
+    }
+    .metric-before {
+        color: #6c757d;
+        font-size: 1.1rem;
+    }
+    .metric-after {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .change-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    .change-improved {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+    .change-declined {
+        background: #f8d7da;
+        color: #842029;
+    }
+    .change-neutral {
+        background: #e9ecef;
+        color: #6c757d;
+    }
+    .arrow-indicator {
+        font-size: 1.5rem;
+        color: #6c757d;
+    }
+    .comparison-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px 10px 0 0;
+        padding: 1rem;
+    }
+    .model-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+    .improvement-summary {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 5px;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-cpu"></i> ML Model Simulator</h2>
+        <p class="text-muted mb-0">Proof of Concept - Real-time ML Pipeline Demonstration</p>
+    </div>
+    <div class="text-end">
+        <button id="resetData" class="btn btn-outline-danger me-2">
+            <i class="bi bi-trash"></i> Reset All Data
+        </button>
+        <button id="populateData" class="btn btn-outline-success me-2">
+            <i class="bi bi-database-add"></i> Populate Initial Data
+        </button>
+        <button id="runSimulation" class="btn btn-primary simulation-btn">
+            <i class="bi bi-play-circle"></i> Run New Simulation
+        </button>
+    </div>
+</div>
+
+<!-- Simulation Progress Panel -->
+<div id="simulationProgress" class="card mb-4 simulation-progress">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-gear-wide-connected"></i> Simulation Running...</h5>
+    </div>
+    <div class="card-body">
+        <div id="progressSteps" class="row g-3">
+            <!-- Steps will be populated by JavaScript -->
+        </div>
+        <div class="progress mt-3" style="height: 25px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+        </div>
+    </div>
+</div>
+
+<!-- ML vs Rule-Based Info Button -->
+<div class="mb-4">
+    <button class="btn btn-outline-info" onclick="showMLExplanation()">
+        <i class="bi bi-info-circle"></i> Learn: ML vs Rule-Based Models & How They Work
+    </button>
+</div>
+
+<!-- ML Models Overview -->
+<div class="row g-4 mb-4">
+    <!-- 1. Site Risk Classifier -->
+    <div class="col-md-4">
+        <div class="card model-card risk h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-shield-exclamation text-danger"></i> Site Risk Classifier</h6>
+                <span class="badge bg-danger">Random Forest</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value text-danger">{{ risk_summary.distribution.get('critical', 0) + risk_summary.distribution.get('high', 0) }}</div>
+                        <div class="metric-label">High Risk Sites</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ risk_summary.model_accuracy }}%</div>
+                        <div class="metric-label">Accuracy <i class="bi bi-question-circle" data-bs-toggle="tooltip" title="Model accuracy shows how often predictions match actual outcomes. Computed from validation data."></i></div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between small mb-2">
+                    <span><i class="bi bi-circle-fill text-danger"></i> Critical: {{ risk_summary.distribution.get('critical', 0) }}</span>
+                    <span><i class="bi bi-circle-fill text-warning"></i> High: {{ risk_summary.distribution.get('high', 0) }}</span>
+                    <span><i class="bi bi-circle-fill text-info"></i> Medium: {{ risk_summary.distribution.get('medium', 0) }}</span>
+                    <span><i class="bi bi-circle-fill text-success"></i> Low: {{ risk_summary.distribution.get('low', 0) }}</span>
+                </div>
+                <div class="small text-muted" style="font-size: 0.75rem;">
+                    <strong>Testing Frequency by Risk:</strong><br>
+                    <span class="text-danger">Critical: Weekly</span> |
+                    <span class="text-warning">High: Bi-weekly</span> |
+                    <span class="text-info">Medium: Monthly</span> |
+                    <span class="text-success">Low: Quarterly</span>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.risk_classifier %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.risk_classifier %}
+                    {{ last_runs.risk_classifier.prediction_date.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Contamination Classifier -->
+    <div class="col-md-4">
+        <div class="card model-card contamination h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-virus text-warning"></i> Contamination Classifier</h6>
+                <span class="badge bg-warning text-dark">XGBoost</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value text-warning">{{ contamination_summary.contamination_rate }}%</div>
+                        <div class="metric-label">Contamination Rate</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ contamination_summary.model_f1_score }}</div>
+                        <div class="metric-label">F1-Score <i class="bi bi-question-circle" data-bs-toggle="tooltip" title="F1 Score balances precision and recall. Range 0-1, higher is better. Computed from model predictions vs actual labels. Resets when data is reset."></i></div>
+                    </div>
+                </div>
+                <div class="small">
+                    {% for type, count in contamination_summary.distribution.items() %}
+                    <span class="badge bg-secondary me-1">{{ type|replace('_',' ')|title }}: {{ count }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.contamination_classifier %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.contamination_classifier %}
+                    {{ last_runs.contamination_classifier.prediction_date.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Real-time WQI -->
+    <div class="col-md-4">
+        <div class="card model-card wqi h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-speedometer2 text-info"></i> Real-time WQI</h6>
+                <span class="badge bg-info">Penalty Algorithm</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value text-info">{{ wqi_summary.average_wqi }}</div>
+                        <div class="metric-label">Avg WQI Score</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ wqi_summary.total }}</div>
+                        <div class="metric-label">Total Readings</div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="badge bg-success">Excellent: {{ wqi_summary.distribution.get('Excellent', 0) }}</span>
+                    <span class="badge bg-info">Compliant: {{ wqi_summary.distribution.get('Compliant', 0) }}</span>
+                    <span class="badge bg-warning text-dark">Warning: {{ wqi_summary.distribution.get('Warning', 0) }}</span>
+                    <span class="badge bg-danger">Unsafe: {{ wqi_summary.distribution.get('Unsafe', 0) }}</span>
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.wqi_calculator %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.wqi_calculator %}
+                    {{ last_runs.wqi_calculator.reading_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Anomaly Detection -->
+    <div class="col-md-4">
+        <div class="card model-card anomaly h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-exclamation-diamond text-purple"></i> Anomaly Detection</h6>
+                <span class="badge" style="background: #6f42c1;">Isolation Forest + CUSUM</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value" style="color: #6f42c1;">{{ anomaly_summary.anomalies_detected }}</div>
+                        <div class="metric-label">Anomalies Detected</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ anomaly_summary.model_accuracy }}%</div>
+                        <div class="metric-label">Accuracy</div>
+                    </div>
+                </div>
+                <div class="small">
+                    {% for type, count in anomaly_summary.by_type.items() %}
+                    <span class="badge bg-secondary me-1">{{ type|title }}: {{ count }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.anomaly_detector %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.anomaly_detector %}
+                    {{ last_runs.anomaly_detector.detection_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Water Quality Forecaster -->
+    <div class="col-md-4">
+        <div class="card model-card forecast h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-graph-up-arrow text-success"></i> Quality Forecaster</h6>
+                <span class="badge bg-success">Gaussian Process</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value text-success">{{ forecast_summary.active_forecasts }}</div>
+                        <div class="metric-label">Active Forecasts</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ forecast_summary.model_r2_score }}</div>
+                        <div class="metric-label">R² Score <i class="bi bi-question-circle" data-bs-toggle="tooltip" title="R² Score measures how well predictions match actual values. Range 0-1, higher is better. 0.78 means 78% of variance explained. Computed from forecast accuracy. Resets with data."></i></div>
+                    </div>
+                </div>
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-calendar3"></i> {{ forecast_summary.forecast_horizon_days }}-day forecast horizon<br>
+                    <i class="bi bi-exclamation-triangle"></i> {{ forecast_summary.predicted_exceedances }} predicted threshold exceedances
+                </p>
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.forecaster %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.forecaster %}
+                    {{ last_runs.forecaster.prediction_date.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Bayesian Cost Optimizer -->
+    <div class="col-md-4">
+        <div class="card model-card cost h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-cash-coin text-primary"></i> Bayesian Cost Optimizer</h6>
+                <span class="badge bg-primary">Bayesian Optimization</span>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="metric-value text-primary">{{ cost_summary.savings_percent }}%</div>
+                        <div class="metric-label">Cost Savings</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-value">{{ cost_summary.avg_detection_rate }}%</div>
+                        <div class="metric-label">Detection Rate</div>
+                    </div>
+                </div>
+                <p class="small text-muted mb-2">
+                    <i class="bi bi-currency-rupee"></i> Current: ₹{{ "{:,.0f}".format(cost_summary.total_current_cost or 0) }}<br>
+                    <i class="bi bi-arrow-down-circle text-success"></i> Optimized: ₹{{ "{:,.0f}".format(cost_summary.total_optimized_cost or 0) }}
+                </p>
+                {% if cost_summary.next_run_date %}
+                <div class="alert alert-info py-2 px-2 mb-2" style="font-size: 0.85rem;">
+                    <i class="bi bi-calendar-event"></i> <strong>Next Test:</strong> {{ cost_summary.next_run_date }}
+                </div>
+                {% endif %}
+                {% if cost_summary.has_schedules %}
+                <a href="#" onclick="showTestSchedules(); return false;" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-calendar3"></i> View All Test Schedules
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white">
+                <span class="last-run {% if last_runs.cost_optimizer %}recent{% endif %}">
+                    <i class="bi bi-clock"></i> Last run:
+                    {% if last_runs.cost_optimizer %}
+                    {{ last_runs.cost_optimizer.optimization_date.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}Never{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simulation History & Latest Results -->
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Simulation History</h5>
+                <small class="text-muted">Click to view details</small>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% if simulation_history %}
+                {% for run in simulation_history %}
+                <div class="history-item clickable-history" data-run-id="{{ run.run_id or '' }}" style="cursor: pointer; padding: 10px; margin-bottom: 8px; border-radius: 8px; transition: all 0.2s;">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong class="text-primary"><i class="bi bi-play-circle"></i> Run #{{ (run.run_id or 'unknown')[:8] }}...</strong>
+                            <br>
+                            <small class="text-muted"><i class="bi bi-calendar3"></i> {{ run.date_display }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary">{{ run.sites_processed }} sites</span>
+                            <br>
+                            <small class="text-success"><i class="bi bi-currency-rupee"></i> {{ "Rs. {:,.0f}".format(run.total_savings) }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted text-center py-3">No simulations run yet. Click "Run New Simulation" to start.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> How It Works</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2"><strong>Data Collection</strong> - New water samples are collected from field</li>
+                    <li class="mb-2"><strong>Lab Testing</strong> - Samples tested for 40+ parameters</li>
+                    <li class="mb-2"><strong>ML Classification</strong> - XGBoost classifies contamination type</li>
+                    <li class="mb-2"><strong>Risk Update</strong> - Random Forest updates site risk scores</li>
+                    <li class="mb-2"><strong>WQI Calculation</strong> - Real-time water quality index computed</li>
+                    <li class="mb-2"><strong>Anomaly Detection</strong> - Isolation Forest detects outliers</li>
+                    <li class="mb-2"><strong>Bayesian Update</strong> - Cost optimizer learns and improves</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simulation Results Modal - Investor View -->
+<div class="modal fade" id="resultsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title"><i class="bi bi-bar-chart-line"></i> AI Prediction Results - Before vs After Comparison</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="resultsContent">
+                <!-- Results will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh Dashboard</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalTitle">Model Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historical Run Details Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title" id="historyModalTitle"><i class="bi bi-clock-history"></i> Historical Run Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="historyContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Loading run details...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Schedules Modal -->
+<div class="modal fade" id="schedulesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar3"></i> Optimized Test Schedules</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="schedulesContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Loading test schedules...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ML vs Rule-Based Explanation Modal -->
+<div class="modal fade" id="mlExplanationModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title"><i class="bi bi-lightbulb"></i> Understanding ML vs Rule-Based Models</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Introduction -->
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> What You Need to Know</h6>
+                    <p class="mb-0">This system uses two types of approaches to analyze water quality data. Understanding the difference helps you interpret results better.</p>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- Rule-Based Column -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0"><i class="bi bi-list-check"></i> Rule-Based Approach</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="text-warning">What It Is:</h6>
+                                <p>Uses predefined thresholds and logical rules created by water quality experts.</p>
+
+                                <h6 class="text-warning">How It Works:</h6>
+                                <ol class="small">
+                                    <li><strong>Input:</strong> Water test parameters (pH, TDS, turbidity, etc.)</li>
+                                    <li><strong>Process:</strong> Compare values against WHO/BIS standards</li>
+                                    <li><strong>Output:</strong> Pass/Fail with contamination type</li>
+                                </ol>
+
+                                <h6 class="text-warning">Example Rules:</h6>
+                                <ul class="small">
+                                    <li>If pH < 6.5 or pH > 8.5 → Non-compliant</li>
+                                    <li>If TDS > 500 ppm → Warning</li>
+                                    <li>If Coliform > 0 → Sewage contamination</li>
+                                    <li>If Turbidity > 5 NTU → Sediment runoff</li>
+                                </ul>
+
+                                <div class="alert alert-warning py-2 small">
+                                    <strong>Pros:</strong> Transparent, explainable, consistent<br>
+                                    <strong>Cons:</strong> Cannot learn from data patterns
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ML-Based Column -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-cpu"></i> Machine Learning Approach</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="text-primary">What It Is:</h6>
+                                <p>Algorithms that learn patterns from historical data to make predictions.</p>
+
+                                <h6 class="text-primary">How It Works:</h6>
+                                <ol class="small">
+                                    <li><strong>Input:</strong> Historical data + new measurements</li>
+                                    <li><strong>Process:</strong> Pattern recognition & statistical learning</li>
+                                    <li><strong>Output:</strong> Predictions with confidence scores</li>
+                                </ol>
+
+                                <h6 class="text-primary">ML Models Used:</h6>
+                                <ul class="small">
+                                    <li><strong>Random Forest:</strong> Risk classification (87% accuracy)</li>
+                                    <li><strong>XGBoost:</strong> Contamination type (0.82 F1-score)</li>
+                                    <li><strong>Gaussian Process:</strong> Quality forecasting (0.78 R²)</li>
+                                    <li><strong>Isolation Forest:</strong> Anomaly detection (92% accuracy)</li>
+                                    <li><strong>Bayesian:</strong> Cost optimization</li>
+                                </ul>
+
+                                <div class="alert alert-primary py-2 small">
+                                    <strong>Pros:</strong> Learns patterns, improves over time<br>
+                                    <strong>Cons:</strong> Needs data, less interpretable
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accuracy Metrics Explanation -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Understanding Accuracy Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <span class="badge bg-danger fs-6">Accuracy</span>
+                                </div>
+                                <p class="small"><strong>What:</strong> % of correct predictions overall</p>
+                                <p class="small"><strong>Example:</strong> 87% means 87 out of 100 predictions were correct</p>
+                                <p class="small text-muted"><strong>Used for:</strong> Site Risk Classifier</p>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <span class="badge bg-warning text-dark fs-6">F1 Score</span>
+                                </div>
+                                <p class="small"><strong>What:</strong> Balance of precision and recall (0-1)</p>
+                                <p class="small"><strong>Example:</strong> 0.82 means good balance between catching contamination and avoiding false alarms</p>
+                                <p class="small text-muted"><strong>Used for:</strong> Contamination Classifier</p>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <span class="badge bg-success fs-6">R² Score</span>
+                                </div>
+                                <p class="small"><strong>What:</strong> How well model explains data variance (0-1)</p>
+                                <p class="small"><strong>Example:</strong> 0.78 means model explains 78% of variation in water quality</p>
+                                <p class="small text-muted"><strong>Used for:</strong> Water Quality Forecaster</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="alert alert-secondary mb-0 small">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> These metrics are <strong>computed from the model's predictions</strong> compared to actual outcomes. When you <strong>reset data</strong>, historical predictions are deleted and metrics will reset to baseline values until new data is processed.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How to Interact -->
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-hand-index"></i> How You Can Interact</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>View Results:</h6>
+                                <ul class="small">
+                                    <li>Click on any model card to see detailed results</li>
+                                    <li>View site-specific results on Site Detail pages</li>
+                                    <li>Check historical runs for trend analysis</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Trigger Analysis:</h6>
+                                <ul class="small">
+                                    <li><strong>Run Simulation:</strong> Process new data through all models</li>
+                                    <li><strong>Reset Data:</strong> Clear all predictions (models reset)</li>
+                                    <li><strong>Populate Data:</strong> Generate sample baseline data</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Data Flow:</h6>
+                        <div class="d-flex align-items-center flex-wrap gap-2 small">
+                            <span class="badge bg-secondary">Water Sample</span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="badge bg-info">Lab Test Results</span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="badge bg-warning text-dark">Rule-Based Analysis</span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="badge bg-primary">ML Classification</span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="badge bg-success">Risk Score + Recommendations</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ========== Populate Initial Data Handler ==========
+document.getElementById('populateData').addEventListener('click', async function() {
+    if (!confirm('This will create initial sample data (1-2 samples per site) for all active sites.\n\nProceed?')) {
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Populating...';
+
+    try {
+        const response = await fetch('/simulator/populate-initial-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Initial data populated successfully!\n\nCreated:\n' +
+                  '- Sites processed: ' + data.created.sites + '\n' +
+                  '- Samples: ' + data.created.samples + '\n' +
+                  '- Test Results: ' + data.created.tests + '\n' +
+                  '- Analyses: ' + data.created.analyses);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Population failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-database-add"></i> Populate Initial Data';
+    }
+});
+
+// ========== Reset Data Handler ==========
+document.getElementById('resetData').addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to reset ALL simulation data?\n\nThis will delete:\n- All water samples\n- All test results\n- All analyses\n- All predictions\n- All WQI readings\n- All anomaly detections\n- All cost optimizations\n- All forecasts\n\nThis action cannot be undone!')) {
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Resetting...';
+
+    try {
+        const response = await fetch('/simulator/reset-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('All simulation data has been reset successfully!\n\nDeleted:\n' +
+                  '- Water Samples: ' + data.deleted.water_samples + '\n' +
+                  '- Test Results: ' + data.deleted.test_results + '\n' +
+                  '- Analyses: ' + data.deleted.analyses + '\n' +
+                  '- WQI Readings: ' + data.deleted.wqi_readings + '\n' +
+                  '- Anomalies: ' + data.deleted.anomalies + '\n' +
+                  '- Forecasts: ' + data.deleted.forecasts + '\n' +
+                  '- Cost Optimizations: ' + data.deleted.cost_optimization);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Reset failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-trash"></i> Reset All Data';
+    }
+});
+
+// ========== History Item Click Handler ==========
+document.querySelectorAll('.clickable-history').forEach(item => {
+    // Hover effect
+    item.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = '#e7f1ff';
+        this.style.borderLeft = '4px solid #0d6efd';
+    });
+    item.addEventListener('mouseleave', function() {
+        this.style.backgroundColor = '';
+        this.style.borderLeft = '';
+    });
+
+    // Click handler
+    item.addEventListener('click', async function() {
+        const runId = this.dataset.runId;
+        showHistoricalRunDetails(runId);
+    });
+});
+
+async function showHistoricalRunDetails(runId) {
+    const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+    const content = document.getElementById('historyContent');
+    const title = document.getElementById('historyModalTitle');
+
+    // Show loading
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading run details...</p>
+        </div>
+    `;
+    modal.show();
+
+    try {
+        const response = await fetch(`/simulator/api/run-history/${runId}`);
+        const data = await response.json();
+
+        if (data.error) {
+            content.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+        }
+
+        title.innerHTML = `<i class="bi bi-clock-history"></i> Run: ${data.run_date}`;
+
+        // Render the historical run data
+        content.innerHTML = `
+            <!-- Header -->
+            <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="card-body text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-1"><i class="bi bi-calendar-check"></i> ${data.run_date}</h5>
+                            <p class="mb-0 opacity-75">Run ID: ${data.run_id}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h3 class="mb-0">Rs. ${data.summary.total_savings.toLocaleString()}</h3>
+                            <span class="badge bg-white text-success">${data.summary.savings_percent}% Saved</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Summary Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 border-primary">
+                        <div class="card-body py-3">
+                            <h4 class="text-primary mb-0">${data.sites_processed}</h4>
+                            <small class="text-muted">Sites Processed</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 border-danger">
+                        <div class="card-body py-3">
+                            <h4 class="text-danger mb-0">${data.summary.high_risk_sites}</h4>
+                            <small class="text-muted">High Risk Sites</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 border-info">
+                        <div class="card-body py-3">
+                            <h4 class="text-info mb-0">${data.summary.avg_wqi}</h4>
+                            <small class="text-muted">Avg WQI Score</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 border-success">
+                        <div class="card-body py-3">
+                            <h4 class="text-success mb-0">${data.summary.detection_rate}%</h4>
+                            <small class="text-muted">Detection Rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Model Results -->
+            <h5 class="mb-3"><i class="bi bi-cpu"></i> ML Model Results for This Run</h5>
+            <div class="row g-3">
+                ${Object.entries(data.models).map(([key, model]) => `
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-${model.color} text-white d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-${model.icon}"></i> ${model.name}</span>
+                                <span class="badge bg-light text-dark" style="font-size: 0.7rem;">${model.algorithm}</span>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tbody>
+                                        ${Object.entries(model.metrics).map(([metricName, value]) => `
+                                            <tr>
+                                                <td class="text-muted">${metricName}</td>
+                                                <td class="text-end fw-bold">${value}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Summary for Investors -->
+            <div class="alert mt-4 mb-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h6 class="mb-2"><i class="bi bi-graph-up-arrow"></i> Run Summary</h6>
+                <p class="mb-0">
+                    This simulation processed <strong>${data.sites_processed}</strong> sites,
+                    achieving <strong>Rs. ${data.summary.total_savings.toLocaleString()}</strong> in cost savings
+                    (${data.summary.savings_percent}% reduction) while maintaining <strong>${data.summary.detection_rate}%</strong> detection rate.
+                    Found <strong>${data.summary.contamination_rate}%</strong> contamination rate and detected
+                    <strong>${data.summary.anomalies}</strong> anomalies.
+                </p>
+            </div>
+        `;
+
+    } catch (error) {
+        content.innerHTML = `<div class="alert alert-danger">Error loading run details: ${error.message}</div>`;
+    }
+}
+
+const steps = [
+    { name: 'Data Collection', icon: 'bi-cloud-download' },
+    { name: 'Contamination Classification', icon: 'bi-virus' },
+    { name: 'Site Risk Assessment', icon: 'bi-shield-exclamation' },
+    { name: 'WQI Calculation', icon: 'bi-speedometer2' },
+    { name: 'Anomaly Detection', icon: 'bi-exclamation-diamond' },
+    { name: 'Cost Optimization', icon: 'bi-cash-coin' },
+    { name: 'Forecasting', icon: 'bi-graph-up-arrow' }
+];
+
+// Make model cards clickable
+document.querySelectorAll('.model-card').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+        const cardType = this.classList.contains('risk') ? 'risk' :
+                        this.classList.contains('contamination') ? 'contamination' :
+                        this.classList.contains('wqi') ? 'wqi' :
+                        this.classList.contains('anomaly') ? 'anomaly' :
+                        this.classList.contains('forecast') ? 'forecast' :
+                        this.classList.contains('cost') ? 'cost' : null;
+        if (cardType) showModelDetails(cardType);
+    });
+});
+
+async function showModelDetails(modelType) {
+    const titles = {
+        'risk': 'Site Risk Classification Details',
+        'contamination': 'Contamination Analysis Details',
+        'wqi': 'Water Quality Index Details',
+        'anomaly': 'Anomaly Detection Details',
+        'forecast': 'Water Quality Forecast Details',
+        'cost': 'Cost Optimization Details'
+    };
+
+    document.getElementById('detailsModalTitle').textContent = titles[modelType] || 'Model Details';
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    modal.show();
+
+    try {
+        const response = await fetch(`/simulator/api/${modelType}-details`);
+        const data = await response.json();
+        renderModelDetails(modelType, data);
+    } catch (error) {
+        document.getElementById('detailsContent').innerHTML = `<div class="alert alert-danger">Error loading details: ${error.message}</div>`;
+    }
+}
+
+function renderModelDetails(modelType, data) {
+    const content = document.getElementById('detailsContent');
+
+    if (modelType === 'risk') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-3"><div class="card bg-danger text-white text-center p-3"><h3>${data.summary.critical}</h3><small>Critical</small></div></div>
+                <div class="col-md-3"><div class="card bg-warning text-dark text-center p-3"><h3>${data.summary.high}</h3><small>High</small></div></div>
+                <div class="col-md-3"><div class="card bg-info text-white text-center p-3"><h3>${data.summary.medium}</h3><small>Medium</small></div></div>
+                <div class="col-md-3"><div class="card bg-success text-white text-center p-3"><h3>${data.summary.low}</h3><small>Low</small></div></div>
+            </div>
+            <h6>Critical & High Risk Sites:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Site</th><th>District</th><th>Risk Level</th><th>Score</th><th>Frequency</th></tr></thead>
+                    <tbody>
+                        ${[...data.by_level.critical, ...data.by_level.high].map(s => `
+                            <tr>
+                                <td>${s.site_name}</td>
+                                <td>${s.district}</td>
+                                <td><span class="badge bg-${s.risk_score >= 75 ? 'danger' : 'warning'}">${s.risk_score >= 75 ? 'Critical' : 'High'}</span></td>
+                                <td>${s.risk_score}%</td>
+                                <td>${s.recommended_frequency}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    } else if (modelType === 'contamination') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-4"><div class="card bg-success text-white text-center p-3"><h3>${data.summary.clean}</h3><small>Clean Samples</small></div></div>
+                <div class="col-md-4"><div class="card bg-danger text-white text-center p-3"><h3>${data.summary.contaminated}</h3><small>Contaminated</small></div></div>
+                <div class="col-md-4"><div class="card bg-info text-white text-center p-3"><h3>${data.summary.rate}%</h3><small>Contamination Rate</small></div></div>
+            </div>
+            <h6>Contaminated Samples by Type:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Sample ID</th><th>Site</th><th>Type</th><th>Severity</th><th>WQI</th></tr></thead>
+                    <tbody>
+                        ${data.contaminated.slice(0,50).map(s => `
+                            <tr>
+                                <td><code>${s.sample_id}</code></td>
+                                <td>${s.site_name}</td>
+                                <td><span class="badge bg-secondary">${(s.contamination_type || '').replace('_',' ')}</span></td>
+                                <td>${s.severity}</td>
+                                <td>${s.wqi_score?.toFixed(1) || 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    } else if (modelType === 'wqi') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-3"><div class="card bg-success text-white text-center p-3"><h3>${data.summary.excellent}</h3><small>Excellent</small></div></div>
+                <div class="col-md-3"><div class="card bg-info text-white text-center p-3"><h3>${data.summary.compliant}</h3><small>Compliant</small></div></div>
+                <div class="col-md-3"><div class="card bg-warning text-dark text-center p-3"><h3>${data.summary.warning}</h3><small>Warning</small></div></div>
+                <div class="col-md-3"><div class="card bg-danger text-white text-center p-3"><h3>${data.summary.unsafe}</h3><small>Unsafe</small></div></div>
+            </div>
+            <h6>Recent WQI Readings:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Site</th><th>WQI Score</th><th>Class</th><th>pH</th><th>TDS</th><th>Turbidity</th><th>Drinkable</th></tr></thead>
+                    <tbody>
+                        ${Object.values(data.by_class).flat().slice(0,50).map(r => `
+                            <tr>
+                                <td>${r.site_name}</td>
+                                <td><strong>${r.wqi_score?.toFixed(1)}</strong></td>
+                                <td><span class="badge bg-${r.wqi_class === 'Excellent' ? 'success' : r.wqi_class === 'Compliant' ? 'info' : r.wqi_class === 'Warning' ? 'warning' : 'danger'}">${r.wqi_class}</span></td>
+                                <td>${r.ph?.toFixed(2)}</td>
+                                <td>${r.tds?.toFixed(0)}</td>
+                                <td>${r.turbidity?.toFixed(1)}</td>
+                                <td>${r.is_drinkable ? '<i class="bi bi-check-circle text-success"></i>' : '<i class="bi bi-x-circle text-danger"></i>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    } else if (modelType === 'anomaly') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-6"><div class="card bg-primary text-white text-center p-3"><h3>${data.summary.total}</h3><small>Anomalies Detected</small></div></div>
+                <div class="col-md-6"><div class="card bg-light text-center p-3"><h5>By Type</h5>${Object.entries(data.summary.types || {}).map(([k,v]) => `<span class="badge bg-secondary me-1">${k}: ${v}</span>`).join('')}</div></div>
+            </div>
+            <h6>Recent Anomalies:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Site</th><th>Type</th><th>Parameter</th><th>Observed</th><th>Expected</th><th>Deviation</th></tr></thead>
+                    <tbody>
+                        ${data.anomalies.slice(0,50).map(a => `
+                            <tr>
+                                <td>${a.site_name}</td>
+                                <td><span class="badge bg-warning text-dark">${a.anomaly_type}</span></td>
+                                <td>${a.parameter}</td>
+                                <td>${a.observed_value?.toFixed(2)}</td>
+                                <td>${a.expected_value?.toFixed(2)}</td>
+                                <td>${a.deviation?.toFixed(1)}σ</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    } else if (modelType === 'cost') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-3"><div class="card bg-secondary text-white text-center p-3"><h5>Rs. ${(data.summary.total_current_cost || 0).toLocaleString()}</h5><small>Current Cost</small></div></div>
+                <div class="col-md-3"><div class="card bg-primary text-white text-center p-3"><h5>Rs. ${(data.summary.total_optimized_cost || 0).toLocaleString()}</h5><small>Optimized Cost</small></div></div>
+                <div class="col-md-3"><div class="card bg-success text-white text-center p-3"><h5>Rs. ${(data.summary.total_savings || 0).toLocaleString()}</h5><small>Total Savings</small></div></div>
+                <div class="col-md-3"><div class="card bg-info text-white text-center p-3"><h5>${data.summary.savings_percent}%</h5><small>Cost Reduction</small></div></div>
+            </div>
+            <h6>Optimization by Site:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Site</th><th>Risk</th><th>Current Tests</th><th>Optimized</th><th>Savings</th><th>Detection Rate</th></tr></thead>
+                    <tbody>
+                        ${Object.values(data.by_category).flat().slice(0,50).map(s => `
+                            <tr>
+                                <td>${s.site_name}</td>
+                                <td><span class="badge bg-${s.risk_category === 'critical' ? 'danger' : s.risk_category === 'high' ? 'warning' : 'info'}">${s.risk_category}</span></td>
+                                <td>${s.current_tests}/yr</td>
+                                <td>${s.optimized_tests}/yr</td>
+                                <td class="text-success">Rs. ${(s.savings || 0).toLocaleString()}</td>
+                                <td>${s.detection_rate?.toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    } else if (modelType === 'forecast') {
+        content.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-md-6"><div class="card bg-info text-white text-center p-3"><h3>${data.summary.total_forecasts}</h3><small>Active Forecasts</small></div></div>
+                <div class="col-md-6"><div class="card bg-warning text-dark text-center p-3"><h3>${data.summary.high_risk_alerts}</h3><small>High Risk Alerts</small></div></div>
+            </div>
+            <h6>Potential Threshold Exceedances:</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white"><tr><th>Site</th><th>Parameter</th><th>Date</th><th>Predicted</th><th>Risk Prob</th></tr></thead>
+                    <tbody>
+                        ${data.alerts.slice(0,50).map(f => `
+                            <tr>
+                                <td>${f.site_name}</td>
+                                <td>${f.parameter}</td>
+                                <td>${f.forecast_date}</td>
+                                <td>${f.predicted_value?.toFixed(2)}</td>
+                                <td><span class="badge bg-danger">${(f.prob_exceed * 100).toFixed(0)}%</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }
+}
+
+document.getElementById('runSimulation').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+
+    const progressPanel = document.getElementById('simulationProgress');
+    progressPanel.classList.add('active');
+
+    const stepsContainer = document.getElementById('progressSteps');
+    stepsContainer.innerHTML = steps.map((step, i) => `
+        <div class="col-md-3 col-6 text-center" id="step-${i}">
+            <div class="step-indicator pending mx-auto mb-2">
+                <i class="bi ${step.icon}"></i>
+            </div>
+            <small>${step.name}</small>
+        </div>
+    `).join('');
+
+    try {
+        const response = await fetch('/simulator/run-simulation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ num_samples: 50 })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            for (let i = 0; i < data.steps.length; i++) {
+                await new Promise(r => setTimeout(r, 300));
+                const stepEl = document.getElementById(`step-${i}`);
+                if (stepEl) {
+                    const indicator = stepEl.querySelector('.step-indicator');
+                    indicator.classList.remove('pending', 'running');
+                    indicator.classList.add('complete');
+                    indicator.innerHTML = '<i class="bi bi-check"></i>';
+                }
+                document.getElementById('progressBar').style.width = `${((i + 1) / steps.length) * 100}%`;
+                document.getElementById('progressBar').textContent = `${Math.round(((i + 1) / steps.length) * 100)}%`;
+            }
+            setTimeout(() => showResults(data), 500);
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Simulation failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle"></i> Run New Simulation';
+    }
+});
+
+function showResults(data) {
+    const summary = data.summary || {};
+    const comparison = data.comparison || {};
+    const models = comparison.models || {};
+    const content = document.getElementById('resultsContent');
+
+    // Helper function to render change indicator
+    function renderChange(metric) {
+        if (!metric) return '<span class="change-indicator change-neutral">No data</span>';
+
+        const icon = metric.direction === 'improved' ? 'arrow-up-circle-fill' :
+                     metric.direction === 'declined' ? 'arrow-down-circle-fill' : 'dash-circle';
+        const cssClass = metric.direction === 'improved' ? 'change-improved' :
+                         metric.direction === 'declined' ? 'change-declined' : 'change-neutral';
+
+        let changeText = metric.change > 0 ? `+${metric.change}` : metric.change;
+        if (metric.percent !== 0) {
+            changeText += ` (${metric.percent > 0 ? '+' : ''}${metric.percent}%)`;
+        }
+
+        return `<span class="change-indicator ${cssClass}"><i class="bi bi-${icon}"></i> ${changeText}</span>`;
+    }
+
+    // Helper function to render a comparison row
+    function renderMetricRow(label, metric) {
+        if (!metric) return '';
+        return `
+            <div class="before-after-row">
+                <div class="flex-grow-1">
+                    <small class="text-muted d-block">${label}</small>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-center" style="min-width: 80px;">
+                        <small class="text-muted d-block">Before</small>
+                        <span class="metric-before">${typeof metric.before === 'number' ? metric.before.toLocaleString() : metric.before}</span>
+                    </div>
+                    <i class="bi bi-arrow-right arrow-indicator"></i>
+                    <div class="text-center" style="min-width: 80px;">
+                        <small class="text-muted d-block">After</small>
+                        <span class="metric-after">${typeof metric.after === 'number' ? metric.after.toLocaleString() : metric.after}</span>
+                    </div>
+                    <div style="min-width: 140px;">
+                        ${renderChange(metric)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    content.innerHTML = `
+        <!-- Header Summary -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <div class="card-body text-white">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h4 class="mb-1"><i class="bi bi-check-circle-fill"></i> Simulation Complete</h4>
+                                <p class="mb-0 opacity-75">ID: ${data.simulation_id} | ${new Date(data.completed_at).toLocaleString()}</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <h2 class="mb-0">Rs. ${(summary.cost_savings_inr || 0).toLocaleString()}</h2>
+                                <span class="badge bg-white text-success fs-6">${summary.cost_savings_percent || 0}% Cost Reduction</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card text-center h-100 border-primary">
+                    <div class="card-body py-3">
+                        <h3 class="text-primary mb-0">${summary.samples_collected || 0}</h3>
+                        <small class="text-muted">Samples Analyzed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card text-center h-100 border-success">
+                    <div class="card-body py-3">
+                        <h3 class="text-success mb-0">${summary.sites_improved || 0}</h3>
+                        <small class="text-muted">Sites Improved</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card text-center h-100 border-info">
+                    <div class="card-body py-3">
+                        <h3 class="text-info mb-0">${(summary.avg_wqi || 0).toFixed(1)}</h3>
+                        <small class="text-muted">Avg WQI Score</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card text-center h-100 border-warning">
+                    <div class="card-body py-3">
+                        <h3 class="text-warning mb-0">${summary.detection_rate_maintained || 0}%</h3>
+                        <small class="text-muted">Detection Rate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After Comparison Cards -->
+        <h5 class="mb-3"><i class="bi bi-bar-chart-line"></i> AI Model Predictions - Before vs After</h5>
+        <div class="row g-3 mb-4">
+            ${Object.entries(models).map(([key, model]) => `
+                <div class="col-md-6">
+                    <div class="comparison-card">
+                        <div class="card-header bg-${model.color || 'secondary'} text-white d-flex justify-content-between align-items-center" style="border-radius: 10px 10px 0 0;">
+                            <span><i class="bi bi-${model.icon || 'gear'}"></i> ${model.name}</span>
+                            <span class="badge bg-light text-dark model-badge">${model.algorithm}</span>
+                        </div>
+                        <div class="card-body p-0">
+                            ${Object.entries(model.metrics || {}).map(([metricKey, metric]) =>
+                                renderMetricRow(metricKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), metric)
+                            ).join('')}
+                        </div>
+                        <div class="card-footer bg-light">
+                            <small class="text-muted"><i class="bi bi-info-circle"></i> ${model.improvement_summary || ''}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <!-- Processing Steps (Collapsed) -->
+        <div class="accordion mb-3" id="stepsAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#stepsCollapse">
+                        <i class="bi bi-list-check me-2"></i> View Processing Steps (${data.steps.length} steps completed)
+                    </button>
+                </h2>
+                <div id="stepsCollapse" class="accordion-collapse collapse" data-bs-parent="#stepsAccordion">
+                    <div class="accordion-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light"><tr><th style="width:50px">#</th><th>Model</th><th>Result</th></tr></thead>
+                            <tbody>
+                                ${data.steps.map(step => `
+                                    <tr>
+                                        <td><span class="badge bg-primary">${step.step}</span></td>
+                                        <td><strong>${step.name}</strong></td>
+                                        <td>${step.description}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investor Summary -->
+        <div class="alert mb-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-1"><i class="bi bi-graph-up-arrow"></i> AI Impact Summary for Investors</h5>
+                    <p class="mb-0">
+                        Processed <strong>${summary.samples_collected || 0}</strong> water samples using 6 ML models.
+                        Achieved <strong>Rs. ${(summary.cost_savings_inr || 0).toLocaleString()}</strong> in cost optimization
+                        (${summary.cost_savings_percent || 0}% reduction) while maintaining <strong>${summary.detection_rate_maintained || 0}%</strong> detection rate.
+                        <strong>${summary.sites_improved || 0}</strong> sites showed improvement in risk classification.
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-inline-block text-center px-3 py-2 rounded" style="background: rgba(255,255,255,0.2);">
+                        <small class="d-block opacity-75">Overall Improvement</small>
+                        <h3 class="mb-0">${comparison.overall?.improvement_rate || 0}%</h3>
+                        <small>${comparison.overall?.total_improvements || 0}/${comparison.overall?.total_metrics || 0} metrics improved</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    modal.show();
+}
+
+// ========== Test Schedules Function ==========
+async function showTestSchedules() {
+    const modal = new bootstrap.Modal(document.getElementById('schedulesModal'));
+    const content = document.getElementById('schedulesContent');
+
+    // Show loading
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading test schedules...</p>
+        </div>
+    `;
+    modal.show();
+
+    try {
+        const response = await fetch('/simulator/api/test-schedules');
+        const data = await response.json();
+
+        if (!data.schedules || data.schedules.length === 0) {
+            content.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-calendar-x"></i> No test schedules available.
+                    <br>Run a simulation to generate optimized test schedules.
+                </div>
+            `;
+            return;
+        }
+
+        content.innerHTML = `
+            <!-- Summary Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center bg-primary text-white">
+                        <div class="card-body py-3">
+                            <h3 class="mb-0">${data.summary.total_sites}</h3>
+                            <small>Total Sites Scheduled</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center bg-success text-white">
+                        <div class="card-body py-3">
+                            <h3 class="mb-0">${data.summary.weeks_with_tests}</h3>
+                            <small>Weeks with Tests</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center bg-info text-white">
+                        <div class="card-body py-3">
+                            <h3 class="mb-0">${data.optimization_date ? new Date(data.optimization_date).toLocaleDateString() : 'N/A'}</h3>
+                            <small>Optimization Date</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Schedule -->
+            <h5 class="mb-3"><i class="bi bi-calendar-week"></i> Schedule by Week (Next 12 Weeks)</h5>
+            <div class="accordion" id="weekAccordion">
+                ${data.by_week.map((week, idx) => `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button ${idx > 0 ? 'collapsed' : ''}" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#week${idx}">
+                                <span class="me-3">
+                                    <strong>${week.week_key}</strong>
+                                    <small class="text-muted ms-2">(${week.week_start} to ${week.week_end})</small>
+                                </span>
+                                <span class="badge ${week.test_count > 0 ? 'bg-primary' : 'bg-secondary'} ms-auto me-3">
+                                    ${week.test_count} test${week.test_count !== 1 ? 's' : ''}
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="week${idx}" class="accordion-collapse collapse ${idx === 0 ? 'show' : ''}"
+                             data-bs-parent="#weekAccordion">
+                            <div class="accordion-body p-0">
+                                ${week.sites.length > 0 ? `
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Site</th>
+                                                <th>District</th>
+                                                <th>Risk</th>
+                                                <th>Frequency</th>
+                                                <th>Test Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${week.sites.map(site => `
+                                                <tr>
+                                                    <td>
+                                                        <a href="/sites/${site.site_id}" target="_blank">
+                                                            ${site.site_name}
+                                                        </a>
+                                                        <small class="text-muted d-block">${site.site_code}</small>
+                                                    </td>
+                                                    <td>${site.district || '-'}</td>
+                                                    <td>
+                                                        <span class="badge bg-${
+                                                            site.risk_category === 'critical' ? 'danger' :
+                                                            site.risk_category === 'high' ? 'warning' :
+                                                            site.risk_category === 'medium' ? 'info' : 'success'
+                                                        }">${site.risk_category}</span>
+                                                    </td>
+                                                    <td>${site.recommended_frequency}</td>
+                                                    <td>${new Date(site.next_test_date).toLocaleDateString()}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : `
+                                    <div class="text-center text-muted py-3">
+                                        <i class="bi bi-calendar-check"></i> No tests scheduled for this week
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- All Schedules Table -->
+            <h5 class="mt-4 mb-3"><i class="bi bi-table"></i> All Scheduled Tests</h5>
+            <div class="table-responsive" style="max-height: 400px;">
+                <table class="table table-sm table-striped">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th>Priority</th>
+                            <th>Site</th>
+                            <th>State</th>
+                            <th>Risk</th>
+                            <th>Tests/Year</th>
+                            <th>Next Test</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.schedules.map(site => `
+                            <tr>
+                                <td><span class="badge bg-secondary">#${site.priority_rank}</span></td>
+                                <td>
+                                    <a href="/sites/${site.site_id}" target="_blank">${site.site_name}</a>
+                                </td>
+                                <td>${site.state || '-'}</td>
+                                <td>
+                                    <span class="badge bg-${
+                                        site.risk_category === 'critical' ? 'danger' :
+                                        site.risk_category === 'high' ? 'warning' :
+                                        site.risk_category === 'medium' ? 'info' : 'success'
+                                    }">${site.risk_category}</span>
+                                </td>
+                                <td>${site.tests_per_year}/yr</td>
+                                <td>${new Date(site.next_test_date).toLocaleDateString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+    } catch (error) {
+        content.innerHTML = `<div class="alert alert-danger">Error loading schedules: ${error.message}</div>`;
+    }
+}
+
+// ========== ML Explanation Function ==========
+function showMLExplanation() {
+    const modal = new bootstrap.Modal(document.getElementById('mlExplanationModal'));
+    modal.show();
+}
+
+// ========== Initialize Tooltips ==========
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}{{ sample.sample_id }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('samples.index') }}">Samples</a></li>
+                <li class="breadcrumb-item active">{{ sample.sample_id }}</li>
+            </ol>
+        </nav>
+        <h2 class="mt-2"><i class="bi bi-droplet"></i> {{ sample.sample_id }}</h2>
+    </div>
+    <div>
+        {% if current_user.is_authenticated and current_user.has_permission('can_submit_test_results') and current_user.can_access_site(sample.site_id) %}
+            {% if sample.status == 'collected' %}
+                <a href="{{ url_for('samples.add_test_results', sample_id=sample.id) }}" class="btn btn-success">
+                    <i class="bi bi-plus-lg"></i> Add Test Results
+                </a>
+            {% elif test_result %}
+                <a href="{{ url_for('samples.edit_test_results', sample_id=sample.id) }}" class="btn btn-warning">
+                    <i class="bi bi-pencil-square"></i> Edit Test Results
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Sample Info -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Sample Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><th>Site:</th><td><a href="{{ url_for('sites.detail', site_id=sample.site_id) }}">{{ sample.site.site_name }}</a></td></tr>
+                    <tr><th>Collection Date:</th><td>{{ sample.collection_date.strftime('%Y-%m-%d') }}</td></tr>
+                    <tr><th>Collection Time:</th><td>{{ sample.collection_time.strftime('%H:%M') if sample.collection_time else '-' }}</td></tr>
+                    <tr><th>Source Point:</th><td>{{ (sample.source_point or '-')|title }}</td></tr>
+                    <tr><th>Weather:</th><td>{{ (sample.weather_condition or '-')|title }}</td></tr>
+                    <tr><th>Recent Rain:</th><td>{{ 'Yes' if sample.rained_recently else 'No' }}</td></tr>
+                    <tr><th>Color:</th><td>{{ (sample.apparent_color or '-')|title }}</td></tr>
+                    <tr><th>Odor:</th><td>{{ (sample.odor or 'None')|title }}</td></tr>
+                    <tr><th>Status:</th><td><span class="badge bg-{{ 'success' if sample.status == 'analyzed' else 'warning' if sample.status == 'tested' else 'secondary' }}">{{ sample.status|title }}</span></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Analysis Results</h5>
+            </div>
+            <div class="card-body">
+                {% if analysis %}
+                <div class="text-center mb-3">
+                    <div class="display-4">
+                        <span class="badge {% if analysis.wqi_score >= 90 %}wqi-excellent{% elif analysis.wqi_score >= 70 %}wqi-compliant{% elif analysis.wqi_score >= 50 %}wqi-warning{% else %}wqi-unsafe{% endif %}">
+                            WQI: {{ analysis.wqi_score|round(1) }}
+                        </span>
+                    </div>
+                    <p class="text-muted">{{ analysis.wqi_class }}</p>
+                </div>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Contaminated:</th>
+                        <td>
+                            {% if analysis.is_contaminated %}
+                            <span class="badge bg-danger">Yes</span>
+                            {% else %}
+                            <span class="badge bg-success">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if analysis.is_contaminated %}
+                    <tr><th>Type:</th><td><span class="risk-badge risk-{{ analysis.severity_level }}">{{ analysis.contamination_type|replace('_',' ')|title }}</span></td></tr>
+                    <tr><th>Severity:</th><td>{{ analysis.severity_level|title }}</td></tr>
+                    <tr><th>Confidence:</th><td>{{ analysis.confidence_score|round(1) }}%</td></tr>
+                    {% endif %}
+                    <tr>
+                        <th>WHO Compliant:</th>
+                        <td>
+                            {% if analysis.is_compliant_who %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>BIS Compliant:</th>
+                        <td>
+                            {% if analysis.is_compliant_bis %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+                {% else %}
+                <p class="text-muted text-center py-4">No analysis available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contamination Breakdown -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Contamination Breakdown</h5>
+            </div>
+            <div class="card-body">
+                {% if analysis %}
+                <canvas id="contaminationChart" height="200"></canvas>
+                {% else %}
+                <p class="text-muted text-center py-4">Run analysis to see breakdown</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Results -->
+{% if test_result %}
+<div class="card mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Test Results</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6>Physical Parameters</h6>
+                <table class="table table-sm">
+                    <tr><th>pH:</th><td>{{ test_result.ph|round(2) if test_result.ph else '-' }}</td></tr>
+                    <tr><th>Temperature:</th><td>{{ test_result.temperature_celsius|round(1) if test_result.temperature_celsius else '-' }} °C</td></tr>
+                    <tr><th>Turbidity:</th><td>{{ test_result.turbidity_ntu|round(2) if test_result.turbidity_ntu else '-' }} NTU</td></tr>
+                    <tr><th>Conductivity:</th><td>{{ test_result.conductivity_us_cm|round(1) if test_result.conductivity_us_cm else '-' }} µS/cm</td></tr>
+                </table>
+            </div>
+            <div class="col-md-4">
+                <h6>Chemical Parameters</h6>
+                <table class="table table-sm">
+                    <tr><th>TDS:</th><td>{{ test_result.tds_ppm|round(1) if test_result.tds_ppm else '-' }} ppm</td></tr>
+                    <tr><th>Free Chlorine:</th><td>{{ test_result.free_chlorine_mg_l|round(2) if test_result.free_chlorine_mg_l else '-' }} mg/L</td></tr>
+                    <tr><th>Iron:</th><td>{{ test_result.iron_mg_l|round(3) if test_result.iron_mg_l else '-' }} mg/L</td></tr>
+                    <tr><th>Fluoride:</th><td>{{ test_result.fluoride_mg_l|round(2) if test_result.fluoride_mg_l else '-' }} mg/L</td></tr>
+                    <tr><th>Nitrate:</th><td>{{ test_result.nitrate_mg_l|round(1) if test_result.nitrate_mg_l else '-' }} mg/L</td></tr>
+                    <tr><th>Chloride:</th><td>{{ test_result.chloride_mg_l|round(1) if test_result.chloride_mg_l else '-' }} mg/L</td></tr>
+                </table>
+            </div>
+            <div class="col-md-4">
+                <h6>Microbiological</h6>
+                <table class="table table-sm">
+                    <tr><th>Total Coliform:</th><td>{{ test_result.total_coliform_mpn|round(0) if test_result.total_coliform_mpn else '-' }} MPN/100ml</td></tr>
+                    <tr><th>Fecal Coliform:</th><td>{{ test_result.fecal_coliform_mpn|round(0) if test_result.fecal_coliform_mpn else '-' }} MPN/100ml</td></tr>
+                    <tr><th>E. coli:</th><td>{{ test_result.e_coli_mpn|round(0) if test_result.e_coli_mpn else '-' }} MPN/100ml</td></tr>
+                    <tr><th>Ammonia:</th><td>{{ test_result.ammonia_mg_l|round(2) if test_result.ammonia_mg_l else '-' }} mg/L</td></tr>
+                    <tr><th>DO:</th><td>{{ test_result.dissolved_oxygen_mg_l|round(1) if test_result.dissolved_oxygen_mg_l else '-' }} mg/L</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+{% if analysis and analysis.primary_recommendation %}
+<div class="card mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-{{ 'danger' if analysis.severity_level == 'critical' else 'warning' if analysis.severity_level == 'high' else 'info' }}">
+            <strong>Primary Action:</strong> {{ analysis.primary_recommendation }}
+        </div>
+        {% if analysis.estimated_treatment_cost_inr %}
+        <p><strong>Estimated Cost:</strong> ₹{{ "{:,.0f}".format(analysis.estimated_treatment_cost_inr) }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if analysis %}
+<script>
+new Chart(document.getElementById('contaminationChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Runoff', 'Sewage', 'Salt', 'Corrosion', 'Decay'],
+        datasets: [{
+            label: 'Score',
+            data: [
+                {{ analysis.runoff_sediment_score|round(3) }},
+                {{ analysis.sewage_ingress_score|round(3) }},
+                {{ analysis.salt_intrusion_score|round(3) }},
+                {{ analysis.pipe_corrosion_score|round(3) }},
+                {{ analysis.disinfectant_decay_score|round(3) }}
+            ],
+            backgroundColor: ['#ffc107', '#dc3545', '#17a2b8', '#6c757d', '#28a745']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {y: {beginAtZero: true, max: 1}},
+        plugins: {legend: {display: false}}
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

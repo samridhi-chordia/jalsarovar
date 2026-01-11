@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.site_name }} - Forecast{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.dashboard') }}">Analytics</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.site_trends', site_id=site.id) }}">{{ site.site_name }}</a></li>
+                    <li class="breadcrumb-item active">Forecast</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-graph-up-arrow"></i> Water Quality Forecast</h2>
+            <p class="text-muted">{{ site.site_name }} | {{ parameter.replace('_', ' ').title() }} | {{ days_ahead }} days ahead</p>
+        </div>
+    </div>
+
+    <!-- Forecast Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Parameter</h6>
+                    <h4>{{ parameter.replace('_', ' ').title() }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Forecast Period</h6>
+                    <h4>{{ forecast_result.forecast_days }} Days</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Model R-squared</h6>
+                    <h4>{{ (forecast_result.model_r_squared * 100)|round(1) }}%</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Trend Direction</h6>
+                    {% if forecast_result.trend_direction == 'increasing' %}
+                        <h4 class="text-danger"><i class="bi bi-arrow-up"></i> Increasing</h4>
+                    {% else %}
+                        <h4 class="text-success"><i class="bi bi-arrow-down"></i> Decreasing</h4>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Forecast Visualization</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="forecastChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Data Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Forecast Data (Sample)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Predicted Value</th>
+                                    <th>95% CI (+/-)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(0, forecast_result.forecast_values|length, 7) %}
+                                <tr>
+                                    <td>{{ forecast_result.forecast_dates[i] }}</td>
+                                    <td>{{ forecast_result.forecast_values[i]|round(3) }}</td>
+                                    <td>{{ forecast_result.confidence_interval|round(3) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <small class="text-muted">Showing weekly samples. Full data available via API.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Forecast Another Parameter</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Parameter</label>
+                            <select name="parameter" class="form-select">
+                                <option value="turbidity_ntu" {% if parameter == 'turbidity_ntu' %}selected{% endif %}>Turbidity (NTU)</option>
+                                <option value="ph_value" {% if parameter == 'ph_value' %}selected{% endif %}>pH Value</option>
+                                <option value="tds_ppm" {% if parameter == 'tds_ppm' %}selected{% endif %}>TDS (ppm)</option>
+                                <option value="free_chlorine_mg_l" {% if parameter == 'free_chlorine_mg_l' %}selected{% endif %}>Free Chlorine (mg/L)</option>
+                                <option value="temperature_celsius" {% if parameter == 'temperature_celsius' %}selected{% endif %}>Temperature (C)</option>
+                                <option value="iron_mg_l" {% if parameter == 'iron_mg_l' %}selected{% endif %}>Iron (mg/L)</option>
+                                <option value="chloride_mg_l" {% if parameter == 'chloride_mg_l' %}selected{% endif %}>Chloride (mg/L)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Days Ahead</label>
+                            <select name="days" class="form-select">
+                                <option value="30" {% if days_ahead == 30 %}selected{% endif %}>30 Days</option>
+                                <option value="60" {% if days_ahead == 60 %}selected{% endif %}>60 Days</option>
+                                <option value="90" {% if days_ahead == 90 %}selected{% endif %}>90 Days</option>
+                                <option value="180" {% if days_ahead == 180 %}selected{% endif %}>180 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary d-block w-100">
+                                <i class="bi bi-graph-up-arrow"></i> Generate Forecast
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row">
+        <div class="col-12">
+            <a href="{{ url_for('analytics.site_trends', site_id=site.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Trends
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Parse forecast data
+    const forecastDates = {{ forecast_result.forecast_dates|tojson }};
+    const forecastValues = {{ forecast_result.forecast_values|tojson }};
+    const confidenceInterval = {{ forecast_result.confidence_interval }};
+
+    // Calculate upper and lower bounds
+    const upperBound = forecastValues.map(v => v + confidenceInterval);
+    const lowerBound = forecastValues.map(v => Math.max(0, v - confidenceInterval));
+
+    // Sample every 7 days for readability
+    const sampleIndices = [];
+    for (let i = 0; i < forecastDates.length; i += 7) {
+        sampleIndices.push(i);
+    }
+
+    const sampledDates = sampleIndices.map(i => forecastDates[i]);
+    const sampledValues = sampleIndices.map(i => forecastValues[i]);
+    const sampledUpper = sampleIndices.map(i => upperBound[i]);
+    const sampledLower = sampleIndices.map(i => lowerBound[i]);
+
+    // Create chart
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sampledDates,
+            datasets: [
+                {
+                    label: 'Predicted Value',
+                    data: sampledValues,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    fill: false,
+                    tension: 0.1
+                },
+                {
+                    label: 'Upper 95% CI',
+                    data: sampledUpper,
+                    borderColor: 'rgba(255, 99, 132, 0.5)',
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Lower 95% CI',
+                    data: sampledLower,
+                    borderColor: 'rgba(255, 99, 132, 0.5)',
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '{{ parameter.replace("_", " ").title() }} Forecast'
+                },
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '{{ parameter.replace("_", " ").title() }}'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

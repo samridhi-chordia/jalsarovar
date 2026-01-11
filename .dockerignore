@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+
+# Development
+.env
+.env.local
+.env.development
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+*.txt
+!requirements.txt
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (will be in volumes)
+uploads/*
+!uploads/.gitkeep
+
+# Models (will be in volumes)
+models/*
+!models/.gitkeep
+
+# Deployment files (not needed in image)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+deployment/
+scripts/populate_data.py
+scripts/test_*.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Backups
+backups/
+*.sql
+*.dump
+
+# Temporary files
+tmp/
+temp/
+*.tmp

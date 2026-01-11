@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit User' if user else 'New User' }} - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-person-{{ 'gear' if user else 'plus' }}"></i> {{ 'Edit User' if user else 'Create New User' }}</h2>
+        <p class="text-muted mb-0">{{ 'Update user details' if user else 'Add a new system user' }}</p>
+    </div>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Users
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Username <span class="text-danger">*</span></label>
+                    <input type="text" name="username" class="form-control"
+                           value="{{ user.username if user else '' }}"
+                           {{ 'readonly' if user else '' }}
+                           required>
+                    {% if user %}
+                    <small class="text-muted">Username cannot be changed</small>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ user.email if user else '' }}"
+                           required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="full_name" class="form-control"
+                           value="{{ user.full_name if user else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Role <span class="text-danger">*</span></label>
+                    <select name="role" class="form-select" required id="role-select" onchange="toggleSiteAssignment()">
+                        <optgroup label="Public Roles (Auto-Approved)">
+                            <option value="viewer" {{ 'selected' if user and user.role == 'viewer' else '' }}>
+                                Viewer - Read-only access
+                            </option>
+                            <option value="citizen_contributor" {{ 'selected' if user and user.role == 'citizen_contributor' else '' }}>
+                                Citizen Contributor - Submit visual observations
+                            </option>
+                            <option value="researcher" {{ 'selected' if user and user.role == 'researcher' else '' }}>
+                                Researcher - Access datasets for research
+                            </option>
+                        </optgroup>
+                        <optgroup label="Field & Analysis Roles">
+                            <option value="field_collector" {{ 'selected' if user and user.role == 'field_collector' else '' }}>
+                                Field Collector - Collect samples, create sites
+                            </option>
+                            <option value="analyst" {{ 'selected' if user and user.role == 'analyst' else '' }}>
+                                Analyst - Data analysis & ML models
+                            </option>
+                        </optgroup>
+                        <optgroup label="Institutional Roles">
+                            <option value="lab_partner" {{ 'selected' if user and user.role == 'lab_partner' else '' }}>
+                                Lab Partner - Submit laboratory results
+                            </option>
+                            <option value="industry_partner" {{ 'selected' if user and user.role == 'industry_partner' else '' }}>
+                                Industry Partner - Monitor compliance
+                            </option>
+                            <option value="government_official" {{ 'selected' if user and user.role == 'government_official' else '' }}>
+                                Government Official - Official monitoring
+                            </option>
+                        </optgroup>
+                        <optgroup label="Management Roles">
+                            <option value="site_manager" {{ 'selected' if user and user.role == 'site_manager' else '' }}>
+                                Site Manager - Manage assigned sites
+                            </option>
+                            <option value="admin" {{ 'selected' if user and user.role == 'admin' else '' }}>
+                                Admin - Full system access
+                            </option>
+                        </optgroup>
+                    </select>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Select the appropriate role based on user's responsibilities
+                    </small>
+                </div>
+                <!-- Site Assignment Section -->
+                <div class="col-md-12 mb-3" id="site-assignment-section" style="display: {% if user and user.role in ['site_manager', 'industry_partner', 'lab_partner'] %}block{% else %}none{% endif %};">
+                    <label for="assigned_sites" class="form-label">
+                        Assign Sites
+                        <span class="text-danger" id="site-required-indicator">*</span>
+                    </label>
+                    <select name="assigned_sites" id="assigned_sites" class="form-select" multiple size="8">
+                        {% for site in sites %}
+                        <option value="{{ site.id }}"
+                            {% if user and user.assigned_sites and site.id in user.assigned_sites %}selected{% endif %}>
+                            {{ site.site_name }} - {{ site.district }}, {{ site.state }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        Hold Ctrl (Windows) or Cmd (Mac) to select multiple sites. Site Managers and Lab Partners can be assigned specific sites.
+                    </small>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Currently assigned:
+                            <strong id="assigned-count">{{ user.assigned_sites|length if user and user.assigned_sites else 0 }}</strong> site(s)
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Password {{ '(leave blank to keep current)' if user else '' }} {{ '' if user else '<span class="text-danger">*</span>'|safe }}</label>
+                    <input type="password" name="password" class="form-control"
+                           {{ '' if user else 'required' }}>
+                </div>
+                {% if user %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="is_active"
+                               {{ 'checked' if user.is_active else '' }}>
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> {{ 'Update User' if user else 'Create User' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if user %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> User Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Created:</strong><br>
+                {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}
+            </div>
+            <div class="col-md-4">
+                <strong>Last Login:</strong><br>
+                {{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}
+            </div>
+            <div class="col-md-4">
+                <strong>User ID:</strong><br>
+                {{ user.id }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Toggle site assignment section based on role selection
+function toggleSiteAssignment() {
+    const roleSelect = document.getElementById('role-select');
+    const siteSection = document.getElementById('site-assignment-section');
+    const siteSelect = document.getElementById('assigned_sites');
+    const siteRequired = document.getElementById('site-required-indicator');
+
+    if (!roleSelect || !siteSection) return;
+
+    const selectedRole = roleSelect.value;
+    const requiresSites = ['site_manager', 'industry_partner', 'lab_partner'].includes(selectedRole);
+
+    if (requiresSites) {
+        siteSection.style.display = 'block';
+        if (selectedRole === 'site_manager') {
+            siteSelect.setAttribute('required', 'required');
+            siteRequired.style.display = 'inline';
+        } else {
+            siteSelect.removeAttribute('required');
+            siteRequired.style.display = 'none';
+        }
+    } else {
+        siteSection.style.display = 'none';
+        siteSelect.removeAttribute('required');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize site assignment visibility on page load
+    toggleSiteAssignment();
+
+    // Update assigned count when sites are selected
+    const assignedSitesSelect = document.getElementById('assigned_sites');
+    if (assignedSitesSelect) {
+        assignedSitesSelect.addEventListener('change', function() {
+            const count = this.selectedOptions.length;
+            const countElement = document.getElementById('assigned-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

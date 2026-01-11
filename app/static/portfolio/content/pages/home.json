@@ -1,0 +1,63 @@
+{
+  "page_type": "home",
+  "hero": {
+    "name": "Samridhi Chordia",
+    "subtitle": "Student \u2022 Researcher \u2022 Developer",
+    "description": "Building ML systems for social impact. From water quality monitoring to solar cell optimization, I create technology that makes a difference."
+  },
+  "statistics": [
+    {
+      "label": "People Impacted",
+      "number": 800,
+      "order": 1
+    },
+    {
+      "label": "% ML Accuracy",
+      "number": 92,
+      "order": 2
+    },
+    {
+      "label": "Students Reached",
+      "number": 3700,
+      "order": 3
+    }
+  ],
+  "featured_items": [
+    {
+      "id": "jalsarovar",
+      "order": 1,
+      "type": "project"
+    },
+    {
+      "id": "legolas",
+      "order": 2,
+      "type": "project"
+    },
+    {
+      "id": "iit_internship",
+      "order": 3,
+      "type": "project"
+    }
+  ],
+  "highlights": [
+    {
+      "description": "Developed and tested Amigo, India's first anonymous counseling app.\nDesigned the counselor onboarding system and mood-tracking journal from scratch using javascript and react.\nIncorporated ML for mood pattern analysis to give recommendations to the users.\nPitched the app to schools and workplaces in my district",
+      "icon": "\ud83d\udd2c",
+      "order": 1,
+      "title": "Software Intern, Rigpa Technologies"
+    },
+    {
+      "description": "Reached 3700+ students through STEM workshops and protected 600+ endangered sea turtles through conservation work.",
+      "icon": "\ud83c\udf31",
+      "order": 2,
+      "title": "Community Impact"
+    }
+  ],
+  "cta": {
+    "title": "Let's Build Something Amazing Together",
+    "subtitle": "I'm always interested in hearing about new projects and opportunities.",
+    "button_text": "Get in Touch"
+  },
+  "id": "home",
+  "last_updated": "2025-12-29T09:06:50.817810"
+}

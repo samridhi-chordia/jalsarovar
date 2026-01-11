@@ -1,0 +1,218 @@
+{% extends "portfolio_base.html" %}
+{% block title %}Samridhi Chordia | Student, Researcher & ML Developer{% endblock %}
+{% block meta_description %}Portfolio of Samridhi Chordia - Y Combinator AI Startup School participant, Johns Hopkins researcher, and founder of Jal Sarovar water quality monitoring system.{% endblock %}
+{% block meta_keywords %}Samridhi Chordia, Y Combinator, Johns Hopkins research, ML developer, water quality research, AI student, STEM researcher India{% endblock %}
+{% block og_title %}Samridhi Chordia | Building ML Systems for Social Impact{% endblock %}
+
+{% block portfolio_content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            {% if page and page.hero %}
+                <h1 class="hero-title">{{ page.hero.name }}</h1>
+                <p class="hero-subtitle">{{ page.hero.subtitle }}</p>
+                <p class="hero-description">{{ page.hero.description }}</p>
+            {% else %}
+                <h1 class="hero-title">Samridhi Chordia</h1>
+                <p class="hero-subtitle">Student • Researcher • Developer</p>
+                <p class="hero-description">
+                    Building ML systems for social impact. From water quality monitoring to solar cell optimization,
+                    I create technology that makes a difference.
+                </p>
+            {% endif %}
+            <div class="hero-buttons">
+                <a href="{{ url_for('portfolio.projects') }}" class="btn btn-primary">View Projects</a>
+                <a href="{{ url_for('portfolio.contact') }}" class="btn btn-secondary">Get in Touch</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="stats">
+    <div class="container">
+        <div class="stats-grid">
+            {% if page and page.statistics %}
+                {% for stat in page.statistics|sort(attribute='order') %}
+                <div class="stat-item">
+                    <span class="stat-number" data-target="{{ stat.number }}">0</span>
+                    <span class="stat-label">{{ stat.label }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                {# Fallback to hardcoded values if JSON not available #}
+                <div class="stat-item">
+                    <span class="stat-number" data-target="18">0</span>
+                    <span class="stat-label">Activities</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-target="800">0</span>
+                    <span class="stat-label">People Impacted</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-target="92">0</span>
+                    <span class="stat-label">% ML Accuracy</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-target="1000">0</span>
+                    <span class="stat-label">Students Reached</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Projects Section -->
+<section class="featured-projects">
+    <div class="container">
+        <h2 class="section-title">Featured Projects</h2>
+        <p class="section-subtitle">Highlighting my most impactful work in ML, research, and software development</p>
+
+        <div class="projects-grid">
+            {% if page and page.featured_content %}
+                {% for item in page.featured_content %}
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-placeholder">
+                            {{ item.category if item.category else item.content_type|title }}
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <span class="project-category">{{ item.category }}</span>
+                        <h3 class="project-title">{{ item.title }}</h3>
+                        <p class="project-description">{{ item.short_description or item.full_description[:200] }}</p>
+                        <div class="project-tags">
+                            {% for skill in (item.skills or [])[:3] %}
+                            <span class="tag">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                        <a href="{{ url_for('portfolio.projects') }}#{{ item.id }}" class="project-link">Learn More →</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                {# Fallback to hardcoded projects #}
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-placeholder">ML System</div>
+                    </div>
+                    <div class="project-content">
+                        <span class="project-category">Water Quality Monitoring</span>
+                        <h3 class="project-title">Jal Sarovar</h3>
+                        <p class="project-description">
+                            Built India's first ML-based unified water quality monitoring system with 92% accuracy,
+                            serving 800+ residents across 7 public sites.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">Machine Learning</span>
+                            <span class="tag">IoT</span>
+                            <span class="tag">Python</span>
+                        </div>
+                        <a href="{{ url_for('portfolio.projects') }}#jalsarovar" class="project-link">Learn More →</a>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-placeholder">Research</div>
+                    </div>
+                    <div class="project-content">
+                        <span class="project-category">Research</span>
+                        <h3 class="project-title">LEGOLAS - Johns Hopkins</h3>
+                        <p class="project-description">
+                            Built autonomous ML-based robot for solar cell optimization. Reduced optimization
+                            iterations by 32%. Research paper pending publication.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">Robotics</span>
+                            <span class="tag">Bayesian ML</span>
+                            <span class="tag">Research</span>
+                        </div>
+                        <a href="{{ url_for('portfolio.projects') }}#legolas" class="project-link">Learn More →</a>
+                    </div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-image">
+                        <div class="project-placeholder">App Dev</div>
+                    </div>
+                    <div class="project-content">
+                        <span class="project-category">Work Experience</span>
+                        <h3 class="project-title">Amigo App</h3>
+                        <p class="project-description">
+                            Developed India's first anonymous counseling app with ML-based mood tracking.
+                            Professional mental health support accessible 24/7.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">React</span>
+                            <span class="tag">JavaScript</span>
+                            <span class="tag">ML</span>
+                        </div>
+                        <a href="{{ url_for('portfolio.projects') }}#amigo_app" class="project-link">Learn More →</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section-cta">
+            <a href="{{ url_for('portfolio.projects') }}" class="btn btn-outline">View All Projects</a>
+        </div>
+    </div>
+</section>
+
+<!-- Highlights Section -->
+<section class="highlights">
+    <div class="container">
+        <h2 class="section-title">Highlights</h2>
+
+        <div class="highlights-grid">
+            {% if page and page.highlights %}
+                {% for highlight in page.highlights|sort(attribute='order') %}
+                <div class="highlight-item">
+                    <div class="highlight-icon">{{ highlight.icon }}</div>
+                    <h3>{{ highlight.title }}</h3>
+                    <p>{{ highlight.description }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                {# Fallback to hardcoded values #}
+                <div class="highlight-item">
+                    <div class="highlight-icon">🎓</div>
+                    <h3>Y Combinator AI Startup School</h3>
+                    <p>Selected from 16,000+ applicants worldwide. Pitched to YC partners, learned from Sam Altman, Andrej Karpathy, and Andrew Ng.</p>
+                </div>
+
+                <div class="highlight-item">
+                    <div class="highlight-icon">🔬</div>
+                    <h3>Research at Johns Hopkins & IIT</h3>
+                    <p>Conducted cutting-edge research in solar cell optimization and atmospheric water generation at top institutions.</p>
+                </div>
+
+                <div class="highlight-item">
+                    <div class="highlight-icon">🌱</div>
+                    <h3>Community Impact</h3>
+                    <p>Reached 1,000+ students through STEM workshops and protected 600+ endangered sea turtles through conservation work.</p>
+                </div>
+
+                <div class="highlight-item">
+                    <div class="highlight-icon">🏆</div>
+                    <h3>Awards & Recognition</h3>
+                    <p>Cambridge ICE Award, Duke of Edinburgh Bronze, Merit Awards, and U-17 Badminton District Silver Medal.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta">
+    <div class="container">
+        <div class="cta-content">
+            <h2>{{ page.cta.title if page and page.cta else "Let's Build Something Amazing Together" }}</h2>
+            <p>{{ page.cta.subtitle if page and page.cta else "I'm always interested in hearing about new projects and opportunities." }}</p>
+            <a href="{{ url_for('portfolio.contact') }}" class="btn btn-primary btn-large">{{ page.cta.button_text if page and page.cta else 'Get in Touch' }}</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

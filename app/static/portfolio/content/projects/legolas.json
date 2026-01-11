@@ -1,0 +1,40 @@
+{
+  "id": "legolas",
+  "title": "LEGOLAS Research - Johns Hopkins University",
+  "category": "Research",
+  "short_description": "Built autonomous ML-based robot for solar cell optimization at Johns Hopkins Entropy for Energy Lab",
+  "full_description": "Research Intern at Johns Hopkins University's Entropy for Energy Lab. Built autonomous ML-based robot for solar cell optimization. Programmed robotic controls and Gaussian Process/Bayesian ML model. Reduced number of iterations to find optimal composition by 32%. Co-authored paper with Dr. Oses, Assistant Professor (Publication Pending). Presented findings to IIT Professors in ICCW Department.",
+  "start_date": "",
+  "currently_active": false,
+  "highlights": [
+    "32% reduction in optimization iterations",
+    "Autonomous robot for solar cell testing",
+    "Gaussian Process & Bayesian ML implementation",
+    "Co-authored research paper (pending publication)",
+    "Presented to IIT professors"
+  ],
+  "skills": [
+    "Machine Learning",
+    "Robotics",
+    "Python",
+    "Gaussian Processes",
+    "Bayesian Optimization",
+    "Research"
+  ],
+  "images": [],
+  "videos": [],
+  "links": [
+    {
+      "text": "Entropy for Energy Laboratory, Johns Hopkins University",
+      "url": "https://entropy4energy.ai/"
+    },
+    {
+      "text": "My Team",
+      "url": "https://entropy4energy.ai/team.html"
+    },
+    {
+      "text": "Dr. Corey Oses, My Research Advisor",
+      "url": "https://coreyoses.com/"
+    }
+  ]
+}

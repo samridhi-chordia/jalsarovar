@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-graph-up-arrow"></i> Water Quality Analytics Dashboard</h2>
+            <p class="text-muted">System-wide trend analysis and early warning alerts</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('analytics.dashboard') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="country" class="form-label">Country</label>
+                    <select class="form-select" id="country" name="country" onchange="this.form.submit()">
+                        <option value="">All Countries</option>
+                        {% for country in countries %}
+                        <option value="{{ country }}" {% if selected_country == country %}selected{% endif %}>
+                            {{ country }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="days" class="form-label">Time Period</label>
+                    <select class="form-select" id="days" name="days" onchange="this.form.submit()">
+                        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                        <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 Months</option>
+                        <option value="365" {% if days == 365 %}selected{% endif %}>Last Year</option>
+                        <option value="1825" {% if days == 1825 %}selected{% endif %}>Last 5 Years (Historical)</option>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">
+                        <i class="bi bi-building"></i> Sites Analyzed
+                    </h5>
+                    <h2 class="mb-0">{{ summary_stats.total_sites_analyzed }}</h2>
+                    <small class="text-muted">
+                        {% if days <= 30 %}Last 30 days
+                        {% elif days <= 90 %}Last 90 days
+                        {% elif days <= 180 %}Last 6 months
+                        {% elif days <= 365 %}Last year
+                        {% else %}Last 5 years{% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Critical Sites
+                    </h5>
+                    <h2 class="mb-0">{{ summary_stats.critical_sites }}</h2>
+                    <small class="text-muted">Immediate action needed</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">
+                        <i class="bi bi-exclamation-circle-fill"></i> High Warning
+                    </h5>
+                    <h2 class="mb-0">{{ summary_stats.high_warning_sites }}</h2>
+                    <small class="text-muted">Requires attention</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">
+                        <i class="bi bi-arrow-up-circle-fill"></i> Improving
+                    </h5>
+                    <h2 class="mb-0">{{ summary_stats.improving_sites }}</h2>
+                    <small class="text-muted">Positive trends</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trend Summary Row -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-up-circle text-success" style="font-size: 2rem;"></i>
+                    <h4 class="mt-2">{{ summary_stats.improving_sites }}</h4>
+                    <p class="text-muted mb-0">Improving Sites</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-dash-circle text-secondary" style="font-size: 2rem;"></i>
+                    <h4 class="mt-2">{{ summary_stats.stable_sites }}</h4>
+                    <p class="text-muted mb-0">Stable Sites</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-down-circle text-danger" style="font-size: 2rem;"></i>
+                    <h4 class="mt-2">{{ summary_stats.declining_sites }}</h4>
+                    <p class="text-muted mb-0">Declining Sites</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Alerts Section -->
+    {% if critical_sites %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Critical Sites - Immediate Action Required
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Site</th>
+                                    <th>Warning Score</th>
+                                    <th>Overall Trend</th>
+                                    <th>Samples</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in critical_sites %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ site.site_name }}</strong><br>
+                                        <small class="text-muted">{{ site.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ site.warning_score|round(1) }}</span>
+                                    </td>
+                                    <td>
+                                        {% if site.overall_trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% elif site.overall_trend == 'stable' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ site.samples_analyzed }}</td>
+                                    <td>
+                                        <a href="{{ url_for('analytics.site_trends', site_id=site.site_id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-graph-up"></i> View Trends
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- High Warning Sites -->
+    {% if high_warning_sites %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-circle-fill"></i> High Warning Sites
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Site</th>
+                                    <th>Warning Score</th>
+                                    <th>Overall Trend</th>
+                                    <th>Samples</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in high_warning_sites %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ site.site_name }}</strong><br>
+                                        <small class="text-muted">{{ site.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">{{ site.warning_score|round(1) }}</span>
+                                    </td>
+                                    <td>
+                                        {% if site.overall_trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% elif site.overall_trend == 'stable' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ site.samples_analyzed }}</td>
+                                    <td>
+                                        <a href="{{ url_for('analytics.site_trends', site_id=site.site_id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-graph-up"></i> View Trends
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- All Sites Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> All Sites - Top 15 by Warning Score
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if site_warnings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Site</th>
+                                    <th>Warning Level</th>
+                                    <th>Warning Score</th>
+                                    <th>Overall Trend</th>
+                                    <th>Samples Analyzed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in site_warnings %}
+                                <tr>
+                                    <td><strong>{{ loop.index }}</strong></td>
+                                    <td>
+                                        <strong>{{ site.site_name }}</strong><br>
+                                        <small class="text-muted">{{ site.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        {% if site.warning_level == 'critical' %}
+                                            <span class="badge bg-danger">CRITICAL</span>
+                                        {% elif site.warning_level == 'high' %}
+                                            <span class="badge bg-warning text-dark">HIGH</span>
+                                        {% elif site.warning_level == 'medium' %}
+                                            <span class="badge bg-info">MEDIUM</span>
+                                        {% else %}
+                                            <span class="badge bg-success">LOW</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="width: 100px; height: 20px;">
+                                            {% if site.warning_score >= 70 %}
+                                                <div class="progress-bar bg-danger" style="width: {{ site.warning_score }}%">
+                                                    {{ site.warning_score|round(0) }}
+                                                </div>
+                                            {% elif site.warning_score >= 50 %}
+                                                <div class="progress-bar bg-warning" style="width: {{ site.warning_score }}%">
+                                                    {{ site.warning_score|round(0) }}
+                                                </div>
+                                            {% elif site.warning_score >= 30 %}
+                                                <div class="progress-bar bg-info" style="width: {{ site.warning_score }}%">
+                                                    {{ site.warning_score|round(0) }}
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar bg-success" style="width: {{ [site.warning_score, 10]|max }}%">
+                                                    {{ site.warning_score|round(0) }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if site.overall_trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% elif site.overall_trend == 'stable' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ site.samples_analyzed }}</td>
+                                    <td>
+                                        <a href="{{ url_for('analytics.site_trends', site_id=site.site_id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-graph-up"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No site data available for analysis. Sites need at least 3 water samples in the last 90 days.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('analytics.alerts') }}" class="btn btn-warning me-2 mb-2">
+                        <i class="bi bi-exclamation-triangle"></i> View All Alerts
+                    </a>
+                    <a href="{{ url_for('analytics.compare_sites') }}" class="btn btn-info me-2 mb-2">
+                        <i class="bi bi-diagram-3"></i> Compare Multiple Sites
+                    </a>
+                    <a href="{{ url_for('analytics.sites') }}" class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-geo-alt"></i> Analyze Specific Site
+                    </a>
+                    <a href="{{ url_for('samples.index') }}" class="btn btn-secondary mb-2">
+                        <i class="bi bi-water"></i> View All Samples
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

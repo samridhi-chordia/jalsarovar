@@ -1,0 +1,298 @@
+/*
+ * Project-specific Styles
+ */
+
+/* ===================================
+   Filter Section
+   =================================== */
+.filters {
+    padding: 2rem 0;
+    background-color: var(--background-alt);
+}
+
+.filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.625rem 1.25rem;
+    background-color: var(--background);
+    color: var(--text-dark);
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* ===================================
+   Project Highlights List
+   =================================== */
+.project-highlights {
+    list-style: none;
+    margin-bottom: 1rem;
+    padding-left: 0;
+}
+
+.project-highlights li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.9375rem;
+}
+
+.project-highlights li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* ===================================
+   Project Detail Modal
+   =================================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: none;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background-color: var(--background);
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    border-radius: 1rem;
+    overflow-y: auto;
+    z-index: 2001;
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-close {
+    position: sticky;
+    top: 0;
+    right: 0;
+    float: right;
+    width: 3rem;
+    height: 3rem;
+    background-color: var(--background);
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-dark);
+    border-radius: 0 1rem 0 0.5rem;
+    transition: all var(--transition-fast);
+    z-index: 10;
+}
+
+.modal-close:hover {
+    background-color: #ef4444;
+    color: white;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+/* ===================================
+   Project Detail Content
+   =================================== */
+.project-detail {
+    clear: both;
+}
+
+.project-meta {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+}
+
+.project-description-full {
+    margin-bottom: 2rem;
+    line-height: 1.8;
+}
+
+.project-section {
+    margin-bottom: 2rem;
+}
+
+.project-section h3 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.highlights-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.highlights-list li {
+    padding-left: 1.75rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.highlights-list li:before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.skills-tags .skill-tag {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--background-alt) 0%, #e0e7ff 100%);
+    color: var(--primary-color);
+    border-radius: 0.5rem;
+    font-weight: 600;
+}
+
+/* ===================================
+   Project Gallery
+   =================================== */
+.project-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.project-gallery img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.project-gallery img:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.no-media {
+    padding: 2rem;
+    text-align: center;
+    background-color: var(--background-alt);
+    border-radius: 0.5rem;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+/* ===================================
+   Project Videos
+   =================================== */
+.project-videos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.video-container {
+    background-color: var(--background-alt);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.video-container video {
+    width: 100%;
+    display: block;
+}
+
+.video-title {
+    padding: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-dark);
+    margin-bottom: 0;
+}
+
+/* ===================================
+   Project Links
+   =================================== */
+.project-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.project-links .btn {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* ===================================
+   Mobile Adjustments
+   =================================== */
+@media (max-width: 640px) {
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .project-gallery {
+        grid-template-columns: 1fr;
+    }
+
+    .project-videos {
+        grid-template-columns: 1fr;
+    }
+
+    .project-links {
+        flex-direction: column;
+    }
+
+    .project-links .btn {
+        width: 100%;
+    }
+}

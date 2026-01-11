@@ -1,0 +1,18 @@
+Congratulations {{ user_name }}!
+
+Your role request has been approved by our admin team.
+
+Approved Role: {{ role }}
+
+You now have access to additional features and capabilities.
+
+Access your dashboard: {{ dashboard_url }}
+
+Thank you for your patience during the approval process!
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

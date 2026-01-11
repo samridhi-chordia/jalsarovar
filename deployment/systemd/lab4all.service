@@ -1,0 +1,70 @@
+# ============================================================================
+# Lab4All Web Application - Systemd Service Unit
+# For non-containerized deployment on Ubuntu/Debian servers
+# ============================================================================
+#
+# Installation:
+#   sudo cp deployment/systemd/lab4all.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable lab4all.service
+#   sudo systemctl start lab4all.service
+#
+# Management:
+#   sudo systemctl status lab4all
+#   sudo systemctl restart lab4all
+#   sudo systemctl stop lab4all
+#   sudo systemctl logs -u lab4all -f
+#
+# ============================================================================
+
+[Unit]
+Description=Lab4All Water Quality Management System
+Documentation=https://github.com/yourorg/lab4all
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+User=lab4all
+Group=lab4all
+WorkingDirectory=/opt/lab4all/lab4all_webapp
+Environment="PATH=/opt/lab4all/venv/bin"
+EnvironmentFile=/opt/lab4all/lab4all_webapp/.env.production
+
+# Gunicorn command
+ExecStart=/opt/lab4all/venv/bin/gunicorn \
+    --config /opt/lab4all/lab4all_webapp/gunicorn_config.py \
+    --bind 0.0.0.0:8000 \
+    --workers 4 \
+    --worker-class sync \
+    --timeout 120 \
+    --access-logfile /var/log/lab4all/access.log \
+    --error-logfile /var/log/lab4all/error.log \
+    --log-level info \
+    --name lab4all_webapp \
+    app:app
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=400
+StartLimitBurst=5
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lab4all/lab4all_webapp/uploads /var/log/lab4all
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=512
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

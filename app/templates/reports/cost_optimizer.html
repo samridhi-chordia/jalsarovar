@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% block title %}Cost Optimizer - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-currency-rupee"></i> Bayesian Cost Optimizer</h2>
+            <p class="text-muted">ML-driven test frequency optimization for cost savings</p>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bi bi-funnel"></i> Filter Options</h5>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label for="country-filter" class="form-label">Country</label>
+                            <select class="form-select" id="country-filter" onchange="applyFilters()">
+                                <option value="all" selected>All Countries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="state-filter" class="form-label">State</label>
+                            <select class="form-select" id="state-filter" onchange="applyFilters()">
+                                <option value="all" selected>All States</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="type-filter" class="form-label">Site Type</label>
+                            <select class="form-select" id="type-filter" onchange="applyFilters()">
+                                <option value="all" selected>All Types</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="search-input" class="form-label">Search Site</label>
+                            <input type="text" class="form-control" id="search-input"
+                                   placeholder="Search by name or code..."
+                                   onkeyup="handleSearchKeyup(event)">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="per-page-select" class="form-label">Items per page</label>
+                            <select class="form-select" id="per-page-select" onchange="applyFilters()">
+                                <option value="25">25</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summary-cards" style="display:none;">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="mb-0" id="total-sites">-</h3>
+                    <small class="text-muted">Total Sites</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h3 class="mb-0 text-danger" id="current-cost">-</h3>
+                    <small class="text-muted">Current Cost (INR)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="mb-0 text-success" id="optimized-cost">-</h3>
+                    <small class="text-muted">Optimized Cost (INR)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="mb-0 text-primary" id="total-savings">-</h3>
+                    <small class="text-muted">Total Savings (INR)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="mb-0 text-warning" id="avg-reduction">-</h3>
+                    <small class="text-muted">Avg Reduction %</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h3 class="mb-0 text-info" id="avg-detection">-</h3>
+                    <small class="text-muted">Avg Detection Rate</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="text-center my-5" id="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading cost optimization results...</p>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card" id="results-section" style="display:none;">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Site-wise Optimization Results</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="results-table">
+                    <thead>
+                        <tr>
+                            <th>Site</th>
+                            <th>Risk</th>
+                            <th class="text-end">Current Tests/Year</th>
+                            <th class="text-end">Optimized Tests/Year</th>
+                            <th class="text-end">Current Cost (INR)</th>
+                            <th class="text-end">Optimized Cost (INR)</th>
+                            <th class="text-end">Savings (INR)</th>
+                            <th class="text-end">Reduction %</th>
+                            <th class="text-end">Detection Rate</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div id="pagination-info">
+                    Showing <span id="page-start">0</span> to <span id="page-end">0</span> of <span id="total-sites-pagination">0</span> sites
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination mb-0" id="pagination-controls">
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Current page state
+let currentPage = 1;
+let searchTimeout = null;
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadFilterOptions();
+    loadCostOptimization();
+});
+
+function loadFilterOptions() {
+    fetch('/reports/api/cost-optimizer/filters')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateFilter('country-filter', data.countries);
+                populateFilter('state-filter', data.states);
+                populateFilter('type-filter', data.site_types);
+            }
+        })
+        .catch(error => console.error('Error loading filters:', error));
+}
+
+function populateFilter(elementId, options) {
+    const select = document.getElementById(elementId);
+    const currentValue = select.value;
+
+    // Keep "All" option and add new options
+    const allOption = select.querySelector('option[value="all"]');
+    select.innerHTML = '';
+    select.appendChild(allOption);
+
+    options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option;
+        opt.textContent = option;
+        select.appendChild(opt);
+    });
+
+    // Restore previous selection if it exists
+    if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
+        select.value = currentValue;
+    }
+}
+
+function handleSearchKeyup(event) {
+    // Debounce search - wait 500ms after last keystroke
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+        applyFilters();
+    }, 500);
+}
+
+function applyFilters() {
+    currentPage = 1; // Reset to first page when filters change
+    loadCostOptimization();
+}
+
+function loadCostOptimization(page = 1) {
+    currentPage = page;
+
+    const country = document.getElementById('country-filter').value;
+    const state = document.getElementById('state-filter').value;
+    const siteType = document.getElementById('type-filter').value;
+    const perPage = document.getElementById('per-page-select').value;
+    const search = document.getElementById('search-input').value.trim();
+
+    const params = new URLSearchParams({
+        country: country,
+        state: state,
+        site_type: siteType,
+        page: page,
+        per_page: perPage
+    });
+
+    // Add search parameter if not empty
+    if (search) {
+        params.append('search', search);
+    }
+
+    fetch('/reports/api/cost-optimizer?' + params)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displaySummary(data.summary);
+                displayResults(data.sites);
+                displayPagination(data.pagination);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('summary-cards').style.display = 'flex';
+                document.getElementById('results-section').style.display = 'block';
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            document.getElementById('loading').innerHTML =
+                '<div class="alert alert-danger">Error loading data: ' + error.message + '</div>';
+        });
+}
+
+function displaySummary(summary) {
+    document.getElementById('total-sites').textContent = summary.total_sites;
+    document.getElementById('current-cost').textContent = '₹' + summary.total_current_cost.toLocaleString();
+    document.getElementById('optimized-cost').textContent = '₹' + summary.total_optimized_cost.toLocaleString();
+    document.getElementById('total-savings').textContent = '₹' + summary.total_savings.toLocaleString();
+    document.getElementById('avg-reduction').textContent = summary.avg_reduction_percent.toFixed(1) + '%';
+    document.getElementById('avg-detection').textContent = summary.avg_detection_rate.toFixed(1) + '%';
+}
+
+function displayResults(sites) {
+    const tbody = document.getElementById('results-tbody');
+    tbody.innerHTML = '';
+
+    sites.forEach(site => {
+        const row = document.createElement('tr');
+
+        // Risk badge color
+        const riskColors = {
+            'critical': 'danger',
+            'high': 'warning',
+            'medium': 'primary',
+            'low': 'success'
+        };
+        const riskColor = riskColors[site.risk_category] || 'secondary';
+
+        row.innerHTML = `
+            <td>
+                <a href="/reports/cost-optimizer/site/${site.site_id}">${site.site_name}</a><br>
+                <small class="text-muted">${site.site_code}</small>
+            </td>
+            <td><span class="badge bg-${riskColor}">${site.risk_category || 'N/A'}</span></td>
+            <td class="text-end">${site.current_tests_per_year || '-'}</td>
+            <td class="text-end">${site.optimized_tests_per_year || '-'}</td>
+            <td class="text-end">₹${(site.current_cost_inr || 0).toLocaleString()}</td>
+            <td class="text-end">₹${(site.optimized_cost_inr || 0).toLocaleString()}</td>
+            <td class="text-end text-success"><strong>₹${(site.cost_savings_inr || 0).toLocaleString()}</strong></td>
+            <td class="text-end text-primary"><strong>${(site.cost_reduction_percent || 0).toFixed(1)}%</strong></td>
+            <td class="text-end">${(site.detection_rate || 0).toFixed(1)}%</td>
+            <td><span class="badge bg-info">${site.recommended_frequency || 'N/A'}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function displayPagination(pagination) {
+    // Update pagination info
+    const start = (pagination.page - 1) * pagination.per_page + 1;
+    const end = Math.min(pagination.page * pagination.per_page, pagination.total_sites);
+
+    document.getElementById('page-start').textContent = start;
+    document.getElementById('page-end').textContent = end;
+    document.getElementById('total-sites-pagination').textContent = pagination.total_sites;
+
+    // Build pagination controls
+    const paginationControls = document.getElementById('pagination-controls');
+    paginationControls.innerHTML = '';
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = 'page-item' + (pagination.has_prev ? '' : ' disabled');
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadCostOptimization(${pagination.page - 1}); return false;">Previous</a>`;
+    paginationControls.appendChild(prevLi);
+
+    // Page numbers
+    const maxPages = 5; // Show max 5 page buttons
+    let startPage = Math.max(1, pagination.page - Math.floor(maxPages / 2));
+    let endPage = Math.min(pagination.total_pages, startPage + maxPages - 1);
+
+    // Adjust start if we're near the end
+    if (endPage - startPage < maxPages - 1) {
+        startPage = Math.max(1, endPage - maxPages + 1);
+    }
+
+    // First page + ellipsis if needed
+    if (startPage > 1) {
+        const firstLi = document.createElement('li');
+        firstLi.className = 'page-item';
+        firstLi.innerHTML = `<a class="page-link" href="#" onclick="loadCostOptimization(1); return false;">1</a>`;
+        paginationControls.appendChild(firstLi);
+
+        if (startPage > 2) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationControls.appendChild(ellipsisLi);
+        }
+    }
+
+    // Page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = 'page-item' + (i === pagination.page ? ' active' : '');
+        pageLi.innerHTML = `<a class="page-link" href="#" onclick="loadCostOptimization(${i}); return false;">${i}</a>`;
+        paginationControls.appendChild(pageLi);
+    }
+
+    // Ellipsis + last page if needed
+    if (endPage < pagination.total_pages) {
+        if (endPage < pagination.total_pages - 1) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationControls.appendChild(ellipsisLi);
+        }
+
+        const lastLi = document.createElement('li');
+        lastLi.className = 'page-item';
+        lastLi.innerHTML = `<a class="page-link" href="#" onclick="loadCostOptimization(${pagination.total_pages}); return false;">${pagination.total_pages}</a>`;
+        paginationControls.appendChild(lastLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = 'page-item' + (pagination.has_next ? '' : ' disabled');
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadCostOptimization(${pagination.page + 1}); return false;">Next</a>`;
+    paginationControls.appendChild(nextLi);
+}
+</script>
+{% endblock %}

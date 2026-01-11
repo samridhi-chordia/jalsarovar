@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Treatment Recommendations - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('interventions.index') }}">Interventions</a></li>
+            <li class="breadcrumb-item active">Treatment Recommendations</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-lightbulb text-warning"></i> Treatment Recommendations</h2>
+            <p class="text-muted">Get treatment method recommendations based on contamination type and budget</p>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filter Recommendations</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('interventions.treatment_recommendations') }}" class="row g-3">
+                <div class="col-md-5">
+                    <label for="contamination_type" class="form-label">Contamination Type</label>
+                    <select class="form-select" id="contamination_type" name="contamination_type">
+                        {% for value, label in contamination_types %}
+                        <option value="{{ value }}" {% if value == selected_type %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="budget" class="form-label">Maximum Budget (INR)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs</span>
+                        <input type="number" class="form-control" id="budget" name="budget"
+                               value="{{ budget if budget else '' }}" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Get Recommendations
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recommendations Results -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        Recommended Treatments for {{ recommendations.contamination_type|title }} Contamination
+                        {% if recommendations.count > 0 %}
+                        <span class="badge bg-light text-primary ms-2">{{ recommendations.count }} methods</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recommendations.recommendations %}
+                    <div class="row">
+                        {% for rec in recommendations.recommendations %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100 border-{% if loop.index <= 3 %}success{% else %}secondary{% endif %}">
+                                <div class="card-header {% if loop.index == 1 %}bg-success text-white{% elif loop.index <= 3 %}bg-light{% else %}bg-light{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            {% if loop.index == 1 %}
+                                            <i class="bi bi-trophy"></i>
+                                            {% elif loop.index <= 3 %}
+                                            <i class="bi bi-star"></i>
+                                            {% else %}
+                                            <i class="bi bi-water"></i>
+                                            {% endif %}
+                                            {{ rec.treatment_method }}
+                                        </h6>
+                                        {% if loop.index == 1 %}
+                                        <span class="badge bg-warning text-dark">Best Match</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% if rec.description %}
+                                    <p class="text-muted small">{{ rec.description[:150] }}{% if rec.description|length > 150 %}...{% endif %}</p>
+                                    {% endif %}
+
+                                    <ul class="list-unstyled mb-3">
+                                        {% if rec.expected_effectiveness %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-graph-up text-success"></i>
+                                            <strong>Expected Effectiveness:</strong> {{ rec.expected_effectiveness }}%
+                                        </li>
+                                        {% endif %}
+
+                                        {% if rec.cost_range_inr %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-currency-rupee text-primary"></i>
+                                            <strong>Cost:</strong> {{ rec.cost_range_inr }}
+                                        </li>
+                                        {% endif %}
+
+                                        {% if rec.implementation_days %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-clock text-info"></i>
+                                            <strong>Implementation:</strong> {{ rec.implementation_days }} days
+                                        </li>
+                                        {% endif %}
+
+                                        {% if rec.time_to_effect_days %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-hourglass-split text-warning"></i>
+                                            <strong>Time to Effect:</strong> {{ rec.time_to_effect_days }} days
+                                        </li>
+                                        {% endif %}
+
+                                        {% if rec.duration_months %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-calendar-check text-secondary"></i>
+                                            <strong>Duration:</strong> {{ rec.duration_months }} months
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+
+                                    <!-- Requirements badges -->
+                                    <div class="mb-3">
+                                        {% if rec.requires_specialist %}
+                                        <span class="badge bg-warning text-dark me-1">
+                                            <i class="bi bi-person-badge"></i> Specialist Required
+                                        </span>
+                                        {% endif %}
+                                        {% if rec.requires_equipment %}
+                                        <span class="badge bg-info text-dark me-1">
+                                            <i class="bi bi-tools"></i> Equipment Required
+                                        </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Historical data -->
+                                    {% if rec.historical_uses > 0 %}
+                                    <div class="alert alert-light py-2 mb-0">
+                                        <small>
+                                            <i class="bi bi-bar-chart"></i>
+                                            <strong>Historical Data:</strong><br>
+                                            {{ rec.historical_uses }} interventions |
+                                            {% if rec.historical_success_rate %}{{ rec.historical_success_rate }}% success{% endif %}
+                                            {% if rec.average_improvement %}| {{ rec.average_improvement }}% avg improvement{% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="{{ url_for('interventions.new_intervention') }}?treatment_method={{ rec.method_code }}"
+                                       class="btn btn-sm btn-outline-primary w-100">
+                                        <i class="bi bi-plus-circle"></i> Create Intervention
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        {{ recommendations.message if recommendations.message else 'No treatment methods found for the selected contamination type.' }}
+                        <br><br>
+                        <strong>Suggestions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Try a different contamination type</li>
+                            <li>Increase your budget limit</li>
+                            <li>Add more treatment methods to the system</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Treatment Method Effectiveness Stats -->
+    {% if method_stats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Historical Treatment Effectiveness</h5>
+                </div>
+                <div class="card-body">
+                    {% if method_stats|selectattr('total_interventions', 'gt', 0)|list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Treatment Method</th>
+                                    <th class="text-center">Total Uses</th>
+                                    <th class="text-center">Success Rate</th>
+                                    <th class="text-center">Avg. Improvement</th>
+                                    <th class="text-center">Avg. Cost (INR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for method in method_stats if method.total_interventions > 0 %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ method.treatment_method }}</strong>
+                                        {% if method.method_code %}
+                                        <br><small class="text-muted">{{ method.method_code }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ method.total_interventions }}</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if method.success_rate >= 70 %}bg-success{% elif method.success_rate >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                            {{ method.success_rate }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if method.average_improvement %}
+                                        <span class="{% if method.average_improvement >= 30 %}text-success{% elif method.average_improvement >= 10 %}text-warning{% else %}text-secondary{% endif %}">
+                                            {{ method.average_improvement }}%
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if method.average_cost_inr %}
+                                        Rs {{ method.average_cost_inr|round|int|format_number if method.average_cost_inr else '-' }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        No historical intervention data available yet. Start recording interventions to build treatment effectiveness data.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('interventions.new_intervention') }}" class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-plus-circle"></i> Create New Intervention
+                    </a>
+                    <a href="{{ url_for('interventions.effectiveness_dashboard') }}" class="btn btn-info me-2 mb-2">
+                        <i class="bi bi-graph-up"></i> View Effectiveness Dashboard
+                    </a>
+                    <a href="{{ url_for('interventions.list_methods') }}" class="btn btn-secondary me-2 mb-2">
+                        <i class="bi bi-list-ul"></i> Manage Treatment Methods
+                    </a>
+                    <a href="{{ url_for('interventions.index') }}" class="btn btn-outline-secondary mb-2">
+                        <i class="bi bi-arrow-left"></i> Back to Interventions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

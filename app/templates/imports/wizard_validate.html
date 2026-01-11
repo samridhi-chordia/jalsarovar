@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Validate Import - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+                    <li class="breadcrumb-item active">Validate Data</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body bg-light">
+                    <h2 class="mb-0">
+                        <i class="bi bi-check2-circle"></i> Validate Import Data
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Import Wizard Steps -->
+            <div class="mb-4">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="badge bg-success p-3 w-100">
+                            <i class="bi bi-1-circle-fill"></i><br>
+                            Upload File
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="badge bg-primary p-3 w-100">
+                            <i class="bi bi-2-circle-fill"></i><br>
+                            Validate Data
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="badge bg-secondary p-3 w-100">
+                            <i class="bi bi-3-circle"></i><br>
+                            Confirm Import
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> File Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>File Name:</strong><br>
+                            <span class="text-muted">{{ batch.file_name }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Data Source:</strong><br>
+                            <span class="text-muted">{{ batch.data_source.name }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Total Records:</strong><br>
+                            <span class="badge bg-primary fs-6">{{ batch.total_records }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Summary -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <h3 class="text-success mb-0">{{ valid_count }}</h3>
+                            <small class="text-muted">Valid Records</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-danger">
+                        <div class="card-body text-center">
+                            <h3 class="text-danger mb-0">{{ error_count }}</h3>
+                            <small class="text-muted">Errors</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning mb-0">{{ warning_count }}</h3>
+                            <small class="text-muted">Warnings</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Errors -->
+            {% if errors %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Validation Errors
+                        <span class="badge bg-white text-danger ms-2">{{ errors|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Field</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in errors %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ error.row }}</span></td>
+                                    <td><code>{{ error.field }}</code></td>
+                                    <td>{{ error.message }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Records with errors will be skipped during import.
+                        Please fix the errors in your source file and re-upload for complete import.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Validation Warnings -->
+            {% if warnings %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-circle-fill"></i> Warnings
+                        <span class="badge bg-dark ms-2">{{ warnings|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Field</th>
+                                    <th>Warning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for warning in warnings %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ warning.row }}</span></td>
+                                    <td><code>{{ warning.field }}</code></td>
+                                    <td>{{ warning.message }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Warnings don't prevent import. Records will be imported with available data.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Data Preview -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Data Preview (First 10 Rows)</h5>
+                </div>
+                <div class="card-body">
+                    {% if preview %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    {% for col in preview.columns %}
+                                    <th>{{ col }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in preview.rows %}
+                                <tr>
+                                    <td><small class="text-muted">{{ loop.index }}</small></td>
+                                    {% for value in row %}
+                                    <td>{{ value if value != None else '-' }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No preview data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Column Mapping -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Column Mapping</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if column_mapping %}
+                        {% for file_col, db_col in column_mapping.items() %}
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center">
+                                <code class="bg-light p-1 rounded">{{ file_col }}</code>
+                                <i class="bi bi-arrow-right mx-2 text-primary"></i>
+                                <span class="badge bg-success">{{ db_col }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="col-12">
+                            <p class="text-muted mb-0">Standard column mapping applied.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ url_for('imports.new_import') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left-circle"></i> Back: Upload New File
+                            </a>
+                        </div>
+                        <div class="text-center">
+                            {% if valid_count > 0 %}
+                            <span class="text-success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <strong>{{ valid_count }}</strong> records ready to import
+                            </span>
+                            {% else %}
+                            <span class="text-danger">
+                                <i class="bi bi-x-circle-fill"></i>
+                                No valid records found
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if valid_count > 0 %}
+                            <form action="{{ url_for('imports.confirm_import') }}" method="POST" style="display: inline;">
+                                <input type="hidden" name="batch_id" value="{{ batch.id }}">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="bi bi-check2-all"></i> Confirm Import ({{ valid_count }} records)
+                                </button>
+                            </form>
+                            {% else %}
+                            <button class="btn btn-success btn-lg" disabled>
+                                <i class="bi bi-check2-all"></i> No Valid Records
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

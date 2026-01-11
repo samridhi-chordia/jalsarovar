@@ -1,0 +1,1798 @@
+{% extends "base.html" %}
+{% block title %}ML Report - {{ site.site_name }} - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        text-align: center;
+        padding: 1rem;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .metric-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .chart-container {
+        position: relative;
+        height: 350px;
+    }
+    .nav-pills .nav-link {
+        color: #495057;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #1a365d;
+    }
+    .confusion-matrix td {
+        text-align: center;
+        padding: 0.5rem;
+        min-width: 50px;
+    }
+    .confusion-matrix .header-cell {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    .cm-high { background-color: #c3e6cb; }
+    .cm-medium { background-color: #ffeeba; }
+    .cm-low { background-color: #f5c6cb; }
+    .prediction-correct { background-color: #d4edda; }
+    .prediction-incorrect { background-color: #f8d7da; }
+    .summary-box {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-left: 4px solid #1a365d;
+        padding: 1rem 1.25rem;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 1rem;
+    }
+    .summary-box.success { border-left-color: #198754; background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); }
+    .summary-box.warning { border-left-color: #ffc107; background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); }
+    .summary-box.danger { border-left-color: #dc3545; background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); }
+    .summary-box h6 { margin-bottom: 0.5rem; color: #1a365d; }
+    .summary-box p { margin-bottom: 0; font-size: 0.95rem; line-height: 1.5; }
+    .interpretation-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        background: #fff;
+    }
+    .interpretation-card h6 {
+        color: #1a365d;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .agreement-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    .agreement-high { background: #d4edda; color: #155724; }
+    .agreement-medium { background: #fff3cd; color: #856404; }
+    .agreement-low { background: #f8d7da; color: #721c24; }
+    .comparison-table th {
+        background-color: #f8f9fa;
+        color: #212529;
+        font-weight: 500;
+    }
+    .comparison-table .rule-col { background-color: #e3f2fd; }
+    .comparison-table .ml-col { background-color: #fff3e0; }
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 1rem;
+        font-size: 0.85rem;
+    }
+    .legend-color {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        margin-right: 0.4rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+                <li class="breadcrumb-item active">{{ site.site_name }}</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-bar-chart-line me-2"></i>ML Performance Report</h2>
+        <p class="text-muted mb-0">
+            {{ site.site_name }} - {{ site.site_type }} | {{ site.state }}
+            <span class="badge ms-2 {% if site.site_category == 'residential' %}bg-info{% else %}bg-primary{% endif %}">{{ site.site_category or 'public' }}</span>
+        </p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary" onclick="exportReport()">
+            <i class="bi bi-download me-1"></i> Export PDF
+        </button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3" id="reportFilters">
+            <div class="col-md-3">
+                <label class="form-label">Parameter</label>
+                <select name="parameter" class="form-select" id="parameterFilter">
+                    <option value="">All Parameters</option>
+                    <option value="ph" {% if request.args.get('parameter') == 'ph' %}selected{% endif %}>pH</option>
+                    <option value="tds" {% if request.args.get('parameter') == 'tds' %}selected{% endif %}>TDS (ppm)</option>
+                    <option value="turbidity" {% if request.args.get('parameter') == 'turbidity' %}selected{% endif %}>Turbidity (NTU)</option>
+                    <option value="temperature" {% if request.args.get('parameter') == 'temperature' %}selected{% endif %}>Temperature (°C)</option>
+                    <option value="chlorine" {% if request.args.get('parameter') == 'chlorine' %}selected{% endif %}>Free Chlorine (mg/L)</option>
+                    <option value="iron" {% if request.args.get('parameter') == 'iron' %}selected{% endif %}>Iron (mg/L)</option>
+                    <option value="coliform" {% if request.args.get('parameter') == 'coliform' %}selected{% endif %}>Total Coliform (MPN)</option>
+                    <option value="chloride" {% if request.args.get('parameter') == 'chloride' %}selected{% endif %}>Chloride (mg/L)</option>
+                    <option value="ammonia" {% if request.args.get('parameter') == 'ammonia' %}selected{% endif %}>Ammonia (mg/L)</option>
+                    <option value="conductivity" {% if request.args.get('parameter') == 'conductivity' %}selected{% endif %}>Conductivity (μS/cm)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date Range</label>
+                <select name="date_range" class="form-select" id="dateRangeFilter" onchange="toggleCustomDateRange()">
+                    <option value="">All Time</option>
+                    <option value="7" {% if request.args.get('date_range') == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if request.args.get('date_range') == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="60" {% if request.args.get('date_range') == '60' %}selected{% endif %}>Last 60 Days</option>
+                    <option value="90" {% if request.args.get('date_range') == '90' %}selected{% endif %}>Last 90 Days</option>
+                    <option value="365" {% if request.args.get('date_range') == '365' %}selected{% endif %}>Last 1 Year</option>
+                    <option value="730" {% if request.args.get('date_range') == '730' %}selected{% endif %}>Last 2 Years</option>
+                    <option value="custom" {% if request.args.get('date_range') == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="customStartDiv" style="display: {% if request.args.get('date_range') == 'custom' %}block{% else %}none{% endif %};">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+            </div>
+            <div class="col-md-2" id="customEndDiv" style="display: {% if request.args.get('date_range') == 'custom' %}block{% else %}none{% endif %};">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-funnel me-1"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('reports.site_report', site_id=site.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Model Tabs -->
+<ul class="nav nav-pills mb-4" id="modelTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="pill" href="#comparison">
+            <i class="bi bi-arrow-left-right me-1"></i> ML vs Rule-Based
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#forecaster">
+            <i class="bi bi-graph-up me-1"></i> Forecaster
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#contamination">
+            <i class="bi bi-shield-exclamation me-1"></i> Contamination
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#risk">
+            <i class="bi bi-exclamation-triangle me-1"></i> Risk
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#wqi">
+            <i class="bi bi-droplet-half me-1"></i> WQI
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#anomaly">
+            <i class="bi bi-lightning me-1"></i> Anomaly
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#drift">
+            <i class="bi bi-graph-up-arrow me-1"></i> Drift
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- ML vs Rule-Based Comparison Tab -->
+    <div class="tab-pane fade show active" id="comparison">
+        <!-- Summary Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Summary: ML vs Rule-Based Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div id="comparisonSummary">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">Loading comparison analysis...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agreement Metrics -->
+        <div class="row mb-4" id="agreementMetrics" style="display: none;">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="overall-agreement">--</div>
+                    <div class="metric-label">Overall Agreement</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="risk-agreement">--</div>
+                    <div class="metric-label">Risk Level Agreement</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="wqi-agreement">--</div>
+                    <div class="metric-label">WQI Class Agreement</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="contam-agreement">--</div>
+                    <div class="metric-label">Contamination Agreement</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Optimization Insights -->
+        <div class="row mb-4" id="costOptimizationMetrics" style="display: none;">
+            <div class="col-12">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="bi bi-currency-rupee me-2"></i>Cost Optimization Insights (Based on ML Predictions)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card metric-card">
+                                    <div class="metric-value text-primary" id="total-tests-analyzed">--</div>
+                                    <div class="metric-label">Total Tests Analyzed</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card metric-card border-success">
+                                    <div class="metric-value text-success" id="skippable-tests">--</div>
+                                    <div class="metric-label">Tests Could Be Skipped</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card metric-card">
+                                    <div class="metric-value text-warning" id="skippable-percentage">--</div>
+                                    <div class="metric-label">Potential Reduction %</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card metric-card">
+                                    <div class="metric-value text-info" id="potential-savings">--</div>
+                                    <div class="metric-label">Potential Annual Savings (INR)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Note:</strong> "Test Could Be Skipped" (green badge) means ML predicted clean water with low/medium risk.
+                                "Test Needed" (red badge) means ML predicted contamination or high risk.
+                                This analysis validates the Cost Optimizer's recommendations to reduce testing frequency for low-risk sites.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation Section -->
+        <div class="row mb-4" id="interpretationSection" style="display: none;">
+            <div class="col-md-6">
+                <div class="interpretation-card">
+                    <h6><i class="bi bi-shield-check"></i> Risk Analysis</h6>
+                    <p id="risk-interpretation" class="mb-0 text-muted">--</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="interpretation-card">
+                    <h6><i class="bi bi-droplet-half"></i> WQI Analysis</h6>
+                    <p id="wqi-interpretation" class="mb-0 text-muted">--</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="interpretation-card">
+                    <h6><i class="bi bi-bug"></i> Contamination Analysis</h6>
+                    <p id="contam-interpretation" class="mb-0 text-muted">--</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="interpretation-card">
+                    <h6><i class="bi bi-lightbulb"></i> Recommendation</h6>
+                    <p id="recommendation-interpretation" class="mb-0 text-muted">--</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4" id="comparisonCharts" style="display: none;">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">WQI Score Comparison Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <span class="legend-item"><span class="legend-color" style="background: #0d6efd;"></span> ML Prediction</span>
+                            <span class="legend-item"><span class="legend-color" style="background: #198754;"></span> Rule-Based</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="wqiComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Risk Level Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <span class="legend-item"><span class="legend-color" style="background: rgba(13, 110, 253, 0.7);"></span> ML Prediction</span>
+                            <span class="legend-item"><span class="legend-color" style="background: rgba(25, 135, 84, 0.7);"></span> Rule-Based</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="riskDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Comparison Table -->
+        <div class="card" id="comparisonTableCard" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Sample-by-Sample Comparison</h5>
+                <div>
+                    <label for="comparison-per-page" class="me-2 mb-0">Items per page:</label>
+                    <select class="form-select form-select-sm d-inline-block" id="comparison-per-page" style="width: auto;" onchange="changeComparisonPerPage()">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="all">All</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-sm table-hover comparison-table">
+                        <thead class="sticky-top">
+                            <tr>
+                                <th>Date</th>
+                                <th class="rule-col">Rule Risk</th>
+                                <th class="ml-col">ML Risk</th>
+                                <th class="rule-col">Rule WQI</th>
+                                <th class="ml-col">ML WQI</th>
+                                <th class="rule-col">Rule Contam.</th>
+                                <th class="ml-col">ML Contam.</th>
+                                <th>Agreement</th>
+                                <th class="text-center" title="Would test be needed based on ML prediction?">Test Needed?</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div id="comparison-pagination-info">
+                        Showing <span id="comparison-page-start">0</span> to <span id="comparison-page-end">0</span> of <span id="comparison-total-samples">0</span> samples
+                    </div>
+                    <nav aria-label="Comparison pagination">
+                        <ul class="pagination mb-0" id="comparison-pagination-controls">
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecaster Tab -->
+    <div class="tab-pane fade" id="forecaster">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Parameter Forecasting</h6>
+            <p>The ML Forecaster uses historical water quality data to predict future parameter values. It trains on past measurements to learn patterns and trends, then generates predictions with confidence intervals. The model is evaluated by comparing its predictions against actual measured values.</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="forecaster-r2">--</div>
+                    <div class="metric-label">R2 Score (Fit Quality)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="forecaster-mae">--</div>
+                    <div class="metric-label">MAE (Avg Error)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="forecaster-rmse">--</div>
+                    <div class="metric-label">RMSE (Error Spread)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="forecaster-coverage">--</div>
+                    <div class="metric-label">95% CI Coverage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="summary-box mb-4" id="forecaster-interpretation">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="forecaster-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Predictions vs Actuals</h5>
+                    <select class="form-select form-select-sm w-auto" id="forecasterParam" onchange="updateForecasterChart()">
+                        <option value="ph">pH</option>
+                        <option value="turbidity_ntu">Turbidity</option>
+                        <option value="tds_ppm">TDS</option>
+                        <option value="temperature_celsius">Temperature</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="legend-item"><span class="legend-color" style="background: #198754;"></span> Actual Values</span>
+                    <span class="legend-item"><span class="legend-color" style="background: #0d6efd;"></span> ML Predictions</span>
+                    <span class="legend-item"><span class="legend-color" style="background: rgba(13, 110, 253, 0.2);"></span> 95% Confidence Interval</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="forecasterChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contamination Tab -->
+    <div class="tab-pane fade" id="contamination">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Contamination Classification</h6>
+            <p>The ML model identifies the type of contamination based on water quality parameters. It classifies samples into categories: runoff/sediment (high turbidity), sewage ingress (coliform presence), salt intrusion (high TDS), pipe corrosion (elevated iron), disinfectant decay (low chlorine), or none. The model learns from patterns in the data rather than simple threshold rules.</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="contamination-accuracy">--</div>
+                    <div class="metric-label">Overall Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="contamination-precision">--</div>
+                    <div class="metric-label">Precision</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="contamination-recall">--</div>
+                    <div class="metric-label">Recall</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="contamination-f1">--</div>
+                    <div class="metric-label">F1 Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="summary-box mb-4" id="contamination-interpretation">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="contamination-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Confusion Matrix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" id="contaminationMatrix">
+                            <div class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Prediction Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="contaminationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Prediction History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Predicted</th>
+                                <th>Actual</th>
+                                <th>Confidence</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contaminationTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Tab -->
+    <div class="tab-pane fade" id="risk">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Site Risk Prediction</h6>
+            <p>The ML model predicts site risk levels (critical, high, medium, low) by analyzing site characteristics, location factors, and historical contamination patterns. Unlike threshold-based rules, it considers the combined effect of multiple risk factors to generate a risk score (0-100) and classification.</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="risk-accuracy">--</div>
+                    <div class="metric-label">Level Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="risk-correlation">--</div>
+                    <div class="metric-label">Score Correlation</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="risk-mae">--</div>
+                    <div class="metric-label">Score MAE</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-secondary" id="risk-total">--</div>
+                    <div class="metric-label">Total Predictions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="summary-box mb-4" id="risk-interpretation-box">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="risk-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Risk Level Confusion Matrix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="riskMatrix">
+                            <div class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Predicted vs Actual Risk Scores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="riskScatterChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WQI Tab -->
+    <div class="tab-pane fade" id="wqi">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Water Quality Index (WQI)</h6>
+            <p>The WQI provides a single score (0-100) summarizing overall water quality. The ML model calculates penalties for each parameter (pH, TDS, turbidity, chlorine, temperature) based on deviation from optimal ranges. Classifications are: Excellent (90+), Compliant (70-89), Warning (50-69), and Unsafe (&lt;50).</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="wqi-mae">--</div>
+                    <div class="metric-label">WQI MAE</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="wqi-rmse">--</div>
+                    <div class="metric-label">WQI RMSE</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="wqi-correlation">--</div>
+                    <div class="metric-label">Correlation</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="wqi-class-accuracy">--</div>
+                    <div class="metric-label">Class Accuracy</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="summary-box mb-4" id="wqi-interpretation-box">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="wqi-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Calculated vs Actual WQI Over Time</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="legend-item"><span class="legend-color" style="background: #0d6efd;"></span> ML Calculated WQI</span>
+                    <span class="legend-item"><span class="legend-color" style="background: #198754;"></span> Rule-Based WQI</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="wqiChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomaly Tab -->
+    <div class="tab-pane fade" id="anomaly">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Anomaly Detection</h6>
+            <p>The ML model detects unusual readings by comparing current values against historical statistics. It calculates how many standard deviations each parameter is from its historical mean. Readings with high deviation (anomaly score > 0.5) are flagged. This helps identify sensor errors, sudden contamination events, or unusual water quality changes.</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="anomaly-accuracy">--</div>
+                    <div class="metric-label">Overall Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="anomaly-precision">--</div>
+                    <div class="metric-label">Precision</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="anomaly-recall">--</div>
+                    <div class="metric-label">Recall</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="anomaly-f1">--</div>
+                    <div class="metric-label">F1 Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation -->
+        <div class="summary-box mb-4" id="anomaly-interpretation-box">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="anomaly-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Detection Confusion Matrix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center" id="anomalyMatrix">
+                                <tr>
+                                    <td></td>
+                                    <td class="header-cell">Actual Anomaly</td>
+                                    <td class="header-cell">Actual Normal</td>
+                                </tr>
+                                <tr>
+                                    <td class="header-cell">Detected Anomaly</td>
+                                    <td id="anomaly-tp" class="cm-high">--</td>
+                                    <td id="anomaly-fp" class="cm-low">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="header-cell">Detected Normal</td>
+                                    <td id="anomaly-fn" class="cm-low">--</td>
+                                    <td id="anomaly-tn" class="cm-high">--</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Anomaly Score Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="anomalyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drift Detection Tab -->
+    <div class="tab-pane fade" id="drift">
+        <!-- Description -->
+        <div class="summary-box mb-4">
+            <h6><i class="bi bi-info-circle me-2"></i>About Drift Detection</h6>
+            <p>
+                The CUSUM (Cumulative Sum) drift detector identifies <strong>gradual</strong> parameter changes over time,
+                distinct from sudden spikes. Detects infrastructure aging (pipe corrosion, membrane degradation),
+                seasonal trends, and source water changes. Monitors 10 parameters: pH, TDS, turbidity, temperature,
+                conductivity, chlorine, coliform, iron, chloride, and ammonia.
+            </p>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-primary" id="drift-accuracy">--</div>
+                    <div class="metric-label">Overall Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-success" id="drift-precision">--</div>
+                    <div class="metric-label">Precision</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-info" id="drift-recall">--</div>
+                    <div class="metric-label">Recall</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="metric-value text-warning" id="drift-f1">--</div>
+                    <div class="metric-label">F1 Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretation Box -->
+        <div class="summary-box mb-4" id="drift-interpretation-box" style="display:none;">
+            <h6><i class="bi bi-lightbulb me-2"></i>Interpretation</h6>
+            <p id="drift-interpretation-text">Loading analysis...</p>
+        </div>
+
+        <!-- Confusion Matrix and Chart -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Detection Confusion Matrix</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered text-center" id="driftMatrix">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th colspan="2" class="bg-light">Predicted</th>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Actual</th>
+                                    <th>Drift</th>
+                                    <th>Stable</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th class="bg-light">Drift</th>
+                                    <td class="table-success fw-bold"><span class="small text-muted">TP:</span> <span id="drift-tp">--</span></td>
+                                    <td class="table-danger"><span class="small text-muted">FN:</span> <span id="drift-fn">--</span></td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Stable</th>
+                                    <td class="table-warning"><span class="small text-muted">FP:</span> <span id="drift-fp">--</span></td>
+                                    <td class="table-success"><span class="small text-muted">TN:</span> <span id="drift-tn">--</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="mt-2 small text-muted">
+                            <strong>TP:</strong> True Positives (correctly detected drift) |
+                            <strong>FN:</strong> False Negatives (missed drift) |
+                            <strong>FP:</strong> False Positives (false alarms) |
+                            <strong>TN:</strong> True Negatives (correctly identified stable)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">CUSUM Value Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="driftChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const siteId = {{ site.id }};
+let forecasterData = null;
+let contaminationData = null;
+let riskData = null;
+let wqiData = null;
+let anomalyData = null;
+let driftData = null;
+let comparisonData = null;
+let comparisonCurrentPage = 1;
+let comparisonPerPage = 50;
+
+// Charts
+let forecasterChart = null;
+let contaminationChart = null;
+let riskScatterChart = null;
+let wqiChart = null;
+let anomalyChart = null;
+let driftChart = null;
+let wqiComparisonChart = null;
+let riskDistributionChart = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAllData();
+});
+
+async function loadAllData() {
+    await Promise.all([
+        loadComparisonData(),
+        loadForecasterData(),
+        loadContaminationData(),
+        loadRiskData(),
+        loadWqiData(),
+        loadAnomalyData(),
+        loadDriftData()
+    ]);
+}
+
+// ============ COMPARISON TAB ============
+async function loadComparisonData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/comparison`);
+        const data = await response.json();
+
+        if (data.success) {
+            comparisonData = data.results;
+            renderComparisonTab();
+        }
+    } catch (error) {
+        console.error('Error loading comparison data:', error);
+        document.getElementById('comparisonSummary').innerHTML = '<p class="text-danger">Error loading comparison data</p>';
+    }
+}
+
+function renderComparisonTab() {
+    if (comparisonData.insufficient_data) {
+        document.getElementById('comparisonSummary').innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                ${comparisonData.message} (Current: ${comparisonData.sample_count} samples)
+            </div>
+        `;
+        return;
+    }
+
+    // Show all sections
+    document.getElementById('agreementMetrics').style.display = 'flex';
+    document.getElementById('interpretationSection').style.display = 'flex';
+    document.getElementById('comparisonCharts').style.display = 'flex';
+    document.getElementById('comparisonTableCard').style.display = 'block';
+
+    // Render summary
+    const summary = comparisonData.summary;
+    const interp = comparisonData.interpretation;
+    const overallClass = summary.overall_agreement >= 80 ? 'success' : summary.overall_agreement >= 60 ? 'warning' : 'danger';
+
+    document.getElementById('comparisonSummary').innerHTML = `
+        <div class="summary-box ${overallClass}">
+            <h6><i class="bi bi-clipboard-data me-2"></i>Overall Assessment</h6>
+            <p>${interp.overall}</p>
+        </div>
+    `;
+
+    // Agreement metrics
+    document.getElementById('overall-agreement').textContent = summary.overall_agreement + '%';
+    document.getElementById('risk-agreement').textContent = summary.risk_agreement_rate + '%';
+    document.getElementById('wqi-agreement').textContent = summary.wqi_agreement_rate + '%';
+    document.getElementById('contam-agreement').textContent = summary.contamination_agreement_rate + '%';
+
+    // Interpretation sections
+    document.getElementById('risk-interpretation').textContent = interp.risk_analysis;
+    document.getElementById('wqi-interpretation').textContent = interp.wqi_analysis;
+    document.getElementById('contam-interpretation').textContent = interp.contamination_analysis;
+    document.getElementById('recommendation-interpretation').textContent = interp.recommendation;
+
+    // Initialize charts
+    initWqiComparisonChart();
+    initRiskDistributionChart();
+    renderComparisonTable();
+    calculateCostOptimizationMetrics();
+}
+
+function initWqiComparisonChart() {
+    const ctx = document.getElementById('wqiComparisonChart').getContext('2d');
+    const data = comparisonData.comparison_data;
+
+    wqiComparisonChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date.split('T')[0]),
+            datasets: [
+                {
+                    label: 'ML WQI',
+                    data: data.map(d => d.ml_based.wqi_score),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                },
+                {
+                    label: 'Rule-Based WQI',
+                    data: data.map(d => d.rule_based.wqi_score),
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    fill: false,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, title: { display: true, text: 'WQI Score' } }
+            }
+        }
+    });
+}
+
+function initRiskDistributionChart() {
+    const ctx = document.getElementById('riskDistributionChart').getContext('2d');
+    const summary = comparisonData.summary;
+    const levels = ['critical', 'high', 'medium', 'low'];
+
+    riskDistributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: levels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+            datasets: [
+                {
+                    label: 'ML Prediction',
+                    data: levels.map(l => summary.ml_risk_distribution[l]),
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                },
+                {
+                    label: 'Rule-Based',
+                    data: levels.map(l => summary.rule_risk_distribution[l]),
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Count' } }
+            }
+        }
+    });
+}
+
+function renderComparisonTable(page = 1) {
+    comparisonCurrentPage = page;
+    const tbody = document.getElementById('comparisonTableBody');
+    const allData = comparisonData.comparison_data;
+
+    // Calculate pagination
+    const totalSamples = allData.length;
+    const perPage = comparisonPerPage === 'all' ? totalSamples : parseInt(comparisonPerPage);
+    const startIdx = (page - 1) * perPage;
+    const endIdx = comparisonPerPage === 'all' ? totalSamples : Math.min(startIdx + perPage, totalSamples);
+    const data = allData.slice(startIdx, endIdx);
+
+    tbody.innerHTML = data.map(d => {
+        const agreementCount = (d.agreement.risk_level ? 1 : 0) + (d.agreement.wqi_class ? 1 : 0) + (d.agreement.contamination ? 1 : 0);
+        const badgeClass = agreementCount === 3 ? 'agreement-high' : agreementCount >= 2 ? 'agreement-medium' : 'agreement-low';
+
+        // Determine if test was needed based on ML prediction (v2 - uses contamination + WQI)
+        const mlContam = d.ml_based.contamination.toLowerCase();
+        const mlWqiClass = d.ml_based.wqi_class.toLowerCase();
+
+        // Test NEEDED if: contamination detected OR poor water quality
+        // Test SKIPPABLE if: no contamination AND good/excellent/fair quality
+        const testNeeded = (mlContam !== 'none') ||
+                          mlWqiClass === 'poor' ||
+                          mlWqiClass === 'very poor';
+
+        const testBadge = testNeeded
+            ? '<span class="badge bg-danger" title="Test needed - ML predicted contamination or poor quality">Yes</span>'
+            : '<span class="badge bg-success" title="Test could be skipped - ML predicted clean water with good quality">No</span>';
+
+        return `
+        <tr>
+            <td>${d.date.split('T')[0]}</td>
+            <td class="rule-col">${d.rule_based.risk_level}</td>
+            <td class="ml-col">${d.ml_based.risk_level}</td>
+            <td class="rule-col">${d.rule_based.wqi_score} (${d.rule_based.wqi_class})</td>
+            <td class="ml-col">${d.ml_based.wqi_score} (${d.ml_based.wqi_class})</td>
+            <td class="rule-col">${d.rule_based.contamination.replace('_', ' ')}</td>
+            <td class="ml-col">${d.ml_based.contamination.replace('_', ' ')}</td>
+            <td><span class="agreement-badge ${badgeClass}">${agreementCount}/3</span></td>
+            <td class="text-center">${testBadge}</td>
+        </tr>
+        `;
+    }).join('');
+
+    // Update pagination info
+    renderComparisonPagination(totalSamples, startIdx + 1, endIdx, page, perPage);
+}
+
+function renderComparisonPagination(totalSamples, start, end, currentPage, perPage) {
+    // Update info text
+    document.getElementById('comparison-page-start').textContent = totalSamples > 0 ? start : 0;
+    document.getElementById('comparison-page-end').textContent = end;
+    document.getElementById('comparison-total-samples').textContent = totalSamples;
+
+    // Build pagination controls
+    const paginationControls = document.getElementById('comparison-pagination-controls');
+    paginationControls.innerHTML = '';
+
+    // Don't show pagination if showing all
+    if (comparisonPerPage === 'all') {
+        return;
+    }
+
+    const totalPages = Math.ceil(totalSamples / perPage);
+
+    if (totalPages <= 1) {
+        return;
+    }
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="renderComparisonTable(${currentPage - 1}); return false;">Previous</a>`;
+    paginationControls.appendChild(prevLi);
+
+    // Page numbers (show max 5 buttons)
+    const maxPages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+    // Adjust start if we're near the end
+    if (endPage - startPage < maxPages - 1) {
+        startPage = Math.max(1, endPage - maxPages + 1);
+    }
+
+    // First page + ellipsis if needed
+    if (startPage > 1) {
+        const firstLi = document.createElement('li');
+        firstLi.className = 'page-item';
+        firstLi.innerHTML = `<a class="page-link" href="#" onclick="renderComparisonTable(1); return false;">1</a>`;
+        paginationControls.appendChild(firstLi);
+
+        if (startPage > 2) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationControls.appendChild(ellipsisLi);
+        }
+    }
+
+    // Page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = 'page-item' + (i === currentPage ? ' active' : '');
+        pageLi.innerHTML = `<a class="page-link" href="#" onclick="renderComparisonTable(${i}); return false;">${i}</a>`;
+        paginationControls.appendChild(pageLi);
+    }
+
+    // Ellipsis + last page if needed
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationControls.appendChild(ellipsisLi);
+        }
+
+        const lastLi = document.createElement('li');
+        lastLi.className = 'page-item';
+        lastLi.innerHTML = `<a class="page-link" href="#" onclick="renderComparisonTable(${totalPages}); return false;">${totalPages}</a>`;
+        paginationControls.appendChild(lastLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = 'page-item' + (currentPage >= totalPages ? ' disabled' : '');
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="renderComparisonTable(${currentPage + 1}); return false;">Next</a>`;
+    paginationControls.appendChild(nextLi);
+}
+
+function changeComparisonPerPage() {
+    comparisonPerPage = document.getElementById('comparison-per-page').value;
+    comparisonCurrentPage = 1; // Reset to first page
+    renderComparisonTable(1);
+}
+
+function calculateCostOptimizationMetrics() {
+    // Use all comparison data, not just the first 50 shown in table
+    const allData = comparisonData.comparison_data;
+    const costPerTest = 1000; // INR per test (same as cost optimizer)
+
+    let totalTests = 0;
+    let skippableTests = 0;
+
+    // Count tests that could be skipped based on ML predictions
+    allData.forEach(d => {
+        totalTests++;
+
+        const mlContam = d.ml_based.contamination.toLowerCase();
+        const mlWqiClass = d.ml_based.wqi_class.toLowerCase();
+
+        // Test can be SKIPPED if ML predicted: no contamination AND good/excellent quality
+        const testNeeded = (mlContam !== 'none') ||
+                          mlWqiClass === 'poor' ||
+                          mlWqiClass === 'very poor';
+
+        if (!testNeeded) {
+            skippableTests++;
+        }
+    });
+
+    // Calculate metrics
+    const reductionPercent = totalTests > 0 ? (skippableTests / totalTests) * 100 : 0;
+    const potentialSavings = skippableTests * costPerTest;
+
+    // Update DOM
+    document.getElementById('total-tests-analyzed').textContent = totalTests;
+    document.getElementById('skippable-tests').textContent = skippableTests;
+    document.getElementById('skippable-percentage').textContent = reductionPercent.toFixed(1) + '%';
+    document.getElementById('potential-savings').textContent = '₹' + potentialSavings.toLocaleString();
+
+    // Show the cost optimization metrics section
+    document.getElementById('costOptimizationMetrics').style.display = 'block';
+}
+
+// ============ FORECASTER TAB ============
+async function loadForecasterData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/forecaster`);
+        const data = await response.json();
+
+        if (data.success) {
+            forecasterData = data.results;
+            renderForecasterMetrics();
+            initForecasterChart();
+        }
+    } catch (error) {
+        console.error('Error loading forecaster data:', error);
+    }
+}
+
+function renderForecasterMetrics() {
+    const param = document.getElementById('forecasterParam').value;
+    const metrics = forecasterData[param]?.metrics || {};
+
+    document.getElementById('forecaster-r2').textContent = metrics.r2 || '--';
+    document.getElementById('forecaster-mae').textContent = metrics.mae || '--';
+    document.getElementById('forecaster-rmse').textContent = metrics.rmse || '--';
+    document.getElementById('forecaster-coverage').textContent = (metrics.coverage_95 || '--') + '%';
+
+    // Interpretation
+    let interpText = '';
+    if (metrics.r2 >= 0.8) {
+        interpText = `Excellent model fit (R2=${metrics.r2}). The ML predictions closely track actual values with ${metrics.coverage_95}% of readings within the 95% confidence interval. This indicates reliable forecasting capability.`;
+    } else if (metrics.r2 >= 0.5) {
+        interpText = `Moderate model fit (R2=${metrics.r2}). Predictions capture general trends but show some deviation. ${metrics.coverage_95}% of readings fall within confidence bounds. Consider using predictions for trend analysis rather than precise values.`;
+    } else {
+        interpText = `Lower model fit (R2=${metrics.r2}). High variability in this parameter makes precise prediction challenging. MAE of ${metrics.mae} indicates typical deviation. Use predictions cautiously and prioritize actual measurements.`;
+    }
+    document.getElementById('forecaster-interpretation-text').textContent = interpText;
+}
+
+function initForecasterChart() {
+    const ctx = document.getElementById('forecasterChart').getContext('2d');
+    forecasterChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { type: 'category', title: { display: true, text: 'Date' } },
+                y: { title: { display: true, text: 'Value' } }
+            }
+        }
+    });
+    updateForecasterChart();
+}
+
+function updateForecasterChart() {
+    const param = document.getElementById('forecasterParam').value;
+    const paramData = forecasterData?.[param] || {};
+
+    renderForecasterMetrics();
+
+    const predictions = paramData.predictions || [];
+    const actuals = paramData.actuals || [];
+
+    forecasterChart.data = {
+        labels: actuals.map(a => a.date.split('T')[0]),
+        datasets: [
+            {
+                label: 'Actual',
+                data: actuals.map(a => a.value),
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                fill: false,
+                tension: 0.1
+            },
+            {
+                label: 'Predicted',
+                data: predictions.map(p => p.predicted),
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: false,
+                tension: 0.1,
+                borderDash: [5, 5]
+            },
+            {
+                label: '95% CI Upper',
+                data: predictions.map(p => p.upper_95),
+                borderColor: 'rgba(13, 110, 253, 0.3)',
+                fill: false,
+                pointRadius: 0
+            },
+            {
+                label: '95% CI Lower',
+                data: predictions.map(p => p.lower_95),
+                borderColor: 'rgba(13, 110, 253, 0.3)',
+                fill: '-1',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                pointRadius: 0
+            }
+        ]
+    };
+    forecasterChart.update();
+}
+
+// ============ CONTAMINATION TAB ============
+async function loadContaminationData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/contamination`);
+        const data = await response.json();
+
+        if (data.success) {
+            contaminationData = data.results;
+            renderContaminationMetrics();
+            renderContaminationMatrix();
+            initContaminationChart();
+            renderContaminationTable();
+        }
+    } catch (error) {
+        console.error('Error loading contamination data:', error);
+    }
+}
+
+function renderContaminationMetrics() {
+    const m = contaminationData?.metrics || {};
+    document.getElementById('contamination-accuracy').textContent = (m.accuracy || '--') + '%';
+
+    const avgType = m.by_type ? Object.values(m.by_type)[0] || {} : {};
+    document.getElementById('contamination-precision').textContent = (avgType.precision || '--') + '%';
+    document.getElementById('contamination-recall').textContent = (avgType.recall || '--') + '%';
+    document.getElementById('contamination-f1').textContent = (avgType.f1_score || '--') + '%';
+
+    // Interpretation
+    let interpText = '';
+    if (m.accuracy >= 80) {
+        interpText = `Strong classification performance with ${m.accuracy}% accuracy. The ML model reliably identifies contamination types, making it suitable for automated monitoring and early warning systems.`;
+    } else if (m.accuracy >= 60) {
+        interpText = `Moderate classification accuracy (${m.accuracy}%). The model correctly identifies most contamination types but may confuse similar categories. Consider combining with manual verification for critical decisions.`;
+    } else {
+        interpText = `Classification accuracy is ${m.accuracy}%. The model may need additional training data or feature engineering. Use rule-based thresholds as the primary detection method while improving ML predictions.`;
+    }
+    document.getElementById('contamination-interpretation-text').textContent = interpText;
+}
+
+function renderContaminationMatrix() {
+    const matrix = contaminationData?.confusion_matrix || {};
+    const types = Object.keys(matrix);
+
+    if (types.length === 0) {
+        document.getElementById('contaminationMatrix').innerHTML = '<p class="text-muted text-center">No data available</p>';
+        return;
+    }
+
+    let html = '<table class="table table-bordered confusion-matrix"><thead><tr><th></th>';
+    types.forEach(t => html += `<th class="header-cell">${t.replace('_', ' ')}</th>`);
+    html += '</tr></thead><tbody>';
+
+    types.forEach(pred => {
+        html += `<tr><td class="header-cell">${pred.replace('_', ' ')}</td>`;
+        types.forEach(act => {
+            const val = matrix[pred]?.[act] || 0;
+            const cls = pred === act ? 'cm-high' : val > 0 ? 'cm-low' : '';
+            html += `<td class="${cls}">${val}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('contaminationMatrix').innerHTML = html;
+}
+
+function initContaminationChart() {
+    const ctx = document.getElementById('contaminationChart').getContext('2d');
+    const predictions = contaminationData?.predictions || [];
+
+    const counts = {};
+    predictions.forEach(p => {
+        counts[p.predicted] = (counts[p.predicted] || 0) + 1;
+    });
+
+    contaminationChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(counts).map(k => k.replace('_', ' ')),
+            datasets: [{
+                data: Object.values(counts),
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#6c757d', '#28a745', '#6f42c1']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderContaminationTable() {
+    const predictions = contaminationData?.predictions || [];
+    const tbody = document.getElementById('contaminationTable');
+
+    tbody.innerHTML = predictions.slice(0, 50).map(p => `
+        <tr class="${p.correct ? 'prediction-correct' : 'prediction-incorrect'}">
+            <td>${p.date.split('T')[0]}</td>
+            <td>${p.predicted.replace('_', ' ')}</td>
+            <td>${p.actual.replace('_', ' ')}</td>
+            <td>${p.confidence}%</td>
+            <td>${p.correct ? '<i class="bi bi-check-circle text-success"></i>' : '<i class="bi bi-x-circle text-danger"></i>'}</td>
+        </tr>
+    `).join('');
+}
+
+// ============ RISK TAB ============
+async function loadRiskData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/risk`);
+        const data = await response.json();
+
+        if (data.success) {
+            riskData = data.results;
+            renderRiskMetrics();
+            renderRiskMatrix();
+            initRiskScatterChart();
+        }
+    } catch (error) {
+        console.error('Error loading risk data:', error);
+    }
+}
+
+function renderRiskMetrics() {
+    const m = riskData?.metrics || {};
+    document.getElementById('risk-accuracy').textContent = (m.accuracy || '--') + '%';
+    document.getElementById('risk-correlation').textContent = m.score_correlation || '--';
+    document.getElementById('risk-mae').textContent = m.score_mae || '--';
+    document.getElementById('risk-total').textContent = m.total_predictions || '--';
+
+    // Interpretation
+    let interpText = '';
+    if (m.accuracy >= 75 && m.score_correlation >= 0.8) {
+        interpText = `Excellent risk prediction performance. Level accuracy of ${m.accuracy}% with score correlation of ${m.score_correlation} indicates the ML model captures site risk patterns well. Suitable for proactive risk management.`;
+    } else if (m.accuracy >= 50) {
+        interpText = `Moderate risk prediction (${m.accuracy}% accuracy). Score correlation of ${m.score_correlation} shows partial alignment with actual risk. The model captures general trends but may miss some risk factors.`;
+    } else {
+        interpText = `Risk predictions show ${m.accuracy}% accuracy. Score MAE of ${m.score_mae} points indicates prediction variability. Consider supplementing ML predictions with domain expertise for risk assessment.`;
+    }
+    document.getElementById('risk-interpretation-text').textContent = interpText;
+}
+
+function renderRiskMatrix() {
+    const matrix = riskData?.metrics?.confusion_matrix || {};
+    const levels = ['critical', 'high', 'medium', 'low'];
+
+    let html = '<table class="table table-bordered confusion-matrix"><thead><tr><th>Pred/Act</th>';
+    levels.forEach(l => html += `<th class="header-cell">${l}</th>`);
+    html += '</tr></thead><tbody>';
+
+    levels.forEach(pred => {
+        html += `<tr><td class="header-cell">${pred}</td>`;
+        levels.forEach(act => {
+            const val = matrix[pred]?.[act] || 0;
+            const cls = pred === act ? 'cm-high' : val > 0 ? 'cm-low' : '';
+            html += `<td class="${cls}">${val}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('riskMatrix').innerHTML = html;
+}
+
+function initRiskScatterChart() {
+    const ctx = document.getElementById('riskScatterChart').getContext('2d');
+    const predictions = riskData?.predictions || [];
+
+    const scatterData = predictions
+        .filter(p => p.predicted_score && p.actual_score)
+        .map(p => ({ x: p.actual_score, y: p.predicted_score }));
+
+    riskScatterChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Predicted vs Actual Score',
+                data: scatterData,
+                backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                borderColor: '#0d6efd'
+            }, {
+                label: 'Perfect Prediction',
+                data: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+                type: 'line',
+                borderColor: '#6c757d',
+                borderDash: [5, 5],
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { min: 0, max: 100, title: { display: true, text: 'Actual Score' } },
+                y: { min: 0, max: 100, title: { display: true, text: 'Predicted Score' } }
+            }
+        }
+    });
+}
+
+// ============ WQI TAB ============
+async function loadWqiData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/wqi`);
+        const data = await response.json();
+
+        if (data.success) {
+            wqiData = data.results;
+            renderWqiMetrics();
+            initWqiChart();
+        }
+    } catch (error) {
+        console.error('Error loading WQI data:', error);
+    }
+}
+
+function renderWqiMetrics() {
+    const m = wqiData?.metrics || {};
+    document.getElementById('wqi-mae').textContent = m.wqi_mae || '--';
+    document.getElementById('wqi-rmse').textContent = m.wqi_rmse || '--';
+    document.getElementById('wqi-correlation').textContent = m.wqi_correlation || '--';
+    document.getElementById('wqi-class-accuracy').textContent = (m.class_accuracy || '--') + '%';
+
+    // Interpretation
+    let interpText = '';
+    if (m.wqi_correlation >= 0.9 && m.class_accuracy >= 85) {
+        interpText = `Excellent WQI agreement with correlation of ${m.wqi_correlation} and ${m.class_accuracy}% class match. Both calculation methods produce consistent quality assessments for this site.`;
+    } else if (m.wqi_correlation >= 0.7) {
+        interpText = `Good WQI tracking (r=${m.wqi_correlation}). Average difference of ${m.wqi_mae} points between methods. ${m.class_accuracy}% of readings receive matching quality classifications.`;
+    } else {
+        interpText = `WQI methods show moderate correlation (${m.wqi_correlation}) with ${m.wqi_mae} point average difference. Different penalty weightings may cause divergent scores. Review parameter importance for this site type.`;
+    }
+    document.getElementById('wqi-interpretation-text').textContent = interpText;
+}
+
+function initWqiChart() {
+    const ctx = document.getElementById('wqiChart').getContext('2d');
+    const readings = wqiData?.readings || [];
+
+    wqiChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: readings.map(r => r.date.split('T')[0]),
+            datasets: [
+                {
+                    label: 'Calculated WQI',
+                    data: readings.map(r => r.calculated_wqi),
+                    borderColor: '#0d6efd',
+                    fill: false,
+                    tension: 0.1
+                },
+                {
+                    label: 'Actual WQI',
+                    data: readings.map(r => r.actual_wqi),
+                    borderColor: '#198754',
+                    fill: false,
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, title: { display: true, text: 'WQI Score' } }
+            }
+        }
+    });
+}
+
+// ============ ANOMALY TAB ============
+async function loadAnomalyData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/anomaly`);
+        const data = await response.json();
+
+        if (data.success) {
+            anomalyData = data.results;
+            renderAnomalyMetrics();
+            initAnomalyChart();
+        }
+    } catch (error) {
+        console.error('Error loading anomaly data:', error);
+    }
+}
+
+function renderAnomalyMetrics() {
+    const m = anomalyData?.metrics || {};
+    document.getElementById('anomaly-accuracy').textContent = (m.accuracy || '--') + '%';
+    document.getElementById('anomaly-precision').textContent = (m.precision || '--') + '%';
+    document.getElementById('anomaly-recall').textContent = (m.recall || '--') + '%';
+    document.getElementById('anomaly-f1').textContent = (m.f1_score || '--') + '%';
+
+    document.getElementById('anomaly-tp').textContent = m.true_positives || 0;
+    document.getElementById('anomaly-fp').textContent = m.false_positives || 0;
+    document.getElementById('anomaly-fn').textContent = m.false_negatives || 0;
+    document.getElementById('anomaly-tn').textContent = m.true_negatives || 0;
+
+    // Interpretation
+    let interpText = '';
+    const tp = m.true_positives || 0;
+    const fp = m.false_positives || 0;
+    const fn = m.false_negatives || 0;
+
+    if (m.precision >= 80 && m.recall >= 70) {
+        interpText = `Effective anomaly detection with ${m.precision}% precision and ${m.recall}% recall. The model correctly flagged ${tp} actual anomalies with only ${fp} false alarms.`;
+    } else if (fn > tp) {
+        interpText = `Anomaly detection may be too conservative (${fn} missed vs ${tp} caught). Consider lowering the detection threshold to catch more unusual readings, accepting some additional false alarms.`;
+    } else if (fp > tp) {
+        interpText = `High false alarm rate (${fp} false vs ${tp} true positives). The detection threshold may be too sensitive. Consider raising it to reduce alert fatigue while still catching true anomalies.`;
+    } else {
+        interpText = `Balanced detection with ${m.accuracy}% overall accuracy. Precision of ${m.precision}% means most alerts are genuine, while ${m.recall}% recall captures most anomalies. F1 score of ${m.f1_score}% indicates reasonable tradeoff.`;
+    }
+    document.getElementById('anomaly-interpretation-text').textContent = interpText;
+}
+
+function initAnomalyChart() {
+    const ctx = document.getElementById('anomalyChart').getContext('2d');
+    const detections = anomalyData?.detections || [];
+
+    const scores = detections.map(d => d.anomaly_score);
+    const bins = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    const counts = bins.slice(0, -1).map((_, i) =>
+        scores.filter(s => s >= bins[i] && s < bins[i + 1]).length
+    );
+
+    anomalyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['0-0.2', '0.2-0.4', '0.4-0.6', '0.6-0.8', '0.8-1.0'],
+            datasets: [{
+                label: 'Anomaly Score Distribution',
+                data: counts,
+                backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545', '#6f42c1']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { title: { display: true, text: 'Count' } }
+            }
+        }
+    });
+}
+
+async function loadDriftData() {
+    try {
+        const response = await fetch(`/reports/api/site/${siteId}/drift`);
+        const data = await response.json();
+
+        if (data.success) {
+            driftData = data.results;
+            renderDriftMetrics();
+            initDriftChart();
+        }
+    } catch (error) {
+        console.error('Error loading drift data:', error);
+    }
+}
+
+function renderDriftMetrics() {
+    const m = driftData?.metrics || {};
+    document.getElementById('drift-accuracy').textContent = (m.accuracy || '--') + '%';
+    document.getElementById('drift-precision').textContent = (m.precision || '--') + '%';
+    document.getElementById('drift-recall').textContent = (m.recall || '--') + '%';
+    document.getElementById('drift-f1').textContent = (m.f1_score || '--') + '%';
+
+    document.getElementById('drift-tp').textContent = m.true_positives || 0;
+    document.getElementById('drift-fp').textContent = m.false_positives || 0;
+    document.getElementById('drift-fn').textContent = m.false_negatives || 0;
+    document.getElementById('drift-tn').textContent = m.true_negatives || 0;
+
+    // Interpretation
+    let interpText = '';
+    const tp = m.true_positives || 0;
+    const fp = m.false_positives || 0;
+    const fn = m.false_negatives || 0;
+
+    if (m.precision >= 80 && m.recall >= 70) {
+        interpText = `Effective drift detection with ${m.precision}% precision and ${m.recall}% recall. The CUSUM model correctly identified ${tp} gradual parameter changes with only ${fp} false alarms.`;
+    } else if (fn > tp) {
+        interpText = `Drift detection may be missing gradual changes (${fn} missed vs ${tp} caught). Consider lowering the CUSUM threshold to detect more subtle drifts, though this may increase false positives.`;
+    } else if (fp > tp) {
+        interpText = `High false alarm rate for drift (${fp} false vs ${tp} true positives). The CUSUM threshold may be too sensitive to normal variations. Consider raising it to focus on significant parameter trends.`;
+    } else {
+        interpText = `Balanced drift detection with ${m.accuracy}% overall accuracy. Precision of ${m.precision}% means most drift alerts are genuine, while ${m.recall}% recall captures most gradual changes. F1 score of ${m.f1_score}% indicates good performance for infrastructure monitoring.`;
+    }
+    document.getElementById('drift-interpretation-text').textContent = interpText;
+    document.getElementById('drift-interpretation-box').style.display = 'block';
+}
+
+function initDriftChart() {
+    const ctx = document.getElementById('driftChart').getContext('2d');
+    const detections = driftData?.detections || [];
+
+    const cusumValues = detections.map(d => d.cusum_value);
+    const bins = [0, 2, 4, 6, 8, 10];
+    const counts = bins.slice(0, -1).map((_, i) =>
+        cusumValues.filter(s => s >= bins[i] && s < bins[i + 1]).length
+    );
+
+    driftChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['0-2', '2-4', '4-6', '6-8', '8-10'],
+            datasets: [{
+                label: 'CUSUM Value Distribution',
+                data: counts,
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { title: { display: true, text: 'Count' } },
+                x: { title: { display: true, text: 'CUSUM Value (Higher = More Drift)' } }
+            }
+        }
+    });
+}
+
+function exportReport() {
+    alert('PDF export would be generated here. Feature coming soon!');
+}
+
+function toggleCustomDateRange() {
+    const dateRange = document.getElementById('dateRangeFilter').value;
+    const customStartDiv = document.getElementById('customStartDiv');
+    const customEndDiv = document.getElementById('customEndDiv');
+
+    if (dateRange === 'custom') {
+        customStartDiv.style.display = 'block';
+        customEndDiv.style.display = 'block';
+    } else {
+        customStartDiv.style.display = 'none';
+        customEndDiv.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Register - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="text-primary">
+                                <i class="bi bi-droplet-fill"></i> Jal Sarovar
+                            </h2>
+                            <p class="text-muted">Create your account</p>
+                        </div>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <!-- Google OAuth Registration -->
+                        <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-danger w-100 mb-3">
+                            <i class="bi bi-google"></i> Sign up with Google
+                        </a>
+
+                        <div class="text-center mb-3">
+                            <span class="text-muted">or register with email</span>
+                        </div>
+
+                        <form method="POST" id="registration-form">
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required pattern="[a-zA-Z0-9_]{3,20}">
+                                <div id="username-feedback" class="form-text"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                                <div class="progress mt-2" style="height: 5px;">
+                                    <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div id="password-strength-text" class="form-text"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="role" class="form-label">User Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <optgroup label="🌍 Public Roles (Auto-Approved)">
+                                        <option value="viewer" selected>Viewer - Read-only access to public data</option>
+                                        <option value="citizen_contributor">Citizen Contributor - Submit visual observations</option>
+                                        <option value="researcher">Researcher - Access datasets for research</option>
+                                    </optgroup>
+                                    <optgroup label="🔒 Restricted Roles (Require Admin Approval)">
+                                        <option value="field_collector">Field Collector - Collect water samples in field</option>
+                                        <option value="analyst">Analyst - Data analysis & ML models</option>
+                                        <option value="lab_partner">Lab Partner - Submit laboratory test results</option>
+                                        <option value="industry_partner">Industry Partner - Monitor industrial compliance</option>
+                                        <option value="government_official">Government Official - Official water quality monitoring</option>
+                                        <option value="site_manager">Site Manager - Manage water body sites</option>
+                                    </optgroup>
+                                </select>
+                                <div id="role-info" class="alert alert-info mt-2" style="display: none;">
+                                    <small><i class="bi bi-info-circle"></i> <span id="role-description"></span></small>
+                                </div>
+                            </div>
+
+                            <!-- Organization fields (shown conditionally for Lab/Industry/Govt roles) -->
+                            <div id="organization-fields" style="display: none;">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-building"></i> Organization Details</h6>
+                                        <p class="card-text small text-muted">Required for institutional roles</p>
+
+                                        <div class="mb-3">
+                                            <label for="organization_name" class="form-label">Organization Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="organization_name" name="organization_name">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="organization_type" class="form-label">Organization Type <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="organization_type" name="organization_type">
+                                                <option value="">Select type...</option>
+                                                <option value="laboratory">Laboratory / Testing Facility</option>
+                                                <option value="industry">Industry / Manufacturing</option>
+                                                <option value="government">Government Agency</option>
+                                                <option value="ngo">NGO / Non-Profit</option>
+                                                <option value="research">Research Institution</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-0">
+                                            <label for="job_title" class="form-label">Job Title <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="job_title" name="job_title" placeholder="e.g., Water Quality Analyst">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms of Service -->
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+                                <i class="bi bi-person-plus"></i> Register
+                            </button>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <p class="text-center text-muted mb-0">
+                            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Role descriptions and organization requirements
+    const roleInfo = {
+        'viewer': {
+            description: 'Browse public water quality data and reports. No approval required.',
+            requiresOrg: false
+        },
+        'citizen_contributor': {
+            description: 'Submit visual observations and report water quality issues. No approval required.',
+            requiresOrg: false
+        },
+        'researcher': {
+            description: 'Access comprehensive datasets for research purposes. No approval required.',
+            requiresOrg: false
+        },
+        'field_collector': {
+            description: 'Collect water samples in the field. Requires admin approval.',
+            requiresOrg: false
+        },
+        'analyst': {
+            description: 'Perform data analysis and create ML models. Requires admin approval.',
+            requiresOrg: false
+        },
+        'lab_partner': {
+            description: 'Submit laboratory test results. Requires admin approval and organization verification.',
+            requiresOrg: true
+        },
+        'industry_partner': {
+            description: 'Monitor industrial compliance for assigned sites. Requires admin approval and organization verification.',
+            requiresOrg: true
+        },
+        'government_official': {
+            description: 'Official water quality monitoring and reporting. Requires admin approval and government verification.',
+            requiresOrg: true
+        },
+        'site_manager': {
+            description: 'Manage specific water body sites. Requires admin approval.',
+            requiresOrg: false
+        }
+    };
+
+    // Password strength calculator
+    function calculatePasswordStrength(password) {
+        let strength = 0;
+        if (password.length >= 8) strength += 25;
+        if (password.length >= 12) strength += 15;
+        if (/[a-z]/.test(password)) strength += 15;
+        if (/[A-Z]/.test(password)) strength += 15;
+        if (/[0-9]/.test(password)) strength += 15;
+        if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+        return Math.min(strength, 100);
+    }
+
+    // Password strength meter
+    const passwordInput = document.getElementById('password');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = calculatePasswordStrength(password);
+
+        strengthBar.style.width = strength + '%';
+
+        if (strength < 40) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Weak password';
+            strengthText.className = 'form-text text-danger';
+        } else if (strength < 70) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Medium strength password';
+            strengthText.className = 'form-text text-warning';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Strong password';
+            strengthText.className = 'form-text text-success';
+        }
+    });
+
+    // Username availability check (debounced)
+    const usernameInput = document.getElementById('username');
+    const usernameFeedback = document.getElementById('username-feedback');
+    let usernameTimeout;
+
+    usernameInput.addEventListener('input', function() {
+        const username = this.value;
+
+        clearTimeout(usernameTimeout);
+
+        if (username.length < 3) {
+            usernameFeedback.textContent = 'Username must be at least 3 characters';
+            usernameFeedback.className = 'form-text text-muted';
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            usernameFeedback.textContent = 'Username can only contain letters, numbers, and underscores';
+            usernameFeedback.className = 'form-text text-danger';
+            return;
+        }
+
+        usernameFeedback.textContent = 'Checking availability...';
+        usernameFeedback.className = 'form-text text-muted';
+
+        usernameTimeout = setTimeout(function() {
+            fetch('/auth/check-username?username=' + encodeURIComponent(username))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        usernameFeedback.textContent = '✓ Username available';
+                        usernameFeedback.className = 'form-text text-success';
+                    } else {
+                        usernameFeedback.textContent = '✗ Username already taken';
+                        usernameFeedback.className = 'form-text text-danger';
+                    }
+                })
+                .catch(error => {
+                    usernameFeedback.textContent = 'Could not check availability';
+                    usernameFeedback.className = 'form-text text-muted';
+                });
+        }, 500); // 500ms debounce
+    });
+
+    // Role selection handler
+    const roleSelect = document.getElementById('role');
+    const roleInfoDiv = document.getElementById('role-info');
+    const roleDescription = document.getElementById('role-description');
+    const orgFields = document.getElementById('organization-fields');
+    const orgName = document.getElementById('organization_name');
+    const orgType = document.getElementById('organization_type');
+    const jobTitle = document.getElementById('job_title');
+
+    roleSelect.addEventListener('change', function() {
+        const selectedRole = this.value;
+        const info = roleInfo[selectedRole];
+
+        if (info) {
+            roleDescription.textContent = info.description;
+            roleInfoDiv.style.display = 'block';
+
+            // Show/hide organization fields
+            if (info.requiresOrg) {
+                orgFields.style.display = 'block';
+                orgName.required = true;
+                orgType.required = true;
+                jobTitle.required = true;
+            } else {
+                orgFields.style.display = 'none';
+                orgName.required = false;
+                orgType.required = false;
+                jobTitle.required = false;
+            }
+        }
+    });
+
+    // Form submission validation
+    const form = document.getElementById('registration-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', function(e) {
+        // Check if username is available
+        if (usernameFeedback.textContent.includes('already taken')) {
+            e.preventDefault();
+            alert('Please choose a different username');
+            return false;
+        }
+
+        // Check password strength
+        const password = passwordInput.value;
+        const strength = calculatePasswordStrength(password);
+        if (strength < 40) {
+            e.preventDefault();
+            alert('Please use a stronger password');
+            return false;
+        }
+
+        // Validate organization fields if visible
+        const selectedRole = roleSelect.value;
+        if (roleInfo[selectedRole] && roleInfo[selectedRole].requiresOrg) {
+            if (!orgName.value || !orgType.value || !jobTitle.value) {
+                e.preventDefault();
+                alert('Please fill in all organization details');
+                return false;
+            }
+        }
+
+        // Disable submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating account...';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-gear"></i> Admin Dashboard</h2>
+        <p class="text-muted mb-0">System administration and management</p>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="mb-0">{{ stats.total_users }}</h3>
+                        <p class="mb-0">Total Users</p>
+                    </div>
+                    <i class="bi bi-people fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="mb-0">{{ stats.active_users }}</h3>
+                        <p class="mb-0">Active Users</p>
+                    </div>
+                    <i class="bi bi-person-check fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="mb-0">{{ stats.total_sites }}</h3>
+                        <p class="mb-0">Total Sites</p>
+                    </div>
+                    <i class="bi bi-geo-alt fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="mb-0">{{ stats.active_sites }}</h3>
+                        <p class="mb-0">Active Sites</p>
+                    </div>
+                    <i class="bi bi-pin-map fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-people"></i> Manage Users
+                    </a>
+                    <a href="{{ url_for('admin.new_user') }}" class="btn btn-outline-success">
+                        <i class="bi bi-person-plus"></i> Add New User
+                    </a>
+                    <a href="{{ url_for('admin.system') }}" class="btn btn-outline-info">
+                        <i class="bi bi-sliders"></i> System Settings
+                    </a>
+                    <a href="{{ url_for('admin.download_template') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-download"></i> Download Import Template
+                    </a>
+                    <a href="{{ url_for('admin_portfolio.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-text"></i> Portfolio CMS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Navigation</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('sites.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-geo-alt"></i> Sites
+                    </a>
+                    <a href="{{ url_for('simulator.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-robot"></i> ML Simulator
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

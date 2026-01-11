@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Jal Sarovar | Real-Time Water Quality Monitoring India{% endblock %}
+{% block meta_description %}Monitor water quality across India in real-time. Track contamination levels, analyze trends, and ensure safe drinking water with ML-powered monitoring system supporting Mission Amrit Sarovar.{% endblock %}
+{% block meta_keywords %}water quality dashboard, real-time water monitoring India, water contamination tracking, Amrit Sarovar dashboard, water safety monitoring, drinking water quality India, water quality trends{% endblock %}
+{% block og_title %}Water Quality Dashboard - Jal Sarovar | Live Monitoring{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+        <p class="text-muted mb-0">Water Quality Overview</p>
+    </div>
+    <div>
+        {% if current_user.is_authenticated and current_user.is_admin() %}
+        <a href="{{ url_for('samples.new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> New Sample
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-stat safe">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Active Sites</h6>
+                        <h3 class="mb-0">{{ stats.total_sites }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-geo-alt text-success display-6"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Samples (30 days)</h6>
+                        <h3 class="mb-0">{{ stats.samples_30d }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-droplet text-primary display-6"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat {% if stats.contamination_rate > 30 %}critical{% elif stats.contamination_rate > 15 %}warning{% else %}safe{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Contamination Rate</h6>
+                        <h3 class="mb-0">{{ stats.contamination_rate }}%</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-exclamation-triangle {% if stats.contamination_rate > 30 %}text-danger{% elif stats.contamination_rate > 15 %}text-warning{% else %}text-success{% endif %} display-6"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat safe">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">WHO Compliance</h6>
+                        <h3 class="mb-0">{{ stats.who_compliance_rate }}%</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-shield-check text-success display-6"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Risk Distribution Chart -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Site Risk Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="riskChart" class="contamination-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Samples -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Samples</h5>
+                <a href="{{ url_for('samples.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sample ID</th>
+                            <th>Site</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>WQI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sample in recent_samples %}
+                        <tr>
+                            <td><a href="{{ url_for('samples.detail', sample_id=sample.id) }}">{{ sample.sample_id }}</a></td>
+                            <td>{{ sample.site_name }}</td>
+                            <td>{{ sample.collection_date }}</td>
+                            <td>
+                                {% if sample.severity == 'critical' %}
+                                <span class="badge bg-danger">Critical</span>
+                                {% elif sample.severity == 'high' %}
+                                <span class="badge bg-warning text-dark">High</span>
+                                {% elif sample.severity == 'medium' %}
+                                <span class="badge bg-info">Medium</span>
+                                {% else %}
+                                <span class="badge bg-success">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sample.wqi_score %}
+                                <span class="badge {% if sample.wqi_score >= 90 %}wqi-excellent{% elif sample.wqi_score >= 70 %}wqi-compliant{% elif sample.wqi_score >= 50 %}wqi-warning{% else %}wqi-unsafe{% endif %}">
+                                    {{ sample.wqi_score|round(1) }}
+                                </span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No samples yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Critical Sites -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-diamond text-danger"></i> High Risk Sites</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Site</th>
+                            <th>State</th>
+                            <th>Risk</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in critical_sites %}
+                        <tr>
+                            <td><a href="{{ url_for('sites.detail', site_id=site.id) }}">{{ site.site_name }}</a></td>
+                            <td>{{ site.state }}</td>
+                            <td>
+                                <span class="risk-badge risk-{{ site.risk_level }}">{{ site.risk_level|title }}</span>
+                            </td>
+                            <td>{{ site.risk_score|round(1) if site.risk_score else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">No high-risk sites</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-bell text-warning"></i> Active Alerts ({{ stats.active_alerts }})</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Parameter</th>
+                            <th>Severity</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alert in recent_alerts %}
+                        <tr>
+                            <td>{{ alert.alert_type }}</td>
+                            <td>{{ alert.parameter or '-' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if alert.severity == 'critical' else 'warning' if alert.severity == 'warning' else 'info' }}">
+                                    {{ alert.severity }}
+                                </span>
+                            </td>
+                            <td>{{ alert.timestamp }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">No active alerts</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Risk Distribution Chart
+const riskData = {{ stats.risk_distribution|tojson }};
+new Chart(document.getElementById('riskChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{
+            data: [riskData.critical || 0, riskData.high || 0, riskData.medium || 0, riskData.low || 0],
+            backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#198754']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

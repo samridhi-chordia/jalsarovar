@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block title %}Edit Home Page - Portfolio CMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-house-door"></i> Edit Home Page</h2>
+        {% if is_draft %}
+        <span class="badge bg-warning">Draft</span>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('admin_portfolio.list_pages') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Pages
+    </a>
+</div>
+
+<form method="POST" id="home-page-form">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-9">
+
+            <!-- Hero Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-star"></i> Hero Section</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="hero_name" class="form-control"
+                               value="{{ page.hero.name if page else 'Samridhi Chordia' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subtitle <span class="text-danger">*</span></label>
+                        <input type="text" name="hero_subtitle" class="form-control"
+                               value="{{ page.hero.subtitle if page else 'Student • Researcher • Developer' }}" required>
+                        <small class="text-muted">Use • for separators</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea name="hero_description" class="form-control" rows="3" required>{{ page.hero.description if page else 'Building ML systems for social impact. From water quality monitoring to solar cell optimization, I create technology that makes a difference.' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Statistics Cards</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addStatistic()">
+                        <i class="bi bi-plus-circle"></i> Add Statistic
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="statistics-container">
+                        <!-- Statistics will be added here dynamically -->
+                    </div>
+                    <input type="hidden" name="statistics_json" id="statistics-json">
+                </div>
+            </div>
+
+            <!-- Featured Projects Section -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-folder"></i> Featured Projects</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addFeaturedProject()" id="add-featured-btn">
+                        <i class="bi bi-plus-circle"></i> Add Project
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Select up to 3 projects to feature on the home page</p>
+                    <div id="featured-projects-container">
+                        <!-- Featured projects will be added here dynamically -->
+                    </div>
+                    <input type="hidden" name="featured_items_json" id="featured-items-json">
+                </div>
+            </div>
+
+            <!-- Highlights Section -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Highlights</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addHighlight()">
+                        <i class="bi bi-plus-circle"></i> Add Highlight
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="highlights-container">
+                        <!-- Highlights will be added here dynamically -->
+                    </div>
+                    <input type="hidden" name="highlights_json" id="highlights-json">
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-megaphone"></i> Call-to-Action</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="cta_title" class="form-control"
+                               value="{{ page.cta.title if page else 'Let\'s Build Something Amazing Together' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subtitle</label>
+                        <input type="text" name="cta_subtitle" class="form-control"
+                               value="{{ page.cta.subtitle if page else 'I\'m always interested in hearing about new projects and opportunities.' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Button Text</label>
+                        <input type="text" name="cta_button_text" class="form-control"
+                               value="{{ page.cta.button_text if page else 'Get in Touch' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <button type="submit" name="action" value="save_draft" class="btn btn-warning w-100 mb-2">
+                        <i class="bi bi-save"></i> Save Draft
+                    </button>
+                    <button type="submit" name="action" value="publish" class="btn btn-success w-100 mb-2"
+                            onclick="return confirm('Publish this page to the live site?');">
+                        <i class="bi bi-cloud-upload"></i> Publish
+                    </button>
+                    <a href="{{ url_for('portfolio.home') }}" target="_blank" class="btn btn-outline-info w-100">
+                        <i class="bi bi-eye"></i> Preview
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+// Initialize data
+let statistics = {{ page.statistics|tojson if page else '[]'|safe }};
+let featuredItems = {{ page.featured_items|tojson if page else '[]'|safe }};
+let highlights = {{ page.highlights|tojson if page else '[]'|safe }};
+const availableItems = {{ available_items|tojson if available_items else '[]'|safe }};
+
+// Statistics Management
+function renderStatistics() {
+    const container = document.getElementById('statistics-container');
+    container.innerHTML = '';
+
+    statistics.forEach((stat, index) => {
+        const div = document.createElement('div');
+        div.className = 'card mb-2';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <label class="form-label">Number</label>
+                        <input type="number" class="form-control stat-number" value="${stat.number}"
+                               onchange="updateStatistic(${index}, 'number', this.value)" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Label</label>
+                        <input type="text" class="form-control stat-label" value="${stat.label}"
+                               onchange="updateStatistic(${index}, 'label', this.value)" required>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-danger w-100" onclick="removeStatistic(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    updateStatisticsJSON();
+}
+
+function addStatistic() {
+    statistics.push({ number: 0, label: '', order: statistics.length + 1 });
+    renderStatistics();
+}
+
+function removeStatistic(index) {
+    statistics.splice(index, 1);
+    statistics.forEach((stat, i) => stat.order = i + 1);
+    renderStatistics();
+}
+
+function updateStatistic(index, field, value) {
+    if (field === 'number') {
+        statistics[index][field] = parseInt(value) || 0;
+    } else {
+        statistics[index][field] = value;
+    }
+    updateStatisticsJSON();
+}
+
+function updateStatisticsJSON() {
+    document.getElementById('statistics-json').value = JSON.stringify(statistics);
+}
+
+// Featured Items Management (Projects, Volunteer, Interests)
+function renderFeaturedItems() {
+    const container = document.getElementById('featured-projects-container');
+    container.innerHTML = '';
+
+    featuredItems.forEach((item, index) => {
+        const selectedItem = availableItems.find(i => i.type === item.type && i.id === item.id);
+        const div = document.createElement('div');
+        div.className = 'card mb-3';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-10">
+                        <label class="form-label">Select Item <span class="text-danger">*</span></label>
+                        <select class="form-select" onchange="selectFeaturedItem(${index}, this.value)" required>
+                            <option value="">Choose a project, volunteer work, or interest...</option>
+                            ${availableItems.map(i => {
+                                const key = i.type + ':' + i.id;
+                                const currentKey = item.type + ':' + item.id;
+                                return `<option value="${key}" ${key === currentKey ? 'selected' : ''}>
+                                    [${i.type.charAt(0).toUpperCase() + i.type.slice(1)}] ${i.title}
+                                </option>`;
+                            }).join('')}
+                        </select>
+                        ${selectedItem ? `<small class="text-muted">Category: ${selectedItem.category}</small>` : ''}
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger w-100" onclick="removeFeaturedItem(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    // Update button state
+    document.getElementById('add-featured-btn').disabled = featuredItems.length >= 3;
+    updateFeaturedItemsJSON();
+}
+
+function addFeaturedProject() {
+    if (featuredItems.length >= 3) {
+        alert('Maximum 3 featured items allowed');
+        return;
+    }
+    featuredItems.push({
+        type: 'project',
+        id: '',
+        order: featuredItems.length + 1
+    });
+    renderFeaturedItems();
+}
+
+function removeFeaturedItem(index) {
+    featuredItems.splice(index, 1);
+    featuredItems.forEach((item, i) => item.order = i + 1);
+    renderFeaturedItems();
+}
+
+function selectFeaturedItem(index, value) {
+    if (!value) return;
+    const [type, id] = value.split(':');
+    featuredItems[index].type = type;
+    featuredItems[index].id = id;
+    renderFeaturedItems();
+}
+
+function updateFeaturedItemsJSON() {
+    document.getElementById('featured-items-json').value = JSON.stringify(featuredItems);
+}
+
+// Highlights Management
+function renderHighlights() {
+    const container = document.getElementById('highlights-container');
+    container.innerHTML = '';
+
+    highlights.forEach((highlight, index) => {
+        const div = document.createElement('div');
+        div.className = 'card mb-3';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label class="form-label">Icon</label>
+                        <input type="text" class="form-control form-control-lg text-center"
+                               value="${highlight.icon}" maxlength="2"
+                               onchange="updateHighlight(${index}, 'icon', this.value)" required>
+                        <small class="text-muted">Emoji</small>
+                    </div>
+                    <div class="col-md-10">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" value="${highlight.title}"
+                               onchange="updateHighlight(${index}, 'title', this.value)" required>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label">Description <span class="text-danger">*</span></label>
+                    <textarea class="form-control" rows="2"
+                              onchange="updateHighlight(${index}, 'description', this.value)" required>${highlight.description}</textarea>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeHighlight(${index})">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    updateHighlightsJSON();
+}
+
+function addHighlight() {
+    highlights.push({ icon: '✨', title: '', description: '', order: highlights.length + 1 });
+    renderHighlights();
+}
+
+function removeHighlight(index) {
+    highlights.splice(index, 1);
+    highlights.forEach((h, i) => h.order = i + 1);
+    renderHighlights();
+}
+
+function updateHighlight(index, field, value) {
+    highlights[index][field] = value;
+    updateHighlightsJSON();
+}
+
+function updateHighlightsJSON() {
+    document.getElementById('highlights-json').value = JSON.stringify(highlights);
+}
+
+// Form submission validation
+document.getElementById('home-page-form').addEventListener('submit', function(e) {
+    if (statistics.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one statistic');
+        return false;
+    }
+    if (featuredProjects.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one featured project');
+        return false;
+    }
+    // Ensure all featured projects have a project_id selected
+    const invalidProjects = featuredProjects.filter(fp => !fp.project_id);
+    if (invalidProjects.length > 0) {
+        e.preventDefault();
+        alert('Please select a project for all featured project slots');
+        return false;
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    renderStatistics();
+    renderFeaturedItems();
+    renderHighlights();
+});
+</script>
+
+<style>
+.sticky-top {
+    z-index: 100;
+}
+</style>
+{% endblock %}

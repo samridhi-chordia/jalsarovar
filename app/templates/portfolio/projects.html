@@ -1,0 +1,281 @@
+{% extends "portfolio_base.html" %}
+
+{% block portfolio_content %}
+<!-- Page Header -->
+<section class="page-header">
+    <div class="container">
+        <h1>Projects</h1>
+        <p>Exploring ML, robotics, and software development to create meaningful impact</p>
+    </div>
+</section>
+
+<!-- Filter Section -->
+<section class="filters">
+    <div class="container">
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All Projects</button>
+            <button class="filter-btn" data-filter="educational">Educational Programs</button>
+            <button class="filter-btn" data-filter="work">Work Experience</button>
+            <button class="filter-btn" data-filter="research">Research</button>
+        </div>
+    </div>
+</section>
+
+<!-- Projects Grid -->
+<section class="projects-section">
+    <div class="container">
+        <div class="projects-grid" id="projects-grid">
+            <!-- Projects will be loaded dynamically via JavaScript -->
+            <div class="loading">Loading projects...</div>
+        </div>
+    </div>
+</section>
+
+<!-- Project Detail Modal -->
+<div class="modal" id="project-modal">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-content">
+        <button class="modal-close" id="modal-close" aria-label="Close modal">&times;</button>
+
+        <div class="modal-body" id="modal-body">
+            <!-- Project details will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox for Images -->
+<div class="lightbox" id="lightbox">
+    <div class="lightbox-overlay" id="lightbox-overlay"></div>
+    <div class="lightbox-content">
+        <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox">&times;</button>
+        <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous image">‹</button>
+        <button class="lightbox-next" id="lightbox-next" aria-label="Next image">›</button>
+        <img src="" alt="" id="lightbox-image">
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+</div>
+
+<script>
+    let allProjects = [];
+
+    // Load all projects from API
+    fetch('{{ url_for("portfolio.api_projects") }}')
+        .then(response => response.json())
+        .then(projects => {
+            allProjects = projects;
+            displayProjects(allProjects);
+            setupFilters();
+            setupProjectLinks();
+        })
+        .catch(error => {
+            console.error('Error loading projects:', error);
+            document.getElementById('projects-grid').innerHTML = '<p class="error">Failed to load projects. Please try again later.</p>';
+        });
+
+    function displayProjects(projects) {
+        const grid = document.getElementById('projects-grid');
+
+        if (projects.length === 0) {
+            grid.innerHTML = '<p class="no-results">No projects found.</p>';
+            return;
+        }
+
+        grid.innerHTML = projects.map(project => `
+            <div class="project-card" data-category="${getCategoryFilter(project.category)}" id="${project.id}">
+                <div class="project-image">
+                    ${project.images && project.images.length > 0
+                        ? `<img src="{{ url_for('static', filename='portfolio/') }}${project.images[0]}" alt="${project.title}" loading="lazy">`
+                        : `<div class="project-placeholder">${getPlaceholderIcon(project.category)}</div>`
+                    }
+                </div>
+                <div class="project-content">
+                    <span class="project-category">${project.category || 'Project'}</span>
+                    <h3 class="project-title">${project.title}</h3>
+                    <p class="project-description">${project.short_description || ''}</p>
+
+                    ${project.highlights && project.highlights.length > 0 ? `
+                        <ul class="project-highlights">
+                            ${project.highlights.slice(0, 3).map(h => `<li>${h}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+
+                    ${project.skills && project.skills.length > 0 ? `
+                        <div class="project-tags">
+                            ${project.skills.slice(0, 4).map(skill => `<span class="tag">${skill}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <button class="project-link" onclick="showProjectDetail('${project.id}')">
+                        View Details →
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getCategoryFilter(category) {
+        if (!category) return 'other';
+        if (category.includes('Educational')) return 'educational';
+        if (category.includes('Work')) return 'work';
+        if (category.includes('Research')) return 'research';
+        return 'other';
+    }
+
+    function getPlaceholderIcon(category) {
+        if (!category) return '📊';
+        if (category.includes('Educational')) return '🎓';
+        if (category.includes('Work')) return '💼';
+        if (category.includes('Research')) return '🔬';
+        return '📊';
+    }
+
+    function setupFilters() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                filterButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+
+                if (filter === 'all') {
+                    displayProjects(allProjects);
+                } else {
+                    const filtered = allProjects.filter(p => getCategoryFilter(p.category) === filter);
+                    displayProjects(filtered);
+                }
+            });
+        });
+    }
+
+    function setupProjectLinks() {
+        // Handle direct links to projects (e.g., #jalsarovar)
+        if (window.location.hash) {
+            const projectId = window.location.hash.substring(1);
+            setTimeout(() => showProjectDetail(projectId), 500);
+        }
+    }
+
+    function showProjectDetail(projectId) {
+        const project = allProjects.find(p => p.id === projectId);
+        if (!project) return;
+
+        const modal = document.getElementById('project-modal');
+        const modalBody = document.getElementById('modal-body');
+
+        modalBody.innerHTML = `
+            <div class="project-detail">
+                <span class="project-category">${project.category || 'Project'}</span>
+                <h2>${project.title}</h2>
+
+                <div class="project-description-full">
+                    <p>${project.full_description || project.short_description || ''}</p>
+                </div>
+
+                ${project.highlights && project.highlights.length > 0 ? `
+                    <div class="project-section">
+                        <h3>Key Highlights</h3>
+                        <ul class="highlights-list">
+                            ${project.highlights.map(h => `<li>${h}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                ${project.skills && project.skills.length > 0 ? `
+                    <div class="project-section">
+                        <h3>Skills & Technologies</h3>
+                        <div class="skills-tags">
+                            ${project.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${project.images && project.images.length > 0 ? `
+                    <div class="project-section">
+                        <h3>Gallery</h3>
+                        <div class="project-gallery">
+                            ${project.images.map((img, index) => `
+                                <img src="{{ url_for('static', filename='portfolio/') }}${img}"
+                                     alt="${project.title} - Image ${index + 1}"
+                                     onclick="openLightbox('{{ url_for('static', filename='portfolio/') }}${img}', '${project.title} - Image ${index + 1}')"
+                                     loading="lazy">
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '<p class="no-media">Photos will be added soon!</p>'}
+
+                ${project.videos && project.videos.length > 0 ? `
+                    <div class="project-section">
+                        <h3>Videos</h3>
+                        <div class="project-videos">
+                            ${project.videos.map(video => `
+                                <div class="video-container">
+                                    <video controls>
+                                        <source src="{{ url_for('static', filename='portfolio/') }}${video}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${project.links && project.links.length > 0 ? `
+                    <div class="project-section">
+                        <h3>Links</h3>
+                        <div class="project-links">
+                            ${project.links.map(link => `
+                                <a href="${link.url}" class="btn btn-outline" target="_blank" rel="noopener noreferrer">${link.text}</a>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Modal close handlers
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-overlay').addEventListener('click', closeModal);
+
+    function closeModal() {
+        document.getElementById('project-modal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Lightbox functionality
+    function openLightbox(imageSrc, caption) {
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImage = document.getElementById('lightbox-image');
+        const lightboxCaption = document.getElementById('lightbox-caption');
+
+        lightboxImage.src = imageSrc;
+        lightboxCaption.textContent = caption;
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-overlay').addEventListener('click', closeLightbox);
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeLightbox();
+        }
+    });
+</script>
+
+<script src="{{ url_for('static', filename='portfolio/js/gallery.js') }}"></script>
+{% endblock %}

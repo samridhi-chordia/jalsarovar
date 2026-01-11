@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+
+{% block title %}Rolling POC - Incremental ML Training | Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .poc-hero {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+        color: white;
+        padding: 2rem 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(30, 58, 95, 0.3);
+    }
+    .poc-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .rolling-badge {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    /* Data Status Card */
+    .data-status-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #e9ecef;
+    }
+    .data-status-card.ready {
+        border-color: #198754;
+        background: linear-gradient(90deg, rgba(25,135,84,0.05) 0%, white 100%);
+    }
+    .data-status-card.not-ready {
+        border-color: #ffc107;
+        background: linear-gradient(90deg, rgba(255,193,7,0.05) 0%, white 100%);
+    }
+
+    /* Model Row Card */
+    .model-row {
+        background: white;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .model-row:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .model-row.completed {
+        border-left: 4px solid #198754;
+    }
+    .model-row.running {
+        border-left: 4px solid #f59e0b;
+    }
+
+    /* Model Header */
+    .model-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f1f3f5;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .model-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    .model-icon.risk { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+    .model-icon.contam { background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); }
+    .model-icon.wqi { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
+    .model-icon.anomaly { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); }
+    .model-icon.forecast { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
+    .model-icon.cost { background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); }
+
+    .model-info h5 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .model-info small {
+        color: #6c757d;
+    }
+
+    .model-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-left: auto;
+        align-items: center;
+    }
+
+    .btn-rolling {
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        min-width: 180px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border: none;
+        color: white;
+    }
+    .btn-rolling:hover {
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        color: white;
+    }
+    .btn-rolling:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .btn-rolling.done {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    }
+
+    /* Progress indicator */
+    .rolling-progress {
+        display: none;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .rolling-progress.show {
+        display: flex;
+    }
+    .progress-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    /* Model Results */
+    .model-results {
+        display: none;
+        padding: 1.5rem;
+        background: #f8f9fa;
+    }
+    .model-results.show {
+        display: block;
+    }
+
+    /* Rolling Training Section */
+    .training-progression {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .training-progression h6 {
+        color: #f59e0b;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Accuracy Chart Container */
+    .accuracy-chart-container {
+        height: 200px;
+        margin-bottom: 1rem;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+    .metrics-grid.cost-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .metric-card.highlight {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+    .metric-card.improvement {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1f2937;
+        line-height: 1;
+    }
+    .metric-value.cost-value {
+        font-size: 1.1rem;
+        word-break: break-word;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Comparison Section */
+    .comparison-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+    }
+    .comparison-section h6 {
+        color: #6366f1;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Accuracy Display */
+    .accuracy-display {
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .accuracy-value {
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #059669;
+        line-height: 1;
+    }
+    .accuracy-label {
+        font-size: 1rem;
+        color: #065f46;
+        margin-top: 0.5rem;
+    }
+    .accuracy-improvement {
+        display: inline-block;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    /* Summary Section */
+    .summary-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        text-align: center;
+    }
+    .summary-item .value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1f2937;
+    }
+    .summary-item .label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-transform: uppercase;
+    }
+
+    /* Results Table */
+    .results-table {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .results-table table {
+        font-size: 0.85rem;
+    }
+    .results-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 10;
+    }
+
+    /* Summary Card */
+    .final-summary-card {
+        display: none;
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-top: 2rem;
+        text-align: center;
+    }
+    .final-summary-card.show {
+        display: block;
+    }
+    .final-summary-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .summary-models {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    .summary-model {
+        text-align: center;
+    }
+    .summary-model .value {
+        font-size: 2rem;
+        font-weight: 800;
+    }
+    .summary-model .name {
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="poc-hero">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1><i class="bi bi-arrow-repeat me-2"></i>Rolling POC<span class="rolling-badge">Incremental Training</span></h1>
+            <p class="mb-0 mt-2 opacity-75">
+                True walk-forward validation: Train on W1-W104, predict W105, retrain on W1-W105, predict W106...
+            </p>
+        </div>
+        <div class="text-end">
+            <div class="fs-4 fw-bold">{{ config.prediction_weeks }} Rolling Predictions</div>
+            <small class="opacity-75">Model retrains each week</small>
+        </div>
+    </div>
+</div>
+
+<!-- Data Status -->
+<div class="data-status-card {{ 'ready' if data_ready else 'not-ready' }}" id="data-status">
+    {% if data_ready %}
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-check-circle-fill text-success fs-2"></i>
+        <div>
+            <h5 class="mb-1">Data Ready for Rolling Training</h5>
+            <p class="mb-0 text-muted">{{ total_samples }} weeks of data available from POC site. Click "Run Rolling Training" on each model below.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+        <div>
+            <h5 class="mb-1">Data Not Available</h5>
+            <p class="mb-0 text-muted">Please go to the <a href="{{ url_for('poc.dashboard') }}">regular POC page</a> and populate data first ({{ total_samples }}/{{ config.total_weeks }} weeks available).</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Models Section -->
+<div id="models-section">
+    {% set models = [
+        ('site_risk', 'Site Risk Classifier', 'Rolling Random Forest', 'risk', 'shield-exclamation'),
+        ('contamination', 'Contamination Classifier', 'Rolling XGBoost', 'contam', 'virus'),
+        ('wqi', 'WQI Predictor', 'Rolling Gradient Boosting', 'wqi', 'speedometer2'),
+        ('anomaly', 'Anomaly Detector', 'Rolling Isolation Forest', 'anomaly', 'exclamation-triangle'),
+        ('forecast', 'Quality Forecaster', 'Rolling LSTM', 'forecast', 'graph-up-arrow'),
+        ('cost', 'Cost Optimizer', 'Rolling Bayesian Opt', 'cost', 'currency-rupee')
+    ] %}
+
+    {% for model_id, name, algorithm, icon_class, icon in models %}
+    <div class="model-row" id="row-{{ model_id }}">
+        <div class="model-header">
+            <div class="model-icon {{ icon_class }}">
+                <i class="bi bi-{{ icon }}"></i>
+            </div>
+            <div class="model-info">
+                <h5>{{ name }}</h5>
+                <small>{{ algorithm }} - Retrains each week</small>
+            </div>
+            <div class="model-actions">
+                <div class="rolling-progress" id="progress-{{ model_id }}">
+                    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                    <span class="progress-text" id="progress-text-{{ model_id }}">Running week 105...</span>
+                </div>
+                <button class="btn btn-rolling" id="btn-{{ model_id }}" onclick="runRollingModel('{{ model_id }}')" {{ 'disabled' if not data_ready }}>
+                    <i class="bi bi-play-fill me-1"></i> Run Rolling Training
+                </button>
+            </div>
+        </div>
+        <div class="model-results" id="results-{{ model_id }}"></div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Final Summary -->
+<div class="final-summary-card" id="final-summary">
+    <h3><i class="bi bi-trophy me-2"></i>Rolling POC Complete</h3>
+    <p class="opacity-75 mb-3">All models completed with incremental training</p>
+    <div class="row justify-content-center mb-3">
+        <div class="col-auto">
+            <div class="fs-1 fw-bold" id="avg-accuracy">0%</div>
+            <div class="opacity-75">Average Accuracy</div>
+        </div>
+    </div>
+    <div class="summary-models" id="summary-models"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const models = ['site_risk', 'contamination', 'wqi', 'anomaly', 'forecast', 'cost'];
+const modelResults = {};
+let completedModels = 0;
+
+async function runRollingModel(model) {
+    const btn = document.getElementById(`btn-${model}`);
+    const progress = document.getElementById(`progress-${model}`);
+    const progressText = document.getElementById(`progress-text-${model}`);
+    const row = document.getElementById(`row-${model}`);
+    const resultsContainer = document.getElementById(`results-${model}`);
+
+    // Update UI to running state
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Running...';
+    progress.classList.add('show');
+    row.classList.add('running');
+    progressText.textContent = 'Initializing rolling training...';
+
+    try {
+        // Simulate progress updates
+        let week = 105;
+        const progressInterval = setInterval(() => {
+            if (week <= 156) {
+                progressText.textContent = `Training & predicting W${week}...`;
+                week += 2;
+            }
+        }, 200);
+
+        const response = await fetch(`/rolling-poc/run/${model}`, { method: 'POST' });
+        const data = await response.json();
+
+        clearInterval(progressInterval);
+
+        if (data.success) {
+            modelResults[model] = data;
+            showRollingResults(model, data);
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Complete';
+            btn.classList.add('done');
+            row.classList.remove('running');
+            row.classList.add('completed');
+            completedModels++;
+
+            if (completedModels === models.length) {
+                showFinalSummary();
+            }
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (error) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Retry';
+        row.classList.remove('running');
+        progress.classList.remove('show');
+        alert(`Error: ${error.message}`);
+    }
+
+    progress.classList.remove('show');
+}
+
+function showRollingResults(model, data) {
+    const container = document.getElementById(`results-${model}`);
+    const results = data.results;
+    const summary = results.summary;
+    const metrics = results.metrics;
+    const isCostModel = model === 'cost';
+
+    // Build metrics HTML
+    let metricsHtml = '';
+    for (const [key, val] of Object.entries(metrics)) {
+        if (key === 'confusion_matrix') continue;
+        const isCostValue = key.includes('cost') || key.includes('savings') && key !== 'savings_percent';
+        const display = typeof val === 'number' ?
+            (key.includes('cost') && !key.includes('percent') ? `Rs.${val.toLocaleString()}` :
+             key.includes('percent') || key.includes('accuracy') || key.includes('precision') || key.includes('recall') || key.includes('rate') || key.includes('f1') ?
+             val.toFixed(1) + '%' : val.toFixed(2)) : val;
+        const valueClass = isCostValue ? 'metric-value cost-value' : 'metric-value';
+        metricsHtml += `<div class="metric-card"><div class="${valueClass}">${display}</div><div class="metric-label">${key.replace(/_/g, ' ')}</div></div>`;
+    }
+
+    // Build summary HTML
+    const summaryHtml = `
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="value">${summary.total_predictions}</div>
+                <div class="label">Predictions</div>
+            </div>
+            <div class="summary-item">
+                <div class="value text-success">${summary.correct_predictions}</div>
+                <div class="label">Correct</div>
+            </div>
+            <div class="summary-item">
+                <div class="value">${summary.initial_accuracy}%</div>
+                <div class="label">Initial Acc</div>
+            </div>
+            <div class="summary-item">
+                <div class="value text-warning">${summary.accuracy_improvement > 0 ? '+' : ''}${summary.accuracy_improvement}%</div>
+                <div class="label">Improvement</div>
+            </div>
+        </div>
+    `;
+
+    // Build training progression chart data
+    const chartId = `chart-${model}`;
+    const progression = results.training_progression;
+
+    // Build results table
+    let tableHeaders = '';
+    let tableRows = '';
+
+    if (model === 'site_risk') {
+        tableHeaders = '<th>Week</th><th>Training Samples</th><th>Model Acc</th><th>Actual</th><th>Predicted</th><th>Match</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td>${r.model_accuracy_at_prediction}%</td>
+                <td><span class="badge bg-${r.actual === 'critical' ? 'danger' : r.actual === 'high' ? 'warning' : 'secondary'}">${r.actual}</span></td>
+                <td><span class="badge bg-${r.predicted === 'critical' ? 'danger' : r.predicted === 'high' ? 'warning' : 'secondary'}">${r.predicted}</span></td>
+                <td>${r.correct ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'contamination') {
+        tableHeaders = '<th>Week</th><th>Training</th><th>Actual</th><th>Predicted</th><th>Type Match</th><th>Correct</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td><span class="badge ${r.actual ? 'bg-danger' : 'bg-success'}">${r.actual ? 'Yes' : 'No'}</span></td>
+                <td><span class="badge ${r.predicted ? 'bg-danger' : 'bg-success'}">${r.predicted ? 'Yes' : 'No'}</span></td>
+                <td>${r.actual_type} / ${r.predicted_type}</td>
+                <td>${r.correct ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'wqi') {
+        tableHeaders = '<th>Week</th><th>Training</th><th>Actual WQI</th><th>Predicted</th><th>Error</th><th>Class Match</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td>${r.actual_wqi} <small class="text-muted">(${r.actual_class})</small></td>
+                <td>${r.predicted_wqi} <small class="text-muted">(${r.predicted_class})</small></td>
+                <td>${r.error.toFixed(1)}</td>
+                <td>${r.class_match ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'anomaly') {
+        tableHeaders = '<th>Week</th><th>Training</th><th>Actual</th><th>Predicted</th><th>Score</th><th>Correct</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td><span class="badge ${r.actual ? 'bg-warning' : 'bg-secondary'}">${r.actual ? 'Anomaly' : 'Normal'}</span></td>
+                <td><span class="badge ${r.predicted ? 'bg-warning' : 'bg-secondary'}">${r.predicted ? 'Anomaly' : 'Normal'}</span></td>
+                <td>${(r.score * 100).toFixed(0)}%</td>
+                <td>${r.correct ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'forecast') {
+        tableHeaders = '<th>Week</th><th>Training</th><th>pH Err</th><th>Turb Err</th><th>TDS Err</th><th>Avg Err</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td>${r.errors.ph}%</td>
+                <td>${r.errors.turbidity}%</td>
+                <td>${r.errors.tds}%</td>
+                <td class="${r.avg_error < 15 ? 'text-success' : 'text-danger'} fw-bold">${r.avg_error}%</td>
+            </tr>`;
+        });
+    } else if (model === 'cost') {
+        tableHeaders = '<th>Week</th><th>Training</th><th>Risk</th><th>Recommendation</th><th>Current</th><th>Optimized</th><th>Savings</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            const recClass = r.recommendation === 'Skip Test' ? 'bg-success' :
+                            r.recommendation === 'Reduced Testing' ? 'bg-info' :
+                            r.recommendation === 'Standard Testing' ? 'bg-warning' : 'bg-danger';
+            const rowClass = r.recommendation === 'Skip Test' ? 'table-success' : '';
+            tableRows += `<tr class="${rowClass}">
+                <td><strong>W${r.week}</strong></td>
+                <td>${r.training_samples}</td>
+                <td><span class="badge bg-secondary">${r.risk_category}</span></td>
+                <td><span class="badge ${recClass}">${r.recommendation}</span></td>
+                <td>Rs.${r.current_cost.toLocaleString()}</td>
+                <td>${r.optimized_cost === 0 ? '<span class="text-success fw-bold">₹0</span>' : 'Rs.' + r.optimized_cost.toLocaleString()}</td>
+                <td class="text-success fw-bold">${r.savings_percent}%</td>
+            </tr>`;
+        });
+    }
+
+    container.innerHTML = `
+        <div class="training-progression">
+            <h6><i class="bi bi-arrow-repeat me-1"></i> Rolling Training Summary</h6>
+            <div class="summary-section">
+                ${summaryHtml}
+            </div>
+            <div class="accuracy-chart-container">
+                <canvas id="${chartId}"></canvas>
+            </div>
+        </div>
+        <div class="comparison-section">
+            <h6><i class="bi bi-bar-chart-fill"></i> Results - ${data.name}</h6>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="accuracy-display">
+                        <div class="accuracy-value">${summary.final_accuracy}%</div>
+                        <div class="accuracy-label">Final Accuracy</div>
+                        ${summary.accuracy_improvement > 0 ? `<div class="accuracy-improvement"><i class="bi bi-graph-up-arrow me-1"></i>+${summary.accuracy_improvement}% from rolling</div>` : ''}
+                    </div>
+                    <p class="small text-muted mb-2"><strong>Performance Metrics:</strong></p>
+                    <div class="metrics-grid${isCostModel ? ' cost-metrics' : ''}">${metricsHtml}</div>
+                </div>
+                <div class="col-lg-8">
+                    <p class="small text-muted mb-2"><strong>Sample Predictions (first 20 weeks):</strong></p>
+                    <div class="results-table">
+                        <table class="table table-sm table-hover">
+                            <thead><tr>${tableHeaders}</tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.classList.add('show');
+
+    // Create accuracy progression chart
+    if (progression && progression.length > 0) {
+        const ctx = document.getElementById(chartId).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: progression.map(p => `W${p.week}`),
+                datasets: [
+                    {
+                        label: 'Model Accuracy',
+                        data: progression.map(p => (p.model_accuracy * 100).toFixed(1)),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Cumulative Accuracy',
+                        data: progression.map(p => p.cumulative_accuracy),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Accuracy Progression Over Rolling Training' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 60,
+                        max: 100,
+                        title: { display: true, text: 'Accuracy %' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function showFinalSummary() {
+    let total = 0;
+    let summaryHtml = '';
+
+    models.forEach(m => {
+        const acc = modelResults[m]?.results?.summary?.final_accuracy || 0;
+        total += acc;
+        const name = modelResults[m]?.name?.split(' ')[0] || m;
+        const improvement = modelResults[m]?.results?.summary?.accuracy_improvement || 0;
+        summaryHtml += `
+            <div class="summary-model">
+                <div class="value">${acc.toFixed(0)}%</div>
+                <div class="name">${name}</div>
+                ${improvement > 0 ? `<small class="text-warning">+${improvement.toFixed(1)}%</small>` : ''}
+            </div>
+        `;
+    });
+
+    document.getElementById('avg-accuracy').textContent = (total / models.length).toFixed(1) + '%';
+    document.getElementById('summary-models').innerHTML = summaryHtml;
+    document.getElementById('final-summary').classList.add('show');
+    document.getElementById('final-summary').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

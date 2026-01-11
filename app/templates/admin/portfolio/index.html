@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Portfolio CMS - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-text"></i> Portfolio CMS</h2>
+        <p class="text-muted mb-0">Manage portfolio content, blog posts, and media</p>
+    </div>
+    <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Admin
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-dark text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ stats.pages }}</h3>
+                <p class="mb-0">Portfolio Pages</p>
+                {% if stats.pages_drafts > 0 %}
+                <small>{{ stats.pages_drafts }} drafts</small>
+                {% else %}
+                <small>&nbsp;</small>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin_portfolio.list_pages') }}" class="text-white text-decoration-none">
+                    Manage <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ stats.projects }}</h3>
+                <p class="mb-0">Projects</p>
+                {% if stats.projects_drafts > 0 %}
+                <small>{{ stats.projects_drafts }} drafts</small>
+                {% else %}
+                <small>&nbsp;</small>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin_portfolio.list_projects') }}" class="text-white text-decoration-none">
+                    Manage <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ stats.blog }}</h3>
+                <p class="mb-0">Blog Posts</p>
+                <small>&nbsp;</small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <span class="text-white">Coming soon</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ stats.interests }}</h3>
+                <p class="mb-0">Interests</p>
+                <small>&nbsp;</small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin_portfolio.list_interests') }}" class="text-white text-decoration-none">
+                    Manage <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ stats.volunteer }}</h3>
+                <p class="mb-0">Volunteer Work</p>
+                <small>&nbsp;</small>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin_portfolio.list_volunteer') }}" class="text-white text-decoration-none">
+                    Manage <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Create New Content</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <a href="{{ url_for('admin_portfolio.new_project') }}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="bi bi-file-plus fs-3"></i><br>
+                    <span class="mt-2 d-block">New Project</span>
+                </a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <button class="btn btn-outline-secondary w-100 py-3" disabled>
+                    <i class="bi bi-pencil-square fs-3"></i><br>
+                    <span class="mt-2 d-block">New Blog Post</span>
+                    <small class="text-muted">(Coming soon)</small>
+                </button>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="{{ url_for('admin_portfolio.new_interest') }}" class="btn btn-outline-info w-100 py-3">
+                    <i class="bi bi-heart fs-3"></i><br>
+                    <span class="mt-2 d-block">New Interest</span>
+                </a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="{{ url_for('admin_portfolio.new_volunteer') }}" class="btn btn-outline-warning w-100 py-3">
+                    <i class="bi bi-hand-thumbs-up fs-3"></i><br>
+                    <span class="mt-2 d-block">New Volunteer</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Card -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> How to Use</h5>
+    </div>
+    <div class="card-body">
+        <h6>Draft and Publish Workflow</h6>
+        <ul>
+            <li><strong>Save as Draft:</strong> Save your changes without making them public. You can continue editing later.</li>
+            <li><strong>Publish:</strong> Make your content live on the portfolio website. Published content is visible to all visitors.</li>
+            <li><strong>Edit Draft:</strong> When you edit published content, changes are saved as a draft until you publish again.</li>
+        </ul>
+        <h6 class="mt-3">Media Upload</h6>
+        <ul>
+            <li><strong>Images:</strong> Supported formats: JPG, PNG, GIF, WebP (Max 10MB each)</li>
+            <li><strong>Videos:</strong> Supported formats: MP4, WebM, MOV (Max 50MB each)</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}System Settings - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-sliders"></i> System Settings</h2>
+        <p class="text-muted mb-0">System configuration and status</p>
+    </div>
+    <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Admin
+    </a>
+</div>
+
+<div class="row">
+    <!-- System Status -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-activity"></i> System Status</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th>Database:</th>
+                        <td>
+                            <span class="badge bg-success">Connected</span>
+                            <small class="text-muted d-block">{{ config.database }}</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Debug Mode:</th>
+                        <td>
+                            <span class="badge bg-{{ 'warning' if config.debug else 'success' }}">
+                                {{ 'Enabled' if config.debug else 'Disabled' }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ML Models Path:</th>
+                        <td><code>{{ config.ml_models_path or 'Not configured' }}</code></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Info -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Application Info</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th>Application:</th>
+                        <td>Jal Sarovar Water Quality Management</td>
+                    </tr>
+                    <tr>
+                        <th>Version:</th>
+                        <td>2.0</td>
+                    </tr>
+                    <tr>
+                        <th>Framework:</th>
+                        <td>Flask 3.0</td>
+                    </tr>
+                    <tr>
+                        <th>ML Models:</th>
+                        <td>6 Active Models</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ML Models Status -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-robot"></i> ML Models Status</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>Site Risk Classifier</strong>
+                </div>
+                <small class="text-muted">Random Forest - 87% Accuracy</small>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>Contamination Classifier</strong>
+                </div>
+                <small class="text-muted">XGBoost - 0.82 F1 Score</small>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>WQI Calculator</strong>
+                </div>
+                <small class="text-muted">Penalty Algorithm</small>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>Anomaly Detector</strong>
+                </div>
+                <small class="text-muted">Isolation Forest - 92% Accuracy</small>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>Quality Forecaster</strong>
+                </div>
+                <small class="text-muted">Gaussian Process - 0.78 R2</small>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">Active</span>
+                    <strong>Cost Optimizer</strong>
+                </div>
+                <small class="text-muted">Bayesian Optimization</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Quick Links</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <a href="{{ url_for('simulator.dashboard') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-robot"></i> ML Simulator
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('analysis.trends') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-graph-up"></i> Trends Dashboard
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-people"></i> User Management
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

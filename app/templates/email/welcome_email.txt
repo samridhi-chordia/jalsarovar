@@ -1,0 +1,22 @@
+Welcome {{ user_name }}!
+
+Your email has been verified successfully. You're now part of the Jal Sarovar community.
+
+Your Role: {{ role }}
+
+Getting Started:
+- Dashboard: View water quality data and insights
+- Sites: Explore monitored water bodies across India
+- Analysis: Access water quality reports and predictions
+- Contribute: Submit data according to your role permissions
+
+Access your dashboard: {{ dashboard_url }}
+
+Thank you for joining us in our mission to monitor and improve water quality!
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

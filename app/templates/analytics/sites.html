@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Site Selection - Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-geo-alt"></i> Select Site for Trend Analysis</h2>
+            <p class="text-muted">Choose a site to view detailed trend analysis and forecasts</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('analytics.sites') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="country" class="form-label">Country</label>
+                    <select class="form-select" id="country" name="country" onchange="this.form.submit()">
+                        <option value="">All Countries</option>
+                        {% for country in countries %}
+                        <option value="{{ country }}" {% if selected_country == country %}selected{% endif %}>
+                            {{ country }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="days" class="form-label">Data Period</label>
+                    <select class="form-select" id="days" name="days" onchange="this.form.submit()">
+                        <option value="365" {% if days == 365 %}selected{% endif %}>Last Year</option>
+                        <option value="1825" {% if days == 1825 %}selected{% endif %}>Last 5 Years (Historical)</option>
+                        <option value="0" {% if days == 0 %}selected{% endif %}>All Time</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="{{ url_for('analytics.sites') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list"></i> Sites with Trend Data ({{ sites|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="sitesTable">
+                            <thead>
+                                <tr>
+                                    <th>Site Name</th>
+                                    <th>Site Code</th>
+                                    <th>Country</th>
+                                    <th>State</th>
+                                    <th>District</th>
+                                    <th>Samples</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in sites %}
+                                <tr>
+                                    <td><strong>{{ site.site_name }}</strong></td>
+                                    <td>{{ site.site_code }}</td>
+                                    <td>{{ site.country }}</td>
+                                    <td>{{ site.state }}</td>
+                                    <td>{{ site.district }}</td>
+                                    <td>
+                                        {% if site.sample_count >= 10 %}
+                                            <span class="badge bg-success">{{ site.sample_count }}</span>
+                                        {% elif site.sample_count >= 3 %}
+                                            <span class="badge bg-warning text-dark">{{ site.sample_count }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ site.sample_count }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if site.sample_count >= 3 %}
+                                        <a href="{{ url_for('analytics.site_trends', site_id=site.id) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-graph-up"></i> Analyze
+                                        </a>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled
+                                                title="Need at least 3 samples">
+                                            <i class="bi bi-graph-up"></i> Insufficient Data
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

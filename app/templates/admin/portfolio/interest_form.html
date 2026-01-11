@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if interest else 'New' }} Interest - Portfolio CMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>{{ 'Edit' if interest else 'New' }} Interest</h2>
+        {% if is_draft %}
+        <span class="badge bg-warning">Draft</span>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('admin_portfolio.list_interests') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Interests
+    </a>
+</div>
+
+<form method="POST" id="interest-form">
+    <div class="row">
+        <!-- Left Column: Main Content -->
+        <div class="col-md-8">
+            <!-- Basic Information -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Interest ID <span class="text-danger">*</span></label>
+                        <input type="text" name="id" class="form-control"
+                               value="{{ interest.id if interest else '' }}"
+                               {{ 'readonly' if interest else '' }}
+                               required
+                               pattern="[a-z0-9_]+"
+                               title="Lowercase letters, numbers, and underscores only">
+                        <small class="text-muted">
+                            URL-friendly identifier (e.g., badminton, baking).
+                            {% if not interest %}This will be auto-generated from title if left empty.{% endif %}
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control"
+                               value="{{ interest.title if interest else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select">
+                            <option value="">Select Category</option>
+                            <option value="Extracurricular Activity" {{ 'selected' if interest and interest.category == 'Extracurricular Activity' else '' }}>Extracurricular Activity</option>
+                            <option value="Hobby" {{ 'selected' if interest and interest.category == 'Hobby' else '' }}>Hobby</option>
+                            <option value="Sports" {{ 'selected' if interest and interest.category == 'Sports' else '' }}>Sports</option>
+                            <option value="Arts & Crafts" {{ 'selected' if interest and interest.category == 'Arts & Crafts' else '' }}>Arts & Crafts</option>
+                            <option value="Music" {{ 'selected' if interest and interest.category == 'Music' else '' }}>Music</option>
+                            <option value="Other" {{ 'selected' if interest and interest.category == 'Other' else '' }}>Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Short Description</label>
+                        <textarea name="short_description" class="form-control" rows="2"
+                                  placeholder="Brief 1-2 sentence summary">{{ interest.short_description if interest else '' }}</textarea>
+                        <small class="text-muted">Used in preview cards and listings</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Full Description</label>
+                        <textarea name="full_description" class="form-control" rows="5"
+                                  placeholder="Detailed description">{{ interest.full_description if interest else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="text" name="start_date" class="form-control"
+                                   value="{{ interest.start_date if interest else '' }}"
+                                   placeholder="e.g., 2020 or Childhood">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input type="checkbox" name="currently_active" class="form-check-input"
+                                       {{ 'checked' if interest and interest.currently_active else '' }}>
+                                <label class="form-check-label">Currently Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Highlights (one per line)</label>
+                        <textarea name="highlights" class="form-control" rows="6"
+                                  placeholder="&#8226; First highlight&#10;&#8226; Second highlight&#10;&#8226; Third highlight">{{ interest.highlights|join('\n') if interest else '' }}</textarea>
+                        <small class="text-muted">Enter each achievement on a new line</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Skills (comma-separated)</label>
+                        <input type="text" name="skills" class="form-control"
+                               value="{{ interest.skills|join(', ') if interest else '' }}"
+                               placeholder="Leadership, Team Management, Communication">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Manager -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-images"></i> Media</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Images Section -->
+                    <h6>Images</h6>
+                    <div class="row mb-3" id="images-grid">
+                        {% if interest and interest.images %}
+                            {% for image in interest.images %}
+                            <div class="col-md-4 mb-2">
+                                <div class="card">
+                                    <img src="/static/portfolio/{{ image }}" class="card-img-top" alt="Image">
+                                    <div class="card-body p-2">
+                                        <input type="hidden" name="existing_images" value="{{ image }}">
+                                        <button type="button" class="btn btn-sm btn-danger w-100"
+                                                onclick="this.closest('.col-md-4').remove()">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Upload Images</label>
+                        <input type="file" class="form-control" multiple accept="image/*"
+                               id="image-upload" onchange="uploadImages(this.files)">
+                        <small class="text-muted">Supported: JPG, PNG, GIF, WebP (Max 10MB each)</small>
+                        <div id="image-upload-progress" class="mt-2"></div>
+                    </div>
+
+                    <!-- Videos Section -->
+                    <h6 class="mt-4">Videos</h6>
+                    <div class="row mb-3" id="videos-grid">
+                        {% if interest and interest.videos %}
+                            {% for video in interest.videos %}
+                            <div class="col-md-6 mb-2">
+                                <div class="card">
+                                    <video class="card-img-top" controls>
+                                        <source src="/static/portfolio/{{ video }}">
+                                    </video>
+                                    <div class="card-body p-2">
+                                        <input type="hidden" name="existing_videos" value="{{ video }}">
+                                        <button type="button" class="btn btn-sm btn-danger w-100"
+                                                onclick="this.closest('.col-md-6').remove()">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Upload Videos</label>
+                        <input type="file" class="form-control" multiple accept="video/*"
+                               id="video-upload" onchange="uploadVideos(this.files)">
+                        <small class="text-muted">Supported: MP4, WebM, MOV (Max 50MB each)</small>
+                        <div id="video-upload-progress" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Links Manager -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-link-45deg"></i> External Links</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addLink()">
+                        <i class="bi bi-plus"></i> Add Link
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="links-container">
+                        <!-- Dynamic links will be added here -->
+                    </div>
+                    <input type="hidden" name="links_json" id="links_json" value='{{ interest.links|tojson if interest else "[]" }}'>
+                    {% if not interest or not interest.links or interest.links|length == 0 %}
+                    <p class="text-muted text-center mb-0">No external links added yet. Click "Add Link" to get started.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Actions & Metadata -->
+        <div class="col-md-4">
+            <div class="card mb-3 sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="save_draft" class="btn btn-warning">
+                            <i class="bi bi-save"></i> Save as Draft
+                        </button>
+                        <button type="submit" name="action" value="publish" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload"></i> Publish
+                        </button>
+                        <a href="{{ url_for('admin_portfolio.list_interests') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x"></i> Cancel
+                        </a>
+                        {% if interest %}
+                        <hr>
+                        <a href="{{ url_for('portfolio.interests') }}#{{ interest.id }}"
+                           target="_blank" class="btn btn-outline-info">
+                            <i class="bi bi-eye"></i> Preview
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if interest %}
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        {% if is_draft %}
+                        <i class="bi bi-info-circle"></i> This is a draft. Changes won't be visible until published.
+                        {% else %}
+                        <i class="bi bi-check-circle"></i> This content is published.
+                        {% endif %}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Help Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-question-circle"></i> Tips</h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <p><strong>Draft:</strong> Save your work without publishing. You can continue editing later.</p>
+                        <p><strong>Publish:</strong> Make your interest visible on the portfolio website.</p>
+                        <p class="mb-0"><strong>Required fields</strong> are marked with <span class="text-danger">*</span></p>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+// Links management
+let linksData = {{ interest.links|tojson if interest else '[]' }};
+
+function renderLinks() {
+    const container = document.getElementById('links-container');
+    if (linksData.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center mb-0">No external links added yet. Click "Add Link" to get started.</p>';
+    } else {
+        container.innerHTML = linksData.map((link, idx) => `
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" placeholder="Link text (e.g., View Portfolio)"
+                       value="${link.text || ''}" onchange="updateLink(${idx}, 'text', this.value)">
+                <input type="url" class="form-control" placeholder="URL (e.g., https://...)"
+                       value="${link.url || ''}" onchange="updateLink(${idx}, 'url', this.value)">
+                <button class="btn btn-outline-danger" type="button" onclick="removeLink(${idx})" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+    document.getElementById('links_json').value = JSON.stringify(linksData);
+}
+
+function addLink() {
+    linksData.push({ text: '', url: '' });
+    renderLinks();
+}
+
+function updateLink(idx, field, value) {
+    linksData[idx][field] = value;
+    document.getElementById('links_json').value = JSON.stringify(linksData);
+}
+
+function removeLink(idx) {
+    if (confirm('Remove this link?')) {
+        linksData.splice(idx, 1);
+        renderLinks();
+    }
+}
+
+// Image upload
+function uploadImages(files) {
+    const contentId = document.querySelector('[name="id"]').value;
+    if (!contentId) {
+        alert('Please enter an Interest ID first');
+        document.getElementById('image-upload').value = '';
+        return;
+    }
+
+    const progress = document.getElementById('image-upload-progress');
+    progress.innerHTML = '<div class="alert alert-info">Uploading images...</div>';
+
+    let completed = 0;
+    const total = files.length;
+
+    for (let file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('content_type', '{{ content_type }}');
+        formData.append('content_id', contentId);
+
+        fetch('{{ url_for("admin_portfolio.upload_image") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                addImageToGrid(data.path, data.url);
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+            completed++;
+            if (completed === total) {
+                progress.innerHTML = '<div class="alert alert-success">Upload complete!</div>';
+                setTimeout(() => progress.innerHTML = '', 3000);
+                document.getElementById('image-upload').value = '';
+            }
+        })
+        .catch(err => {
+            alert('Upload error: ' + err);
+            completed++;
+        });
+    }
+}
+
+function addImageToGrid(path, url) {
+    const grid = document.getElementById('images-grid');
+    const col = document.createElement('div');
+    col.className = 'col-md-4 mb-2';
+    col.innerHTML = `
+        <div class="card">
+            <img src="${url}" class="card-img-top" alt="Image">
+            <div class="card-body p-2">
+                <input type="hidden" name="existing_images" value="${path}">
+                <button type="button" class="btn btn-sm btn-danger w-100"
+                        onclick="this.closest('.col-md-4').remove()">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        </div>
+    `;
+    grid.appendChild(col);
+}
+
+// Video upload
+function uploadVideos(files) {
+    const contentId = document.querySelector('[name="id"]').value;
+    if (!contentId) {
+        alert('Please enter an Interest ID first');
+        document.getElementById('video-upload').value = '';
+        return;
+    }
+
+    const progress = document.getElementById('video-upload-progress');
+    progress.innerHTML = '<div class="alert alert-info">Uploading videos...</div>';
+
+    let completed = 0;
+    const total = files.length;
+
+    for (let file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('content_type', '{{ content_type }}');
+        formData.append('content_id', contentId);
+
+        fetch('{{ url_for("admin_portfolio.upload_video") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                addVideoToGrid(data.path, data.url);
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+            completed++;
+            if (completed === total) {
+                progress.innerHTML = '<div class="alert alert-success">Upload complete!</div>';
+                setTimeout(() => progress.innerHTML = '', 3000);
+                document.getElementById('video-upload').value = '';
+            }
+        })
+        .catch(err => {
+            alert('Upload error: ' + err);
+            completed++;
+        });
+    }
+}
+
+function addVideoToGrid(path, url) {
+    const grid = document.getElementById('videos-grid');
+    const col = document.createElement('div');
+    col.className = 'col-md-6 mb-2';
+    col.innerHTML = `
+        <div class="card">
+            <video class="card-img-top" controls>
+                <source src="${url}">
+            </video>
+            <div class="card-body p-2">
+                <input type="hidden" name="existing_videos" value="${path}">
+                <button type="button" class="btn btn-sm btn-danger w-100"
+                        onclick="this.closest('.col-md-6').remove()">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        </div>
+    `;
+    grid.appendChild(col);
+}
+
+// Initialize
+renderLinks();
+</script>
+{% endblock %}

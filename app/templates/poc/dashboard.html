@@ -1,0 +1,984 @@
+{% extends 'base.html' %}
+
+{% block title %}POC - ML Prediction Demo | Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .poc-hero {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+        color: white;
+        padding: 2rem 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(30, 58, 95, 0.3);
+    }
+    .poc-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    /* Data Generation Card */
+    .data-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #e9ecef;
+    }
+    .data-card.ready {
+        border-color: #198754;
+        background: linear-gradient(90deg, rgba(25,135,84,0.05) 0%, white 100%);
+    }
+
+    /* Model Row Card */
+    .model-row {
+        background: white;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .model-row:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .model-row.completed {
+        border-left: 4px solid #198754;
+    }
+
+    /* Model Header */
+    .model-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f1f3f5;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .model-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    .model-icon.risk { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+    .model-icon.contam { background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); }
+    .model-icon.wqi { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
+    .model-icon.anomaly { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); }
+    .model-icon.forecast { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
+    .model-icon.cost { background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); }
+
+    .model-info h5 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .model-info small {
+        color: #6c757d;
+    }
+
+    .model-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-left: auto;
+    }
+    .btn-model {
+        padding: 0.5rem 1.25rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        min-width: 100px;
+    }
+    .btn-model.btn-train { background: #6366f1; border-color: #6366f1; color: white; }
+    .btn-model.btn-train:hover { background: #4f46e5; }
+    .btn-model.btn-predict { background: #10b981; border-color: #10b981; color: white; }
+    .btn-model.btn-predict:hover { background: #059669; }
+    .btn-model.btn-compare { background: #f59e0b; border-color: #f59e0b; color: white; }
+    .btn-model.btn-compare:hover { background: #d97706; }
+    .btn-model:disabled { opacity: 0.5; }
+    .btn-model.done { background: #e9ecef; border-color: #e9ecef; color: #198754; }
+
+    /* Model Results */
+    .model-results {
+        display: none;
+        padding: 1.5rem;
+        background: #f8f9fa;
+    }
+    .model-results.show {
+        display: block;
+    }
+
+    /* Training Section */
+    .training-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .training-section h6 {
+        color: #6366f1;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .metric-card.highlight {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1f2937;
+        line-height: 1;
+    }
+    .metric-value.cost-value {
+        font-size: 1.1rem;
+        word-break: break-word;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Cost Optimizer specific metrics grid */
+    .metrics-grid.cost-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    /* Feature Importance */
+    .feature-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .feature-bar-bg {
+        flex: 1;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .feature-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    .feature-name {
+        min-width: 120px;
+        font-size: 0.8rem;
+        color: #4b5563;
+    }
+    .feature-pct {
+        min-width: 40px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    /* Comparison Section */
+    .comparison-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+    }
+    .comparison-section h6 {
+        color: #f59e0b;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Accuracy Display */
+    .accuracy-display {
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .accuracy-value {
+        font-size: 4rem;
+        font-weight: 900;
+        color: #059669;
+        line-height: 1;
+    }
+    .accuracy-label {
+        font-size: 1rem;
+        color: #065f46;
+        margin-top: 0.5rem;
+    }
+
+    /* Confusion Matrix */
+    .confusion-matrix {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        max-width: 350px;
+        margin: 0 auto 1.5rem;
+    }
+    .cm-cell {
+        padding: 1rem;
+        border-radius: 0.75rem;
+        text-align: center;
+    }
+    .cm-cell .value { font-size: 1.75rem; font-weight: 800; }
+    .cm-cell .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cm-tp { background: #d1fae5; color: #065f46; }
+    .cm-tn { background: #dbeafe; color: #1e40af; }
+    .cm-fp { background: #fef3c7; color: #92400e; }
+    .cm-fn { background: #fee2e2; color: #991b1b; }
+
+    /* Results Table */
+    .results-table-container {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+    }
+    .results-table {
+        margin: 0;
+        font-size: 0.85rem;
+    }
+    .results-table thead {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 1;
+    }
+    .results-table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        padding: 0.75rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .results-table td {
+        padding: 0.6rem 0.75rem;
+        vertical-align: middle;
+    }
+    .results-table tr.match { background: rgba(16, 185, 129, 0.08); }
+    .results-table tr.mismatch { background: rgba(239, 68, 68, 0.08); }
+
+    .badge-actual { background: #e0e7ff; color: #3730a3; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+    .badge-predicted { background: #fef3c7; color: #92400e; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+
+    /* Summary Card */
+    .summary-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+    .summary-card h4 {
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+    .summary-models {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 1rem;
+    }
+    .summary-model {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 0.75rem;
+    }
+    .summary-model .value {
+        font-size: 2rem;
+        font-weight: 800;
+    }
+    .summary-model .name {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    /* Loading */
+    .spinner-border-sm { width: 1rem; height: 1rem; }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .status-pending { background: #f3f4f6; color: #6b7280; }
+    .status-trained { background: #dbeafe; color: #1e40af; }
+    .status-predicted { background: #fef3c7; color: #92400e; }
+    .status-complete { background: #d1fae5; color: #065f46; }
+
+    @media (max-width: 768px) {
+        .model-header { flex-wrap: wrap; }
+        .model-actions { width: 100%; margin-top: 1rem; margin-left: 0; }
+        .summary-models { grid-template-columns: repeat(3, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="poc-hero">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1><i class="bi bi-rocket-takeoff me-2"></i>ML Proof of Concept</h1>
+            <p class="mb-0 opacity-75">Train 6 ML models on 2 years of data, predict Year 3, and compare with actual results</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-light btn-sm me-2" onclick="resetPOC()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset All
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Step 1: Data Generation -->
+<div class="data-card {% if poc_status.data_populated %}ready{% endif %}" id="data-card">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="model-icon cost">
+                <i class="bi bi-database-fill"></i>
+            </div>
+            <div>
+                <h5 class="mb-1 fw-bold">Step 1: Generate Test Data</h5>
+                <p class="mb-0 text-muted small">Create 156 weeks (3 years) of realistic water quality samples</p>
+            </div>
+        </div>
+
+        {% if poc_status.data_populated %}
+        <div class="d-flex align-items-center gap-4">
+            <div class="text-center">
+                <div class="fw-bold text-primary fs-4">{{ poc_status.samples_count }}</div>
+                <div class="small text-muted">Total Samples</div>
+            </div>
+            <div class="text-center">
+                <div class="fw-bold text-info fs-4">{{ poc_status.training_samples }}</div>
+                <div class="small text-muted">Training (2yr)</div>
+            </div>
+            <div class="text-center">
+                <div class="fw-bold text-warning fs-4">{{ poc_status.test_samples }}</div>
+                <div class="small text-muted">Test (1yr)</div>
+            </div>
+            <span class="status-badge status-complete">
+                <i class="bi bi-check-circle-fill"></i> Data Ready
+            </span>
+        </div>
+        {% else %}
+        <button class="btn btn-primary btn-lg px-4" onclick="populateData()" id="btn-populate">
+            <span class="spinner-border spinner-border-sm me-2 d-none" id="populate-spinner"></span>
+            <i class="bi bi-play-fill me-1" id="populate-icon"></i>
+            <span id="populate-text">Generate Data</span>
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Step 2: Models -->
+<h5 class="fw-bold mb-3"><i class="bi bi-cpu me-2"></i>Step 2: Train, Predict & Compare Each Model</h5>
+
+<!-- Model 1: Site Risk Classifier -->
+<div class="model-row" id="row-site_risk">
+    <div class="model-header">
+        <div class="model-icon risk"><i class="bi bi-shield-exclamation"></i></div>
+        <div class="model-info">
+            <h5>Site Risk Classifier</h5>
+            <small><i class="bi bi-diagram-3 me-1"></i>Random Forest Algorithm | Predicts risk level: Low, Medium, High, Critical</small>
+        </div>
+        <div id="status-site_risk" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('site_risk')" id="train-site_risk" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('site_risk')" id="predict-site_risk" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('site_risk')" id="compare-site_risk" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-site_risk"></div>
+</div>
+
+<!-- Model 2: Contamination Classifier -->
+<div class="model-row" id="row-contamination">
+    <div class="model-header">
+        <div class="model-icon contam"><i class="bi bi-virus"></i></div>
+        <div class="model-info">
+            <h5>Contamination Classifier</h5>
+            <small><i class="bi bi-tree me-1"></i>XGBoost Algorithm | Detects contamination and identifies type</small>
+        </div>
+        <div id="status-contamination" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('contamination')" id="train-contamination" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('contamination')" id="predict-contamination" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('contamination')" id="compare-contamination" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-contamination"></div>
+</div>
+
+<!-- Model 3: WQI Predictor -->
+<div class="model-row" id="row-wqi">
+    <div class="model-header">
+        <div class="model-icon wqi"><i class="bi bi-speedometer2"></i></div>
+        <div class="model-info">
+            <h5>WQI Predictor</h5>
+            <small><i class="bi bi-graph-up me-1"></i>Gradient Boosting | Predicts Water Quality Index score (0-100)</small>
+        </div>
+        <div id="status-wqi" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('wqi')" id="train-wqi" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('wqi')" id="predict-wqi" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('wqi')" id="compare-wqi" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-wqi"></div>
+</div>
+
+<!-- Model 4: Anomaly Detector -->
+<div class="model-row" id="row-anomaly">
+    <div class="model-header">
+        <div class="model-icon anomaly"><i class="bi bi-exclamation-triangle"></i></div>
+        <div class="model-info">
+            <h5>Anomaly Detector</h5>
+            <small><i class="bi bi-search me-1"></i>Isolation Forest + CUSUM | Detects unusual patterns and outliers</small>
+        </div>
+        <div id="status-anomaly" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('anomaly')" id="train-anomaly" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('anomaly')" id="predict-anomaly" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('anomaly')" id="compare-anomaly" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-anomaly"></div>
+</div>
+
+<!-- Model 5: Quality Forecaster -->
+<div class="model-row" id="row-forecast">
+    <div class="model-header">
+        <div class="model-icon forecast"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="model-info">
+            <h5>Quality Forecaster</h5>
+            <small><i class="bi bi-bezier2 me-1"></i>LSTM + Gaussian Process | Forecasts pH, Turbidity, TDS, Chlorine values</small>
+        </div>
+        <div id="status-forecast" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('forecast')" id="train-forecast" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('forecast')" id="predict-forecast" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('forecast')" id="compare-forecast" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-forecast"></div>
+</div>
+
+<!-- Model 6: Cost Optimizer -->
+<div class="model-row" id="row-cost">
+    <div class="model-header">
+        <div class="model-icon cost"><i class="bi bi-currency-rupee"></i></div>
+        <div class="model-info">
+            <h5>Cost Optimizer</h5>
+            <small><i class="bi bi-sliders me-1"></i>Bayesian Optimization | Optimizes testing frequency to reduce costs</small>
+        </div>
+        <div id="status-cost" class="status-badge status-pending">Pending</div>
+        <div class="model-actions">
+            <button class="btn btn-model btn-train" onclick="trainModel('cost')" id="train-cost" {% if not poc_status.data_populated %}disabled{% endif %}>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-lightning-fill me-1"></i>Train</span>
+            </button>
+            <button class="btn btn-model btn-predict" onclick="predictModel('cost')" id="predict-cost" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bullseye me-1"></i>Predict</span>
+            </button>
+            <button class="btn btn-model btn-compare" onclick="compareModel('cost')" id="compare-cost" disabled>
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="btn-text"><i class="bi bi-bar-chart-fill me-1"></i>Compare</span>
+            </button>
+        </div>
+    </div>
+    <div class="model-results" id="results-cost"></div>
+</div>
+
+<!-- Summary -->
+<div class="summary-card" id="summary-card" style="display: none;">
+    <h4><i class="bi bi-trophy-fill me-2"></i>Overall Performance Summary</h4>
+    <div class="text-center mb-4">
+        <div style="font-size: 5rem; font-weight: 900;" id="avg-accuracy">--%</div>
+        <div class="fs-5 opacity-75">Average Accuracy Across All 6 Models</div>
+    </div>
+    <div class="summary-models" id="summary-models"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modelState = {};
+const modelResults = {};
+const models = ['site_risk', 'contamination', 'wqi', 'anomaly', 'forecast', 'cost'];
+
+models.forEach(m => {
+    modelState[m] = { trained: false, predicted: false, compared: false };
+});
+
+function setButtonLoading(btn, loading) {
+    const spinner = btn.querySelector('.spinner-border');
+    const text = btn.querySelector('.btn-text');
+    if (loading) {
+        spinner.classList.remove('d-none');
+        text.classList.add('d-none');
+        btn.disabled = true;
+    } else {
+        spinner.classList.add('d-none');
+        text.classList.remove('d-none');
+    }
+}
+
+function updateStatus(model, status) {
+    const badge = document.getElementById(`status-${model}`);
+    badge.className = 'status-badge';
+    if (status === 'trained') {
+        badge.classList.add('status-trained');
+        badge.innerHTML = '<i class="bi bi-check-circle"></i> Trained';
+    } else if (status === 'predicted') {
+        badge.classList.add('status-predicted');
+        badge.innerHTML = '<i class="bi bi-check-circle"></i> Predicted';
+    } else if (status === 'complete') {
+        badge.classList.add('status-complete');
+        badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Complete';
+        document.getElementById(`row-${model}`).classList.add('completed');
+    } else {
+        badge.classList.add('status-pending');
+        badge.innerHTML = 'Pending';
+    }
+}
+
+async function resetPOC() {
+    if (!confirm('Reset all POC data? This will delete all samples and predictions.')) return;
+    try {
+        const res = await fetch('/poc/reset', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else alert('Error: ' + data.error);
+    } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function populateData() {
+    const btn = document.getElementById('btn-populate');
+    const spinner = document.getElementById('populate-spinner');
+    const icon = document.getElementById('populate-icon');
+    const text = document.getElementById('populate-text');
+
+    spinner.classList.remove('d-none');
+    icon.classList.add('d-none');
+    text.textContent = 'Generating...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/poc/populate-data', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) location.reload();
+        else {
+            alert('Error: ' + data.error);
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+            text.textContent = 'Generate Data';
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+        spinner.classList.add('d-none');
+        icon.classList.remove('d-none');
+        text.textContent = 'Generate Data';
+        btn.disabled = false;
+    }
+}
+
+async function trainModel(model) {
+    const btn = document.getElementById(`train-${model}`);
+    setButtonLoading(btn, true);
+
+    try {
+        const res = await fetch(`/poc/train/${model}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+            modelState[model].trained = true;
+            modelResults[model] = { training: data };
+
+            updateStatus(model, 'trained');
+            document.getElementById(`predict-${model}`).disabled = false;
+            btn.classList.add('done');
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Trained';
+
+            showTrainingResults(model, data);
+        } else {
+            alert('Error: ' + data.error);
+            setButtonLoading(btn, false);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+        setButtonLoading(btn, false);
+    }
+}
+
+async function predictModel(model) {
+    const btn = document.getElementById(`predict-${model}`);
+    setButtonLoading(btn, true);
+
+    try {
+        const res = await fetch(`/poc/predict/${model}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+            modelState[model].predicted = true;
+            modelResults[model].predictions = data;
+
+            updateStatus(model, 'predicted');
+            document.getElementById(`compare-${model}`).disabled = false;
+            btn.classList.add('done');
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Predicted';
+
+            addPredictionInfo(model, data);
+        } else {
+            alert('Error: ' + data.error);
+            setButtonLoading(btn, false);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+        setButtonLoading(btn, false);
+    }
+}
+
+async function compareModel(model) {
+    const btn = document.getElementById(`compare-${model}`);
+    setButtonLoading(btn, true);
+
+    try {
+        const res = await fetch(`/poc/compare/${model}`);
+        const data = await res.json();
+
+        if (data.success) {
+            modelState[model].compared = true;
+            modelResults[model].comparison = data;
+
+            updateStatus(model, 'complete');
+            btn.classList.add('done');
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Compared';
+
+            showComparisonResults(model, data);
+            checkAllComplete();
+        } else {
+            alert('Error: ' + data.error);
+            setButtonLoading(btn, false);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+        setButtonLoading(btn, false);
+    }
+}
+
+function showTrainingResults(model, data) {
+    const container = document.getElementById(`results-${model}`);
+
+    let metricsHtml = '';
+    for (const [key, val] of Object.entries(data.metrics)) {
+        const display = typeof val === 'number' ? (val < 1 ? (val * 100).toFixed(1) + '%' : val.toFixed(2)) : val;
+        metricsHtml += `<div class="metric-card"><div class="metric-value">${display}</div><div class="metric-label">${key.replace(/_/g, ' ')}</div></div>`;
+    }
+
+    let featuresHtml = '';
+    if (data.feature_importance) {
+        for (const [name, importance] of Object.entries(data.feature_importance)) {
+            const pct = (importance * 100).toFixed(0);
+            featuresHtml += `
+                <div class="feature-item">
+                    <span class="feature-name">${name.replace(/_/g, ' ')}</span>
+                    <div class="feature-bar-bg"><div class="feature-bar" style="width: ${pct}%"></div></div>
+                    <span class="feature-pct">${pct}%</span>
+                </div>`;
+        }
+    }
+
+    container.innerHTML = `
+        <div class="training-section">
+            <h6><i class="bi bi-lightning-fill"></i> Training Results</h6>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="metrics-grid">${metricsHtml}</div>
+                </div>
+                <div class="col-md-6">
+                    <p class="small text-muted mb-2"><strong>Feature Importance:</strong></p>
+                    <div class="feature-list">${featuresHtml}</div>
+                </div>
+            </div>
+            <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Trained on ${data.training_samples} samples in ${data.training_time_seconds}s</div>
+        </div>
+    `;
+    container.classList.add('show');
+}
+
+function addPredictionInfo(model, data) {
+    const container = document.getElementById(`results-${model}`);
+    const info = document.createElement('div');
+    info.className = 'alert alert-success mt-3 mb-0';
+    info.innerHTML = `<i class="bi bi-check-circle me-2"></i><strong>${data.predictions_count}</strong> predictions generated for Year 3 test data`;
+    container.appendChild(info);
+}
+
+function showComparisonResults(model, data) {
+    const container = document.getElementById(`results-${model}`);
+
+    let accuracy = data.metrics?.accuracy || data.accuracy || 0;
+    let metricsHtml = '';
+
+    // Build metrics
+    const isCostModel = model === 'cost';
+    if (data.metrics) {
+        for (const [key, val] of Object.entries(data.metrics)) {
+            if (key === 'accuracy') continue;
+            const isCostValue = key.includes('cost');
+            const display = typeof val === 'number' ?
+                (isCostValue ? `Rs.${val.toLocaleString()}` :
+                 key.includes('percent') || key.includes('precision') || key.includes('recall') || key.includes('rate') || key.includes('accuracy') ?
+                 val.toFixed(1) + '%' : val.toFixed(2)) : val;
+            const valueClass = isCostValue ? 'metric-value cost-value' : 'metric-value';
+            metricsHtml += `<div class="metric-card"><div class="${valueClass}">${display}</div><div class="metric-label">${key.replace(/_/g, ' ')}</div></div>`;
+        }
+    }
+
+    // Confusion matrix
+    let cmHtml = '';
+    if (data.confusion_matrix && data.confusion_matrix.true_positives !== undefined) {
+        const cm = data.confusion_matrix;
+        cmHtml = `
+            <div class="mb-4">
+                <p class="small text-muted mb-2 text-center"><strong>Confusion Matrix</strong></p>
+                <div class="confusion-matrix">
+                    <div class="cm-cell cm-tp"><div class="value">${cm.true_positives}</div><div class="label">True Positive</div></div>
+                    <div class="cm-cell cm-fp"><div class="value">${cm.false_positives}</div><div class="label">False Positive</div></div>
+                    <div class="cm-cell cm-fn"><div class="value">${cm.false_negatives}</div><div class="label">False Negative</div></div>
+                    <div class="cm-cell cm-tn"><div class="value">${cm.true_negatives}</div><div class="label">True Negative</div></div>
+                </div>
+            </div>`;
+    }
+
+    // Build table
+    let tableHtml = '';
+    if (data.comparison && data.comparison.length > 0) {
+        let headers = '', rows = '';
+
+        if (model === 'wqi') {
+            headers = '<th>Week</th><th>Date</th><th>Actual WQI</th><th>Predicted WQI</th><th>Error</th><th>Class Match</th>';
+            data.comparison.forEach(r => {
+                rows += `<tr class="${r.class_match ? 'match' : 'mismatch'}">
+                    <td><strong>W${r.week}</strong></td><td>${r.date}</td>
+                    <td><span class="badge-actual">${r.actual_wqi}</span></td>
+                    <td><span class="badge-predicted">${r.predicted_wqi}</span></td>
+                    <td>${r.error}</td>
+                    <td>${r.class_match ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+                </tr>`;
+            });
+        } else if (model === 'cost') {
+            headers = '<th>Week</th><th>Risk</th><th>Recommendation</th><th>Current</th><th>Optimized</th><th>Savings</th>';
+            data.comparison.forEach(r => {
+                const recClass = r.recommendation === 'Skip Test' ? 'bg-success' :
+                                r.recommendation === 'Reduced Testing' ? 'bg-info' :
+                                r.recommendation === 'Standard Testing' ? 'bg-warning' : 'bg-danger';
+                const rowClass = r.recommendation === 'Skip Test' ? 'table-success' : '';
+                rows += `<tr class="${rowClass}">
+                    <td><strong>W${r.week}</strong></td>
+                    <td><span class="badge bg-secondary">${r.risk_category}</span></td>
+                    <td><span class="badge ${recClass}">${r.recommendation}</span></td>
+                    <td>Rs.${(r.current_cost || 0).toLocaleString()}</td>
+                    <td>${r.optimized_cost === 0 ? '<span class="text-success fw-bold">₹0</span>' : 'Rs.' + r.optimized_cost.toLocaleString()}</td>
+                    <td class="text-success fw-bold">${r.savings_percent}%</td>
+                </tr>`;
+            });
+        } else if (model === 'forecast') {
+            headers = '<th>Week</th><th>Date</th><th>pH Error</th><th>Turbidity Error</th><th>TDS Error</th><th>Chlorine Error</th>';
+            data.comparison.forEach(r => {
+                const params = r.parameters || {};
+                rows += `<tr>
+                    <td><strong>W${r.week}</strong></td>
+                    <td>${r.date}</td>
+                    <td>${params.ph?.error_percent?.toFixed(1) || '-'}%</td>
+                    <td>${params.turbidity?.error_percent?.toFixed(1) || '-'}%</td>
+                    <td>${params.tds?.error_percent?.toFixed(1) || '-'}%</td>
+                    <td>${params.chlorine?.error_percent?.toFixed(1) || '-'}%</td>
+                </tr>`;
+            });
+        } else if (model === 'anomaly') {
+            headers = `<th>Week</th><th>Date</th><th>Actual</th><th>Predicted</th><th>Match</th><th>Score</th>`;
+            data.comparison.forEach(r => {
+                const actual = r.actual_anomaly;
+                const pred = r.predicted_anomaly;
+                const match = r.match;
+                const actualDisplay = actual ? '<span class="badge bg-danger">Anomaly</span>' : '<span class="badge bg-success">Normal</span>';
+                const predDisplay = pred ? '<span class="badge bg-warning text-dark">Anomaly</span>' : '<span class="badge bg-info">Normal</span>';
+
+                rows += `<tr class="${match ? 'match' : 'mismatch'}">
+                    <td><strong>W${r.week}</strong></td><td>${r.date}</td>
+                    <td>${actualDisplay}</td>
+                    <td>${predDisplay}</td>
+                    <td>${match ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+                    <td>${(r.score * 100).toFixed(0)}%</td>
+                </tr>`;
+            });
+        } else {
+            const actualKey = model === 'contamination' ? 'actual_contaminated' : 'actual';
+            const predKey = model === 'contamination' ? 'predicted_contaminated' : 'predicted';
+
+            headers = `<th>Week</th><th>Date</th><th>Actual</th><th>Predicted</th><th>Match</th><th>Confidence</th>`;
+            data.comparison.forEach(r => {
+                const actual = r[actualKey];
+                const pred = r[predKey];
+                const match = r.match;
+                const actualDisplay = typeof actual === 'boolean' ? (actual ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>') : `<span class="badge-actual">${actual}</span>`;
+                const predDisplay = typeof pred === 'boolean' ? (pred ? '<span class="badge bg-warning text-dark">Yes</span>' : '<span class="badge bg-info">No</span>') : `<span class="badge-predicted">${pred}</span>`;
+
+                rows += `<tr class="${match ? 'match' : 'mismatch'}">
+                    <td><strong>W${r.week}</strong></td><td>${r.date}</td>
+                    <td>${actualDisplay}</td>
+                    <td>${predDisplay}</td>
+                    <td>${match ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+                    <td>${((r.confidence || 0) * 100).toFixed(0)}%</td>
+                </tr>`;
+            });
+        }
+
+        tableHtml = `
+            <div>
+                <p class="small text-muted mb-2"><strong>Detailed Comparison (${data.comparison.length} predictions)</strong></p>
+                <div class="results-table-container">
+                    <table class="table results-table">
+                        <thead><tr>${headers}</tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    // Clear and rebuild
+    container.innerHTML = `
+        <div class="training-section mb-3">
+            <h6><i class="bi bi-lightning-fill"></i> Training Results</h6>
+            <div class="small text-muted"><i class="bi bi-check-circle text-success me-1"></i>Model trained successfully</div>
+        </div>
+        <div class="comparison-section">
+            <h6><i class="bi bi-bar-chart-fill"></i> Comparison Results - ${data.name}</h6>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="accuracy-display">
+                        <div class="accuracy-value">${accuracy.toFixed(1)}%</div>
+                        <div class="accuracy-label">Prediction Accuracy</div>
+                    </div>
+                    ${cmHtml}
+                </div>
+                <div class="col-lg-8">
+                    <p class="small text-muted mb-2"><strong>Performance Metrics:</strong></p>
+                    <div class="metrics-grid${isCostModel ? ' cost-metrics' : ''} mb-4">${metricsHtml}</div>
+                    ${tableHtml}
+                </div>
+            </div>
+        </div>`;
+    container.classList.add('show');
+}
+
+function checkAllComplete() {
+    const allDone = models.every(m => modelState[m].compared);
+    if (!allDone) return;
+
+    let total = 0, count = 0;
+    let summaryHtml = '';
+
+    models.forEach(m => {
+        const acc = modelResults[m].comparison?.metrics?.accuracy || modelResults[m].comparison?.accuracy || 0;
+        total += acc;
+        count++;
+        const name = modelResults[m].comparison?.name?.split(' ')[0] || m;
+        summaryHtml += `<div class="summary-model"><div class="value">${acc.toFixed(0)}%</div><div class="name">${name}</div></div>`;
+    });
+
+    document.getElementById('avg-accuracy').textContent = (total / count).toFixed(1) + '%';
+    document.getElementById('summary-models').innerHTML = summaryHtml;
+    document.getElementById('summary-card').style.display = 'block';
+    document.getElementById('summary-card').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

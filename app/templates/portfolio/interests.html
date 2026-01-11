@@ -1,0 +1,91 @@
+{% extends "portfolio_base.html" %}
+
+{% block portfolio_content %}
+<!-- Interests Hero -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-title">Interests & Hobbies</h1>
+        <p class="page-subtitle">Beyond coding and research</p>
+    </div>
+</section>
+
+<!-- Interests Content -->
+<section class="interests-section py-5">
+    <div class="container">
+        {% if interests and interests|length > 0 %}
+        <div class="row g-4">
+            {% for interest in interests %}
+            <div class="col-md-6 col-lg-4" id="{{ interest.id }}">
+                <div class="card h-100 shadow-sm">
+                    {% if interest.images and interest.images|length > 0 %}
+                    <img src="{{ url_for('static', filename='portfolio/' + interest.images[0]) }}"
+                         class="card-img-top" alt="{{ interest.title }}"
+                         style="height: 200px; object-fit: cover;">
+                    {% endif %}
+
+                    <div class="card-body">
+                        {% if interest.category %}
+                        <span class="badge bg-secondary mb-2">{{ interest.category }}</span>
+                        {% endif %}
+
+                        <h3 class="card-title h5">{{ interest.title }}</h3>
+
+                        <p class="card-text">{{ interest.short_description }}</p>
+
+                        {% if interest.full_description and interest.full_description != interest.short_description %}
+                        <p class="card-text text-muted">{{ interest.full_description }}</p>
+                        {% endif %}
+
+                        {% if interest.highlights and interest.highlights|length > 0 %}
+                        <ul class="list-unstyled mb-3">
+                            {% for highlight in interest.highlights[:3] %}
+                            <li class="mb-1">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <small>{{ highlight }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+
+                        {% if interest.skills and interest.skills|length > 0 %}
+                        <div class="mt-3">
+                            {% for skill in interest.skills[:4] %}
+                            <span class="badge bg-light text-dark border me-1 mb-1">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if interest.links and interest.links|length > 0 %}
+                        <div class="mt-3">
+                            {% for link in interest.links %}
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-sm btn-outline-primary me-2">
+                                {{ link.text }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if interest.videos and interest.videos|length > 0 %}
+                    <div class="card-footer bg-transparent">
+                        {% for video in interest.videos[:1] %}
+                        <video controls class="w-100 rounded">
+                            <source src="{{ url_for('static', filename='portfolio/' + video) }}">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> No interests available yet. Check back soon!
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

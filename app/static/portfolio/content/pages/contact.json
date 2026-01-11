@@ -1,0 +1,56 @@
+{
+  "page_type": "contact",
+  "hero": {
+    "title": "Get in Touch",
+    "subtitle": "Let's collaborate on meaningful projects"
+  },
+  "intro": {
+    "heading": "Let's Connect",
+    "text": "I'm always interested in collaborating on projects related to:"
+  },
+  "interest_areas": [
+    "Machine Learning for social impact",
+    "Research in renewable energy and sustainability",
+    "Educational technology and STEM outreach",
+    "Software development projects",
+    "Environmental conservation initiatives"
+  ],
+  "contact_details": [
+    {
+      "icon": "\ud83d\udce7",
+      "label": "Email",
+      "link": "mailto:samridhi@jalsarovar.com",
+      "order": 1,
+      "value": "samridhi@jalsarovar.com"
+    },
+    {
+      "icon": "\ud83d\udcbc",
+      "label": "LinkedIn",
+      "link": "https://www.linkedin.com/in/samridhi-chordia-64b089359/",
+      "order": 2,
+      "value": "Samridhi Chordia"
+    },
+    {
+      "icon": "\ud83d\udcbb",
+      "label": "GitHub",
+      "link": "https://github.com/samridhi-chordia",
+      "order": 3,
+      "value": "samridhi-chordia"
+    }
+  ],
+  "resume": {
+    "enabled": true,
+    "heading": "Resume",
+    "description": "Download my complete resume for detailed information about my work and achievements.",
+    "button_text": "Download Resume (PDF)",
+    "file_path": "portfolio/downloads/samridhi_resume_v2.pdf"
+  },
+  "form": {
+    "enabled": true,
+    "heading": "Send a Message",
+    "intro": "Have a question or want to collaborate? Fill out the form below!",
+    "response_time": "I typically respond within 2-3 business days."
+  },
+  "id": "contact",
+  "last_updated": "2025-12-29T08:37:58.125874"
+}

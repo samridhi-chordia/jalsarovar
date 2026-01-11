@@ -1,0 +1,27 @@
+{
+  "id": "girls_who_code",
+  "title": "Girls Who Code - Python Game Development",
+  "category": "Educational Preparation Program",
+  "short_description": "Developed 5 original Python games with inclusive character customization, downloaded 200+ times",
+  "full_description": "Developed 5 original Python games from scratch featuring inclusive character customization. Downloaded 200+ times. Created open source repository to allow 50+ developers to use original code. Explored game design, cybersecurity, data science, web development, and code-generation AI through these projects.",
+  "start_date": "",
+  "currently_active": false,
+  "highlights": [
+    "5 original Python games created",
+    "200+ downloads",
+    "Open source repository with 50+ developers",
+    "Inclusive character customization features",
+    "Explored cybersecurity, data science, web dev, AI"
+  ],
+  "skills": [
+    "Python",
+    "Game Development",
+    "Open Source",
+    "Cybersecurity",
+    "Data Science",
+    "Web Development"
+  ],
+  "images": [],
+  "videos": [],
+  "links": []
+}

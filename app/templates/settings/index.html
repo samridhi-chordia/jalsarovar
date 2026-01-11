@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .setting-card {
+        transition: all 0.2s ease;
+    }
+    .setting-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .setting-item {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    .setting-item:last-child {
+        border-bottom: none;
+    }
+    .setting-item.modified {
+        background-color: #fff3cd;
+    }
+    .setting-key {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .setting-description {
+        font-size: 0.9rem;
+        color: #495057;
+    }
+    .setting-meta {
+        font-size: 0.75rem;
+        color: #adb5bd;
+    }
+    .category-header {
+        background: linear-gradient(135deg, #1a365d 0%, #2a4a7f 100%);
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .btn-reset {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .input-group-setting {
+        max-width: 200px;
+    }
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-sliders me-2"></i>System Settings</h2>
+        <p class="text-muted mb-0">Configure system defaults and thresholds. Changes take effect immediately.</p>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-outline-secondary" onclick="exportConfig()">
+            <i class="bi bi-download me-1"></i> Export
+        </button>
+        <button class="btn btn-outline-secondary" onclick="document.getElementById('importFile').click()">
+            <i class="bi bi-upload me-1"></i> Import
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importConfig(this)">
+        {% if current_user.is_admin() %}
+        <button class="btn btn-outline-danger" onclick="resetAllSettings()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset All
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Loading settings...</p>
+</div>
+
+<!-- Settings Container -->
+<div id="settingsContainer" style="display:none;">
+    <!-- Categories will be dynamically populated -->
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let settingsData = {};
+const isAdmin = {{ 'true' if current_user.is_admin() else 'false' }};
+
+// Load settings on page load
+document.addEventListener('DOMContentLoaded', loadSettings);
+
+async function loadSettings() {
+    try {
+        const response = await fetch('/settings/api/config');
+        const data = await response.json();
+
+        if (data.success) {
+            settingsData = data.categories;
+            renderSettings(data.categories);
+        } else {
+            showToast('Error loading settings', 'danger');
+        }
+    } catch (error) {
+        showToast('Failed to load settings: ' + error.message, 'danger');
+    } finally {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('settingsContainer').style.display = 'block';
+    }
+}
+
+function renderSettings(categories) {
+    const container = document.getElementById('settingsContainer');
+    container.innerHTML = '';
+
+    for (const [categoryKey, category] of Object.entries(categories)) {
+        const card = document.createElement('div');
+        card.className = 'card setting-card mb-4';
+        card.innerHTML = `
+            <div class="category-header">
+                <i class="bi bi-${category.icon} me-2"></i>
+                <strong>${category.label}</strong>
+            </div>
+            <div class="card-body p-0">
+                ${category.settings.map(setting => renderSettingItem(setting)).join('')}
+            </div>
+        `;
+        container.appendChild(card);
+    }
+}
+
+function renderSettingItem(setting) {
+    const isModified = !setting.is_default;
+    let inputHtml = '';
+
+    if (setting.options) {
+        // Dropdown for options
+        inputHtml = `
+            <select class="form-select form-select-sm input-group-setting"
+                    id="input-${setting.key}"
+                    onchange="updateSetting('${setting.key}')"
+                    ${!isAdmin ? 'disabled' : ''}>
+                ${setting.options.map(opt =>
+                    `<option value="${opt}" ${setting.value === opt ? 'selected' : ''}>${opt}</option>`
+                ).join('')}
+            </select>
+        `;
+    } else if (setting.value_type === 'bool') {
+        // Toggle switch for booleans
+        inputHtml = `
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox"
+                       id="input-${setting.key}"
+                       ${setting.value ? 'checked' : ''}
+                       onchange="updateSetting('${setting.key}')"
+                       ${!isAdmin ? 'disabled' : ''}>
+            </div>
+        `;
+    } else if (setting.value_type === 'int' || setting.value_type === 'float') {
+        // Number input
+        const step = setting.value_type === 'float' ? '0.1' : '1';
+        inputHtml = `
+            <div class="input-group input-group-setting">
+                <input type="number" class="form-control form-control-sm"
+                       id="input-${setting.key}"
+                       value="${setting.value}"
+                       step="${step}"
+                       ${setting.min !== undefined ? `min="${setting.min}"` : ''}
+                       ${setting.max !== undefined ? `max="${setting.max}"` : ''}
+                       onchange="updateSetting('${setting.key}')"
+                       ${!isAdmin ? 'disabled' : ''}>
+                ${isModified && isAdmin ? `
+                    <button class="btn btn-outline-secondary btn-reset"
+                            onclick="resetSetting('${setting.key}')"
+                            title="Reset to default (${setting.default_value})">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    } else {
+        // Text input
+        inputHtml = `
+            <div class="input-group input-group-setting">
+                <input type="text" class="form-control form-control-sm"
+                       id="input-${setting.key}"
+                       value="${setting.value}"
+                       onchange="updateSetting('${setting.key}')"
+                       ${!isAdmin ? 'disabled' : ''}>
+                ${isModified && isAdmin ? `
+                    <button class="btn btn-outline-secondary btn-reset"
+                            onclick="resetSetting('${setting.key}')"
+                            title="Reset to default">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    const rangeInfo = (setting.min !== undefined || setting.max !== undefined)
+        ? `<span class="text-muted">(${setting.min !== undefined ? setting.min : '-inf'} - ${setting.max !== undefined ? setting.max : '+inf'})</span>`
+        : '';
+
+    return `
+        <div class="setting-item ${isModified ? 'modified' : ''}" id="setting-${setting.key}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <div class="setting-key">${setting.key}</div>
+                    <div class="setting-description">${setting.description} ${rangeInfo}</div>
+                    ${isModified ? `
+                        <div class="setting-meta">
+                            Modified ${setting.updated_at ? new Date(setting.updated_at).toLocaleString() : ''}
+                            ${setting.updated_by ? 'by ' + setting.updated_by : ''}
+                            | Default: <strong>${setting.default_value}</strong>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="ms-3">
+                    ${inputHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function updateSetting(key) {
+    const input = document.getElementById(`input-${key}`);
+    let value;
+
+    if (input.type === 'checkbox') {
+        value = input.checked;
+    } else {
+        value = input.value;
+    }
+
+    try {
+        const response = await fetch(`/settings/api/config/${key}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({value: value})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`${key} updated successfully`, 'success');
+            loadSettings(); // Reload to update UI
+        } else {
+            showToast(data.error || 'Failed to update setting', 'danger');
+            loadSettings(); // Reload to reset input
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'danger');
+        loadSettings();
+    }
+}
+
+async function resetSetting(key) {
+    if (!confirm(`Reset ${key} to default value?`)) return;
+
+    try {
+        const response = await fetch(`/settings/api/config/${key}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`${key} reset to default`, 'success');
+            loadSettings();
+        } else {
+            showToast(data.error || 'Failed to reset setting', 'danger');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'danger');
+    }
+}
+
+async function resetAllSettings() {
+    if (!confirm('Reset ALL settings to their default values? This cannot be undone.')) return;
+
+    try {
+        const response = await fetch('/settings/api/config/reset-all', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadSettings();
+        } else {
+            showToast(data.error || 'Failed to reset settings', 'danger');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'danger');
+    }
+}
+
+async function exportConfig() {
+    try {
+        const response = await fetch('/settings/api/config/export');
+        const data = await response.json();
+
+        if (data.success) {
+            const blob = new Blob([JSON.stringify(data.config, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lab4all_config_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Configuration exported', 'success');
+        }
+    } catch (error) {
+        showToast('Export failed: ' + error.message, 'danger');
+    }
+}
+
+async function importConfig(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const config = JSON.parse(text);
+
+        const response = await fetch('/settings/api/config/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({config: config})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`Imported ${data.imported} settings` +
+                     (data.errors.length ? `, ${data.errors.length} errors` : ''),
+                     data.errors.length ? 'warning' : 'success');
+            loadSettings();
+        } else {
+            showToast(data.error || 'Import failed', 'danger');
+        }
+    } catch (error) {
+        showToast('Import failed: ' + error.message, 'danger');
+    }
+
+    input.value = ''; // Reset file input
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast show bg-${type} text-white`;
+    toast.innerHTML = `
+        <div class="toast-body d-flex justify-content-between align-items-center">
+            ${message}
+            <button type="button" class="btn-close btn-close-white ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    container.appendChild(toast);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

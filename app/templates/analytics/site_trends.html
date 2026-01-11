@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.site_name }} - Trend Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.dashboard') }}">Analytics</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.sites') }}">Sites</a></li>
+                    <li class="breadcrumb-item active">{{ site.site_name }}</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-graph-up"></i> Trend Analysis: {{ site.site_name }}</h2>
+            <p class="text-muted">{{ site.site_code }} | {{ site.district }}, {{ site.state }}</p>
+        </div>
+    </div>
+
+    <!-- Analysis Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Analysis Period</h6>
+                    <h3>{{ analysis_days }}</h3>
+                    <p class="mb-0">Days</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Samples Analyzed</h6>
+                    <h3>{{ trend_result.samples_analyzed }}</h3>
+                    <p class="mb-0">Water Samples</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Warning Score</h6>
+                    <h3 class="{% if trend_result.warning_score >= 70 %}text-danger{% elif trend_result.warning_score >= 50 %}text-warning{% elif trend_result.warning_score >= 30 %}text-info{% else %}text-success{% endif %}">
+                        {{ trend_result.warning_score|round(1) }}
+                    </h3>
+                    <p class="mb-0">
+                        {% if trend_result.warning_level == 'critical' %}
+                            <span class="badge bg-danger">CRITICAL</span>
+                        {% elif trend_result.warning_level == 'high' %}
+                            <span class="badge bg-warning text-dark">HIGH</span>
+                        {% elif trend_result.warning_level == 'medium' %}
+                            <span class="badge bg-info">MEDIUM</span>
+                        {% else %}
+                            <span class="badge bg-success">LOW</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Overall Trend</h6>
+                    {% if trend_result.overall_trend == 'improving' %}
+                        <h3 class="text-success"><i class="bi bi-arrow-up-circle"></i></h3>
+                        <p class="mb-0 text-success">Improving</p>
+                    {% elif trend_result.overall_trend == 'declining' %}
+                        <h3 class="text-danger"><i class="bi bi-arrow-down-circle"></i></h3>
+                        <p class="mb-0 text-danger">Declining</p>
+                    {% else %}
+                        <h3 class="text-secondary"><i class="bi bi-dash-circle"></i></h3>
+                        <p class="mb-0 text-secondary">Stable</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    {% if trend_result.recommendations %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card {% if trend_result.warning_level == 'critical' %}border-danger{% elif trend_result.warning_level == 'high' %}border-warning{% else %}border-info{% endif %}">
+                <div class="card-header {% if trend_result.warning_level == 'critical' %}bg-danger text-white{% elif trend_result.warning_level == 'high' %}bg-warning{% else %}bg-info text-white{% endif %}">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for rec in trend_result.recommendations %}
+                        <li>{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Parameter Trends -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Parameter Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Trend</th>
+                                    <th>Current Value</th>
+                                    <th>Mean</th>
+                                    <th>Monthly Change</th>
+                                    <th>Compliance</th>
+                                    <th>Data Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for param, data in trend_result.parameter_trends.items() %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ param.replace('_', ' ').title() }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if data.trend == 'improving' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Improving
+                                            </span>
+                                        {% elif data.trend == 'declining' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Declining
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-dash"></i> Stable
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ data.current_value|round(3) }}</td>
+                                    <td>{{ data.mean_value|round(3) }}</td>
+                                    <td>
+                                        {% if data.monthly_change_pct > 0 %}
+                                            <span class="text-danger">+{{ data.monthly_change_pct|round(1) }}%</span>
+                                        {% elif data.monthly_change_pct < 0 %}
+                                            <span class="text-success">{{ data.monthly_change_pct|round(1) }}%</span>
+                                        {% else %}
+                                            <span class="text-secondary">0%</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.compliance.status == 'compliant' %}
+                                            <span class="badge bg-success">Compliant</span>
+                                        {% elif data.compliance.status == 'acceptable' %}
+                                            <span class="badge bg-warning text-dark">Acceptable</span>
+                                        {% elif data.compliance.status == 'non_compliant' %}
+                                            <span class="badge bg-danger">Non-Compliant</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ data.data_points }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Points -->
+    {% if trend_result.change_points %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-diamond"></i> Detected Change Points</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Date</th>
+                                    <th>Observed Value</th>
+                                    <th>Expected Value</th>
+                                    <th>Deviation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cp in trend_result.change_points %}
+                                <tr>
+                                    <td>{{ cp.parameter.replace('_', ' ').title() }}</td>
+                                    <td>{{ cp.date }}</td>
+                                    <td>{{ cp.value|round(3) }}</td>
+                                    <td>{{ cp.expected|round(3) }}</td>
+                                    <td class="{% if cp.deviation > 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ cp.deviation|round(3) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('analytics.site_forecast', site_id=site.id) }}" class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-graph-up-arrow"></i> View Forecasts
+                    </a>
+                    <a href="{{ url_for('analytics.compare_sites') }}?sites={{ site.id }}" class="btn btn-info me-2 mb-2">
+                        <i class="bi bi-diagram-3"></i> Compare with Other Sites
+                    </a>
+                    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary me-2 mb-2">
+                        <i class="bi bi-eye"></i> View Site Details
+                    </a>
+                    <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary mb-2">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Analysis Details - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-graph-up"></i> Analysis Details</h2>
+        <p class="text-muted mb-0">Sample: {{ sample.sample_id }}</p>
+    </div>
+    <a href="{{ url_for('analysis.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Analysis
+    </a>
+</div>
+
+<div class="row">
+    <!-- Analysis Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Analysis Summary</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Analysis Date:</th>
+                        <td>{{ analysis.analysis_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            {% if analysis.is_contaminated %}
+                            <span class="badge bg-danger">Contaminated</span>
+                            {% else %}
+                            <span class="badge bg-success">Clean</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Contamination Type:</th>
+                        <td>
+                            {% if analysis.contamination_type %}
+                            <span class="badge bg-warning text-dark">{{ analysis.contamination_type|replace('_', ' ')|title }}</span>
+                            {% else %}
+                            <span class="text-muted">None detected</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Severity Level:</th>
+                        <td>
+                            <span class="risk-badge risk-{{ analysis.severity_level }}">{{ analysis.severity_level|title }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>WQI Score:</th>
+                        <td>
+                            <span class="badge {% if analysis.wqi_score >= 90 %}wqi-excellent{% elif analysis.wqi_score >= 70 %}wqi-compliant{% elif analysis.wqi_score >= 50 %}wqi-warning{% else %}wqi-unsafe{% endif %}">
+                                {{ analysis.wqi_score|round(1) }}
+                            </span>
+                            <span class="badge bg-secondary">{{ analysis.wqi_class }}</span>
+                            {% if analysis.data_coverage_pct and analysis.data_coverage_pct < 60 %}
+                            <br><small class="text-warning">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Low coverage: {{ analysis.data_coverage_pct|round(0) }}%
+                            </small>
+                            {% elif analysis.data_coverage_pct %}
+                            <br><small class="text-muted">Coverage: {{ analysis.data_coverage_pct|round(0) }}%</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Status -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Compliance Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="p-3 rounded {% if analysis.is_compliant_who %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+                            <h3>
+                                {% if analysis.is_compliant_who %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                                {% endif %}
+                            </h3>
+                            <p class="mb-0"><strong>WHO Standards</strong></p>
+                            <small class="text-muted">{{ 'Compliant' if analysis.is_compliant_who else 'Non-Compliant' }}</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded {% if analysis.is_compliant_bis %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+                            <h3>
+                                {% if analysis.is_compliant_bis %}
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                                {% endif %}
+                            </h3>
+                            <p class="mb-0"><strong>BIS Standards</strong></p>
+                            <small class="text-muted">{{ 'Compliant' if analysis.is_compliant_bis else 'Non-Compliant' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Site & Sample Info -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Site Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th>Site Name:</th>
+                        <td><a href="{{ url_for('sites.detail', site_id=site.id) }}">{{ site.site_name }}</a></td>
+                    </tr>
+                    <tr>
+                        <th>Location:</th>
+                        <td>{{ site.district }}, {{ site.state }}</td>
+                    </tr>
+                    <tr>
+                        <th>Site Type:</th>
+                        <td>{{ site.site_type|title }}</td>
+                    </tr>
+                    <tr>
+                        <th>Current Risk:</th>
+                        <td><span class="risk-badge risk-{{ site.current_risk_level }}">{{ site.current_risk_level|title }}</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-droplet"></i> Sample Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th>Sample ID:</th>
+                        <td><a href="{{ url_for('samples.detail', sample_id=sample.id) }}">{{ sample.sample_id }}</a></td>
+                    </tr>
+                    <tr>
+                        <th>Collection Date:</th>
+                        <td>{{ sample.collection_date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td><span class="badge bg-{{ 'success' if sample.status == 'analyzed' else 'warning' }}">{{ sample.status|title }}</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contamination Breakdown -->
+{% if breakdown %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Contamination Breakdown</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for type, score in breakdown.items() %}
+            <div class="col-md-4 mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>{{ type|replace('_', ' ')|title }}</span>
+                    <span>{{ (score * 100)|round(1) }}%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar {% if score >= 0.7 %}bg-danger{% elif score >= 0.5 %}bg-warning{% elif score >= 0.3 %}bg-info{% else %}bg-success{% endif %}"
+                         role="progressbar"
+                         style="width: {{ score * 100 }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ML Prediction -->
+{% if ml_prediction %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-robot"></i> ML Prediction</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Predicted Type:</strong><br>
+                <span class="badge bg-primary">{{ ml_prediction.predicted_type|replace('_', ' ')|title }}</span>
+            </div>
+            <div class="col-md-4">
+                <strong>Confidence:</strong><br>
+                {{ ml_prediction.confidence|round(1) }}%
+            </div>
+            <div class="col-md-4">
+                <strong>F1 Score:</strong><br>
+                {{ ml_prediction.f1_score|round(2) if ml_prediction.f1_score else 'N/A' }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+{% if analysis.recommendations %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+    </div>
+    <div class="card-body">
+        <p>{{ analysis.recommendations }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Test Results -->
+{% if test_result %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Test Results</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <strong>pH:</strong> {{ test_result.ph|round(2) if test_result.ph else 'N/A' }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>Turbidity:</strong> {{ test_result.turbidity_ntu|round(2) if test_result.turbidity_ntu else 'N/A' }} NTU
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>TDS:</strong> {{ test_result.tds_ppm|round(0) if test_result.tds_ppm else 'N/A' }} ppm
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>Chlorine:</strong> {{ test_result.free_chlorine_mg_l|round(2) if test_result.free_chlorine_mg_l else 'N/A' }} mg/L
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>Iron:</strong> {{ test_result.iron_mg_l|round(3) if test_result.iron_mg_l else 'N/A' }} mg/L
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>Coliform:</strong> {{ test_result.total_coliform_mpn|round(0) if test_result.total_coliform_mpn else 'N/A' }} MPN
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>E. coli:</strong> {{ test_result.e_coli_mpn|round(0) if test_result.e_coli_mpn else 'N/A' }} MPN
+            </div>
+            <div class="col-md-3 mb-3">
+                <strong>Nitrate:</strong> {{ test_result.nitrate_mg_l|round(2) if test_result.nitrate_mg_l else 'N/A' }} mg/L
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

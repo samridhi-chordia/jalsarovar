@@ -1,0 +1,1353 @@
+{% extends "base.html" %}
+
+{% block title %}ML Validation Summary - 2-Year Training Window{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        border-left: 4px solid var(--primary-blue);
+        margin-bottom: 1rem;
+    }
+    .metric-card.wqi { border-left-color: #0dcaf0; }
+    .metric-card.contamination { border-left-color: #ffc107; }
+    .metric-card.risk { border-left-color: #dc3545; }
+    .metric-card.forecast { border-left-color: #198754; }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .site-card {
+        margin-bottom: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+    }
+
+    .confusion-matrix {
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+
+    .confusion-matrix td, .confusion-matrix th {
+        padding: 0.5rem;
+        text-align: center;
+    }
+
+    .confusion-matrix .table-success {
+        background-color: #d4edda !important;
+        font-weight: bold;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary-blue);
+    }
+
+    .metric-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-graph-up"></i> ML Validation Summary</h2>
+            <p class="text-muted">
+                Per-site validation metrics with 2-year training window for public sites
+            </p>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bi bi-funnel"></i> Filter Options</h5>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label for="country-filter" class="form-label">Country</label>
+                            <select class="form-select" id="country-filter" onchange="applyFilters()">
+                                <option value="all" selected>All Countries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="category-filter" class="form-label">Category</label>
+                            <select class="form-select" id="category-filter" onchange="applyFilters()">
+                                <option value="all" selected>All Categories</option>
+                                <option value="public">Public</option>
+                                <option value="residential">Residential</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="state-filter" class="form-label">State</label>
+                            <select class="form-select" id="state-filter" onchange="applyFilters()">
+                                <option value="all" selected>All States</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="site-type-filter" class="form-label">Site Type</label>
+                            <select class="form-select" id="site-type-filter" onchange="applyFilters()">
+                                <option value="all" selected>All Types</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="search-input" class="form-label">Search Site</label>
+                            <input type="text" class="form-control" id="search-input"
+                                   placeholder="Search by name..."
+                                   onkeyup="handleSearchKeyup(event)">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="per-page-select" class="form-label">Items/page</label>
+                            <select class="form-select" id="per-page-select" onchange="applyFilters()">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-12">
+                            <small class="text-muted" id="filter-status">Loading sites...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtered Sites List -->
+    <div class="row mb-4" id="filtered-sites-section" style="display:none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Filtered Sites</h5>
+                    <button class="btn btn-primary btn-sm" onclick="runValidationForFiltered()">
+                        <i class="bi bi-play-circle"></i> Run Validation for All Filtered Sites
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Site Code</th>
+                                    <th>Site Name</th>
+                                    <th>State</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filtered-sites-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-controls" class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <small class="text-muted">
+                                Showing <span id="page-start">0</span> to <span id="page-end">0</span> of <span id="total-filtered">0</span> sites
+                            </small>
+                        </div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="pagination-list">
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aggregate Metrics Summary -->
+    <div id="aggregate-section" class="row mb-4" style="display:none;">
+        <div class="col-12">
+            <h4>Aggregate Performance Across All Sites</h4>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card wqi">
+                <div class="card-body text-center">
+                    <div class="metric-label">WQI MAE</div>
+                    <div class="metric-value" id="agg-wqi-mae">--</div>
+                    <small class="text-muted">Average error in WQI score</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card contamination">
+                <div class="card-body text-center">
+                    <div class="metric-label">Contamination Accuracy</div>
+                    <div class="metric-value" id="agg-contam-acc">--%</div>
+                    <small class="text-muted">Type classification accuracy</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card risk">
+                <div class="card-body text-center">
+                    <div class="metric-label">Risk Accuracy</div>
+                    <div class="metric-value" id="agg-risk-acc">--%</div>
+                    <small class="text-muted">Risk level prediction accuracy</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card metric-card forecast">
+                <div class="card-body text-center">
+                    <div class="metric-label">Forecast R²</div>
+                    <div class="metric-value" id="agg-forecast-r2">--</div>
+                    <small class="text-muted">Average R² across parameters</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner" style="display:none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Calculating validation metrics for all public sites...</p>
+        <p class="text-muted small">This may take a few moments depending on data volume.</p>
+    </div>
+
+    <!-- Sites List -->
+    <div id="sites-section" style="display:none;">
+        <div class="row mb-3">
+            <div class="col-12">
+                <h4>Per-Site Validation Results (<span id="total-sites">0</span> sites)</h4>
+            </div>
+        </div>
+        <div id="sites-container"></div>
+    </div>
+
+    <!-- No Data Message -->
+    <div id="no-data-section" style="display:none;">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>No Validation Results Found</strong>
+            <p class="mb-0 mt-2">
+                The selected site(s) do not have pre-calculated validation results. This could mean:
+            </p>
+            <ul class="mb-2">
+                <li>The site doesn't have enough historical data (needs 2+ years)</li>
+                <li>Validation hasn't been run yet for this site</li>
+                <li>The site category filter excluded all results</li>
+            </ul>
+            <p class="mb-0">
+                <strong>Note:</strong> This page only shows <em>existing</em> validation results from the database.
+                It does NOT recalculate on demand. Contact admin to run validation for this site.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allSites = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== VALIDATION SUMMARY PAGE LOADED ===');
+    console.log('Starting to load sites...');
+    loadAvailableSites();
+
+    // Check URL parameters - auto-load site validation if specified
+    const urlParams = new URLSearchParams(window.location.search);
+    const siteId = urlParams.get('site_id');
+    const siteCode = urlParams.get('site_code');
+
+    if (siteId) {
+        console.log('Auto-loading validation for site_id:', siteId);
+        setTimeout(() => {
+            loadValidationSummary(`/reports/api/validation-summary?site_id=${siteId}`);
+        }, 500);
+    } else if (siteCode) {
+        console.log('Auto-loading validation for site_code:', siteCode);
+        // Wait for sites to load, then find the site_id
+        setTimeout(() => {
+            const site = allSites.find(s => s.site_code === siteCode);
+            if (site) {
+                console.log('Found site:', site.site_name, 'ID:', site.id);
+                loadValidationSummary(`/reports/api/validation-summary?site_id=${site.id}`);
+            } else {
+                console.error('Site not found:', siteCode);
+                alert(`Site "${siteCode}" not found. Please check the site code and try again.`);
+            }
+        }, 1000);
+    }
+});
+
+let searchTimeout = null;
+let currentPage = 1;
+let filteredSites = [];
+let sitesWithValidation = new Set();
+
+function loadAvailableSites() {
+    console.log('Loading sites from API...');
+    document.getElementById('filter-status').textContent = 'Loading sites from API...';
+
+    // Load sites list and validation availability in parallel
+    Promise.all([
+        fetch('/sites/api/list').then(r => r.json()),
+        fetch('/reports/api/validation-summary?country=all').then(r => r.json())
+    ])
+    .then(([sitesData, validationData]) => {
+        console.log('Sites data received:', sitesData);
+        allSites = sitesData.sites || [];
+        console.log('Number of sites:', allSites.length);
+
+        // Track which sites have validation results
+        if (validationData.success && validationData.sites) {
+            validationData.sites.forEach(site => {
+                sitesWithValidation.add(site.site_id);
+            });
+            console.log('Sites with validation:', sitesWithValidation.size);
+        }
+
+        // Extract unique values from sites data
+        const countries = [...new Set(allSites.map(site => site.country).filter(c => c))].sort();
+        const states = [...new Set(allSites.map(site => site.state).filter(s => s))].sort();
+        const siteTypes = [...new Set(allSites.map(site => site.site_type).filter(t => t))].sort();
+
+        console.log('Countries found:', countries);
+        console.log('States found:', states);
+        console.log('Site types found:', siteTypes);
+
+        // Populate filter dropdowns
+        if (countries.length > 0) {
+            populateCountryFilter(countries);
+        }
+        if (states.length > 0) {
+            populateStateFilter(states);
+        }
+        if (siteTypes.length > 0) {
+            populateSiteTypeFilter(siteTypes);
+        }
+
+        // Initial display
+        applyFilters();
+    })
+    .catch(error => {
+        console.error('Error loading sites:', error);
+        document.getElementById('filter-status').textContent = 'Error loading sites: ' + error.message;
+    });
+}
+
+function handleSearchKeyup(event) {
+    // Debounce search - wait 500ms after last keystroke
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+        applyFilters();
+    }, 500);
+}
+
+function applyFilters() {
+    currentPage = 1; // Reset to first page
+    filterAndDisplaySites();
+}
+
+
+function filterAndDisplaySites() {
+    const country = document.getElementById('country-filter').value;
+    const state = document.getElementById('state-filter').value;
+    const siteType = document.getElementById('site-type-filter').value;
+    const category = document.getElementById('category-filter').value;
+    const search = document.getElementById('search-input').value.trim();
+    const perPage = parseInt(document.getElementById('per-page-select').value);
+
+    filteredSites = allSites;
+
+    // Filter by country
+    if (country !== 'all') {
+        filteredSites = filteredSites.filter(site => site.country === country);
+    }
+
+    // Filter by state
+    if (state !== 'all') {
+        filteredSites = filteredSites.filter(site => site.state === state);
+    }
+
+    // Filter by site type
+    if (siteType !== 'all') {
+        filteredSites = filteredSites.filter(site => site.site_type === siteType);
+    }
+
+    // Filter by category
+    if (category !== 'all') {
+        filteredSites = filteredSites.filter(site => (site.site_category || 'public') === category);
+    }
+
+    // Filter by search
+    if (search) {
+        const searchLower = search.toLowerCase();
+        filteredSites = filteredSites.filter(site =>
+            (site.site_name && site.site_name.toLowerCase().includes(searchLower)) ||
+            (site.site_code && site.site_code.toLowerCase().includes(searchLower))
+        );
+    }
+
+    // Count how many have validation
+    const withValidation = filteredSites.filter(s => sitesWithValidation.has(s.id)).length;
+
+    // Update status
+    const statusText = `${filteredSites.length} sites match filters (${withValidation} have validation results)`;
+    document.getElementById('filter-status').textContent = statusText;
+
+    // Show/hide filtered sites section
+    if (filteredSites.length > 0) {
+        document.getElementById('filtered-sites-section').style.display = 'block';
+        displayFilteredSites(filteredSites, currentPage, perPage);
+    } else {
+        document.getElementById('filtered-sites-section').style.display = 'none';
+    }
+}
+
+function displayFilteredSites(sites, page, perPage) {
+    const tbody = document.getElementById('filtered-sites-tbody');
+    tbody.innerHTML = '';
+
+    // Calculate pagination
+    const totalSites = sites.length;
+    const totalPages = Math.ceil(totalSites / perPage);
+    const startIdx = (page - 1) * perPage;
+    const endIdx = Math.min(startIdx + perPage, totalSites);
+    const pageSites = sites.slice(startIdx, endIdx);
+
+    // Populate table
+    pageSites.forEach(site => {
+        const row = document.createElement('tr');
+        const hasValidation = sitesWithValidation.has(site.id);
+        const statusBadge = hasValidation
+            ? '<span class="badge bg-success" title="Validation results available"><i class="bi bi-check-circle"></i> Available</span>'
+            : '<span class="badge bg-secondary" title="No validation results"><i class="bi bi-x-circle"></i> N/A</span>';
+
+        row.innerHTML = `
+            <td>${site.site_code || 'N/A'}</td>
+            <td>
+                ${site.site_name || 'N/A'}
+                <br><small class="text-muted">${statusBadge}</small>
+            </td>
+            <td>${site.state || 'N/A'}</td>
+            <td>${site.site_type || 'N/A'}</td>
+            <td>${site.site_category || 'public'}</td>
+            <td class="text-center">
+                ${hasValidation
+                    ? `<button class="btn btn-sm btn-primary" onclick="runValidationForSite(${site.id}, '${site.site_name.replace(/'/g, "\\'")}')">
+                        <i class="bi bi-eye"></i> View
+                       </button>`
+                    : `<button class="btn btn-sm btn-secondary" disabled title="No validation results available">
+                        <i class="bi bi-x-circle"></i> N/A
+                       </button>`
+                }
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Update pagination info
+    document.getElementById('page-start').textContent = startIdx + 1;
+    document.getElementById('page-end').textContent = endIdx;
+    document.getElementById('total-filtered').textContent = totalSites;
+
+    // Build pagination controls
+    displayPagination(page, totalPages);
+}
+
+function displayPagination(currentPage, totalPages) {
+    const paginationList = document.getElementById('pagination-list');
+    paginationList.innerHTML = '';
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+    paginationList.appendChild(prevLi);
+
+    // Page numbers (show max 5)
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+    if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
+        const firstLi = document.createElement('li');
+        firstLi.className = 'page-item';
+        firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+        paginationList.appendChild(firstLi);
+
+        if (startPage > 2) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationList.appendChild(ellipsisLi);
+        }
+    }
+
+    // Page buttons
+    for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = 'page-item' + (i === currentPage ? ' active' : '');
+        pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+        paginationList.appendChild(pageLi);
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsisLi = document.createElement('li');
+            ellipsisLi.className = 'page-item disabled';
+            ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+            paginationList.appendChild(ellipsisLi);
+        }
+
+        const lastLi = document.createElement('li');
+        lastLi.className = 'page-item';
+        lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+        paginationList.appendChild(lastLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function changePage(page) {
+    currentPage = page;
+    const perPage = parseInt(document.getElementById('per-page-select').value);
+    displayFilteredSites(filteredSites, currentPage, perPage);
+}
+
+function runValidationForSite(siteId, siteName) {
+    console.log('Loading validation for site:', siteId, siteName);
+
+    // Update URL so it can be bookmarked/shared
+    const newUrl = `${window.location.pathname}?site_id=${siteId}`;
+    window.history.pushState({siteId: siteId}, '', newUrl);
+
+    // Update loading message to show we're loading from cache
+    const loadingText = document.querySelector('#loading-spinner p');
+    if (loadingText) {
+        loadingText.textContent = `Loading validation results for ${siteName} from database...`;
+    }
+
+    const url = `/reports/api/validation-summary?site_id=${siteId}`;
+    loadValidationSummary(url);
+}
+
+function runValidationForFiltered() {
+    console.log('Running validation for all filtered sites');
+    const country = document.getElementById('country-filter').value;
+    const category = document.getElementById('category-filter').value;
+
+    let url = '/reports/api/validation-summary?';
+    if (country !== 'all') {
+        url += `country=${country}&`;
+    }
+    if (category !== 'all') {
+        url += `category=${category}&`;
+    }
+
+    loadValidationSummary(url);
+}
+
+
+function loadValidationSummary(url = '/reports/api/validation-summary') {
+    // Show loading spinner, hide results
+    document.getElementById('loading-spinner').style.display = 'block';
+    document.getElementById('aggregate-section').style.display = 'none';
+    document.getElementById('sites-section').style.display = 'none';
+    document.getElementById('no-data-section').style.display = 'none';
+
+    // Update loading message
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const loadingText = loadingSpinner.querySelector('p');
+    if (loadingText && !loadingText.textContent.includes('from database')) {
+        loadingText.textContent = 'Loading validation results from database... (this is fast, reading cached data)';
+    }
+
+    // Create AbortController for timeout (5 minute timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000);
+
+    fetch(url, {
+        signal: controller.signal
+    })
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                displayValidationResults(data);
+            } else {
+                showError(data.error || 'Unknown error occurred');
+            }
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                showError('Request timed out after 5 minutes. The validation calculations are taking longer than expected. Please try again or contact support.');
+            } else {
+                showError(`Error loading validation data: ${error.message}`);
+            }
+        });
+}
+
+function populateCountryFilter(countries) {
+    const countryFilter = document.getElementById('country-filter');
+    const currentValue = countryFilter.value;
+
+    countryFilter.innerHTML = '<option value="all">All Countries</option>';
+
+    if (countries && countries.length > 0) {
+        countries.forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            countryFilter.appendChild(option);
+        });
+    }
+
+    // Restore previous selection if it still exists
+    if (currentValue && Array.from(countryFilter.options).some(opt => opt.value === currentValue)) {
+        countryFilter.value = currentValue;
+    }
+}
+
+function populateStateFilter(states) {
+    const stateFilter = document.getElementById('state-filter');
+    const currentValue = stateFilter.value;
+
+    stateFilter.innerHTML = '<option value="all">All States</option>';
+
+    if (states && states.length > 0) {
+        states.forEach(state => {
+            const option = document.createElement('option');
+            option.value = state;
+            option.textContent = state;
+            stateFilter.appendChild(option);
+        });
+    }
+
+    // Restore previous selection if it still exists
+    if (currentValue && Array.from(stateFilter.options).some(opt => opt.value === currentValue)) {
+        stateFilter.value = currentValue;
+    }
+}
+
+function populateSiteTypeFilter(siteTypes) {
+    const siteTypeFilter = document.getElementById('site-type-filter');
+    const currentValue = siteTypeFilter.value;
+
+    siteTypeFilter.innerHTML = '<option value="all">All Types</option>';
+
+    if (siteTypes && siteTypes.length > 0) {
+        siteTypes.forEach(siteType => {
+            const option = document.createElement('option');
+            option.value = siteType;
+            option.textContent = siteType;
+            siteTypeFilter.appendChild(option);
+        });
+    }
+
+    // Restore previous selection if it still exists
+    if (currentValue && Array.from(siteTypeFilter.options).some(opt => opt.value === currentValue)) {
+        siteTypeFilter.value = currentValue;
+    }
+}
+
+function displayValidationResults(data) {
+    document.getElementById('loading-spinner').style.display = 'none';
+
+    // Populate country filter if available
+    if (data.available_countries) {
+        populateCountryFilter(data.available_countries);
+    }
+
+    if (data.total_sites === 0) {
+        document.getElementById('no-data-section').style.display = 'block';
+        return;
+    }
+
+    // Show aggregate metrics with safe property access
+    document.getElementById('aggregate-section').style.display = 'flex';
+    const wqiMae = data.aggregate_metrics?.wqi?.avg_mae;
+    const contamAcc = data.aggregate_metrics?.contamination?.avg_accuracy;
+    const riskAcc = data.aggregate_metrics?.risk?.avg_accuracy;
+    const forecastR2 = data.aggregate_metrics?.forecast?.avg_r2;
+
+    document.getElementById('agg-wqi-mae').textContent = wqiMae != null ? wqiMae.toFixed(2) : 'N/A';
+    document.getElementById('agg-contam-acc').textContent = contamAcc != null ? contamAcc.toFixed(1) + '%' : 'N/A';
+    document.getElementById('agg-risk-acc').textContent = riskAcc != null ? riskAcc.toFixed(1) + '%' : 'N/A';
+    document.getElementById('agg-forecast-r2').textContent = forecastR2 != null ? forecastR2.toFixed(2) : 'N/A';
+
+    // Show sites
+    document.getElementById('sites-section').style.display = 'block';
+    document.getElementById('total-sites').textContent = data.total_sites;
+
+    const container = document.getElementById('sites-container');
+    container.innerHTML = '';
+
+    data.sites.forEach((site, index) => {
+        try {
+            console.log(`Creating card for site ${index + 1}/${data.sites.length}:`, site.site_code);
+            const card = createSiteCard(site);
+            container.appendChild(card);
+            console.log(`✓ Successfully created card for ${site.site_code}`);
+        } catch (error) {
+            console.error(`✗ Error creating card for site ${site.site_code}:`, error);
+            console.error('Site data:', JSON.stringify(site, null, 2));
+            // Add error card instead of crashing
+            const errorCard = document.createElement('div');
+            errorCard.className = 'alert alert-danger';
+            errorCard.innerHTML = `<strong>Error loading site ${site.site_code}:</strong> ${error.message}`;
+            container.appendChild(errorCard);
+        }
+    });
+
+    // Initialize charts after DOM is updated
+    setTimeout(() => {
+        console.log('=== INITIALIZING CHARTS ===');
+        console.log('Number of sites:', data.sites.length);
+        data.sites.forEach(site => {
+            console.log('Site:', site.site_code, 'Has WQI metrics:', !!site.wqi_metrics);
+            console.log('Has data_points:', !!(site.wqi_metrics && site.wqi_metrics.data_points));
+            console.log('Data points length:', site.wqi_metrics?.data_points?.length || 0);
+
+            if (site.wqi_metrics && site.wqi_metrics.data_points && site.wqi_metrics.data_points.length > 0) {
+                console.log('Calling initializeCharts for', site.site_code);
+                initializeCharts(site);
+            } else {
+                console.log('Skipping chart initialization for', site.site_code, '- no data points');
+            }
+        });
+    }, 100);
+}
+
+function createSiteCard(site) {
+    if (!site) {
+        throw new Error('Site object is null or undefined');
+    }
+
+    const card = document.createElement('div');
+    card.className = 'site-card';
+    card.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-0">
+                            <i class="bi bi-geo-alt"></i> ${site.site_name || 'Unknown Site'}
+                            <span class="badge bg-secondary ms-2">${site.site_code || 'N/A'}</span>
+                        </h5>
+                        <small class="text-muted">${site.state || 'N/A'} | ${site.site_type || 'N/A'}</small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="badge bg-primary">Training: ${site.training_samples || 0} samples</span>
+                        <span class="badge bg-success ms-2">Test: ${site.test_samples || 0} samples</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Tabs for different models -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#visual-${site.site_id}">Visual Comparison</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#wqi-${site.site_id}">WQI Metrics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#contam-${site.site_id}">Contamination</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#risk-${site.site_id}">Risk</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#forecast-${site.site_id}">Forecast</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Visual Comparison Tab -->
+                    <div class="tab-pane fade show active" id="visual-${site.site_id}">
+                        ${(() => {
+                            try {
+                                return createVisualComparison(site);
+                            } catch (e) {
+                                console.error('Error in createVisualComparison:', e);
+                                return `<div class="alert alert-danger">Error loading visual comparison: ${e.message}</div>`;
+                            }
+                        })()}
+                    </div>
+
+                    <!-- WQI Tab -->
+                    <div class="tab-pane fade" id="wqi-${site.site_id}">
+                        ${(() => {
+                            try {
+                                return createWQIMetrics(site.wqi_metrics);
+                            } catch (e) {
+                                console.error('Error in createWQIMetrics:', e);
+                                return `<div class="alert alert-danger">Error loading WQI metrics: ${e.message}</div>`;
+                            }
+                        })()}
+                    </div>
+
+                    <!-- Contamination Tab -->
+                    <div class="tab-pane fade" id="contam-${site.site_id}">
+                        ${(() => {
+                            try {
+                                return createContaminationMetrics(site.contamination_metrics);
+                            } catch (e) {
+                                console.error('Error in createContaminationMetrics:', e);
+                                return `<div class="alert alert-danger">Error loading contamination metrics: ${e.message}</div>`;
+                            }
+                        })()}
+                    </div>
+
+                    <!-- Risk Tab -->
+                    <div class="tab-pane fade" id="risk-${site.site_id}">
+                        ${(() => {
+                            try {
+                                return createRiskMetrics(site.risk_metrics);
+                            } catch (e) {
+                                console.error('Error in createRiskMetrics:', e);
+                                return `<div class="alert alert-danger">Error loading risk metrics: ${e.message}</div>`;
+                            }
+                        })()}
+                    </div>
+
+                    <!-- Forecast Tab -->
+                    <div class="tab-pane fade" id="forecast-${site.site_id}">
+                        ${(() => {
+                            try {
+                                return createForecastMetrics(site.forecast_metrics);
+                            } catch (e) {
+                                console.error('Error in createForecastMetrics:', e);
+                                return `<div class="alert alert-danger">Error loading forecast metrics: ${e.message}</div>`;
+                            }
+                        })()}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+function createWQIMetrics(metrics) {
+    if (!metrics) {
+        return '<p class="text-muted">No WQI validation data available</p>';
+    }
+
+    return `
+        <div class="row">
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="metric-label">MAE</div>
+                    <div class="h3 text-info">${metrics.mae != null ? metrics.mae.toFixed(2) : 'N/A'}</div>
+                    <small>Mean Absolute Error</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="metric-label">RMSE</div>
+                    <div class="h3 text-info">${metrics.rmse != null ? metrics.rmse.toFixed(2) : 'N/A'}</div>
+                    <small>Root Mean Squared Error</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="metric-label">±10 Accuracy</div>
+                    <div class="h3 text-success">${metrics.accuracy_within_10 != null ? metrics.accuracy_within_10.toFixed(1) + '%' : 'N/A'}</div>
+                    <small>Within ±10 points</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="metric-label">Samples</div>
+                    <div class="h3">${metrics.n_predictions || 0}</div>
+                    <small>Test predictions</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createContaminationMetrics(metrics) {
+    if (!metrics) {
+        return '<p class="text-muted">No contamination validation data available</p>';
+    }
+
+    let html = `
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <h6>Overall Accuracy: <span class="text-warning">${metrics.accuracy != null ? metrics.accuracy.toFixed(1) + '%' : 'N/A'}</span>
+                    <small class="text-muted">(${metrics.n_predictions || 0} predictions)</small>
+                </h6>
+            </div>
+        </div>
+    `;
+
+    // Show per-type metrics only if available
+    if (metrics.per_type_metrics && Object.keys(metrics.per_type_metrics).length > 0) {
+        html += `
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <h6>Per-Type Metrics</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        for (const [type, typeMetrics] of Object.entries(metrics.per_type_metrics)) {
+            html += `
+                <tr>
+                    <td>${type.replace('_', ' ')}</td>
+                    <td>${typeMetrics.precision !== null ? typeMetrics.precision.toFixed(1) + '%' : 'N/A'}</td>
+                    <td>${typeMetrics.recall !== null ? typeMetrics.recall.toFixed(1) + '%' : 'N/A'}</td>
+                    <td>${typeMetrics.f1_score !== null ? typeMetrics.f1_score.toFixed(1) + '%' : 'N/A'}</td>
+                </tr>
+            `;
+        }
+
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    // Show confusion matrix
+    html += `
+        <div class="row">
+            <div class="col-md-12">
+                <h6>Confusion Matrix</h6>
+                <div class="table-responsive">
+                    ${createConfusionMatrixTable(metrics.confusion_matrix)}
+                </div>
+            </div>
+        </div>
+    `;
+
+    return html;
+}
+
+function createRiskMetrics(metrics) {
+    if (!metrics) {
+        return '<p class="text-muted">No risk validation data available</p>';
+    }
+
+    return `
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <h6>Overall Accuracy: <span class="text-danger">${metrics.accuracy != null ? metrics.accuracy.toFixed(1) + '%' : 'N/A'}</span>
+                    <small class="text-muted">(${metrics.n_predictions || 0} predictions)</small>
+                </h6>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <h6>Risk Level Confusion Matrix</h6>
+                ${createConfusionMatrixTable(metrics.confusion_matrix)}
+            </div>
+        </div>
+    `;
+}
+
+function createForecastMetrics(metrics) {
+    if (!metrics || Object.keys(metrics).length === 0) {
+        return '<p class="text-muted">No forecast validation data available</p>';
+    }
+
+    let html = '<div class="row">';
+
+    // Define all expected parameters with labels
+    const parameters = [
+        { key: 'ph', label: 'pH' },
+        { key: 'turbidity', label: 'Turbidity (NTU)' },
+        { key: 'tds', label: 'TDS (PPM)' },
+        { key: 'temperature', label: 'Temperature (°C)' }
+    ];
+
+    // Show all parameters, even if no data
+    parameters.forEach(({ key, label }) => {
+        const paramMetrics = metrics[key];
+
+        // Check if parameter has data
+        const hasData = paramMetrics &&
+                       typeof paramMetrics === 'object' &&
+                       (paramMetrics.mae !== null || paramMetrics.r2 !== null);
+
+        if (hasData) {
+            // Show parameter with data
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>${label}</h6>
+                            <div class="row">
+                                <div class="col-6 text-center">
+                                    <small class="text-muted">R²</small>
+                                    <div class="h5 text-success">${paramMetrics.r2 !== null && paramMetrics.r2 !== undefined ? paramMetrics.r2.toFixed(2) : 'N/A'}</div>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <small class="text-muted">MAE</small>
+                                    <div class="h5 text-info">${paramMetrics.mae !== null && paramMetrics.mae !== undefined ? paramMetrics.mae.toFixed(2) : 'N/A'}</div>
+                                </div>
+                            </div>
+                            <small class="text-muted">${paramMetrics.n_predictions || 0} predictions</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Show parameter with no data message
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card border-secondary">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted">${label}</h6>
+                            <p class="text-muted mb-0"><small><i class="bi bi-info-circle"></i> No forecast data available</small></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    html += '</div>';
+    return html;
+}
+
+function createConfusionMatrixTable(matrix) {
+    if (!matrix || Object.keys(matrix).length === 0) {
+        return '<p class="text-muted">No matrix data</p>';
+    }
+
+    const types = Object.keys(matrix);
+    let html = '<table class="table table-sm table-bordered confusion-matrix">';
+
+    // Header with "Actual" label
+    html += '<thead>';
+    html += '<tr><th colspan="2" rowspan="2" style="vertical-align: middle; background-color: #f8f9fa;"></th>';
+    html += `<th colspan="${types.length}" class="text-center" style="background-color: #e3f2fd; font-weight: bold;">Actual</th></tr>`;
+    html += '<tr>';
+    types.forEach(type => {
+        html += `<th style="background-color: #e3f2fd;">${type.replace('_', ' ')}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    // Rows with "Predicted" label
+    types.forEach((predType, index) => {
+        html += '<tr>';
+
+        // Add "Predicted" label on first row
+        if (index === 0) {
+            html += `<th rowspan="${types.length}" style="vertical-align: middle; background-color: #fff3e0; font-weight: bold; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); padding: 10px 5px;">Predicted</th>`;
+        }
+
+        html += `<th style="background-color: #fff3e0;">${predType.replace('_', ' ')}</th>`;
+        types.forEach(actualType => {
+            const count = (matrix[predType] && matrix[predType][actualType]) || 0;
+            const cellClass = predType === actualType ? 'table-success' : '';
+            html += `<td class="${cellClass}">${count}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+
+    // Add legend
+    html += '<div class="mt-2 small text-muted">';
+    html += '<strong>Reading the matrix:</strong> Rows show predicted values, columns show actual values. ';
+    html += 'Green diagonal cells indicate correct predictions. Off-diagonal cells show misclassifications.';
+    html += '</div>';
+
+    return html;
+}
+
+function createVisualComparison(site) {
+    if (!site.wqi_metrics || !site.wqi_metrics.data_points || site.wqi_metrics.data_points.length === 0) {
+        return '<p class="text-muted">No WQI validation data available for visualization</p>';
+    }
+
+    const dataPoints = site.wqi_metrics.data_points;
+    const chartId = `wqi-chart-${site.site_id}`;
+    const scatterId = `scatter-chart-${site.site_id}`;
+
+    // Store data for later chart initialization
+    window[`chartData_${site.site_id}`] = dataPoints;
+
+    return `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6 class="text-info">How ML Predictions Track Actual WQI Values</h6>
+                <p class="small text-muted">
+                    This visualization shows how well machine learning predictions match actual water quality measurements.
+                    Points close to each other indicate accurate predictions.
+                </p>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-graph-up"></i> Predicted vs Actual Over Time</h6>
+                        <small class="text-muted">Line shows predictions, dots show actual values</small>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="${chartId}" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-scatter-chart"></i> Prediction Accuracy</h6>
+                        <small class="text-muted">Closer to diagonal line = better prediction</small>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="${scatterId}" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-table"></i> Sample-by-Sample Comparison</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Predicted WQI</th>
+                                        <th class="text-end">Actual WQI</th>
+                                        <th class="text-end">Difference</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${dataPoints.map((point, index) => {
+                                        const diff = Math.abs(point.difference || 0);
+                                        const status = diff <= 5 ?
+                                            '<span class="badge bg-success">Excellent</span>' :
+                                            diff <= 10 ?
+                                            '<span class="badge bg-info">Good</span>' :
+                                            diff <= 20 ?
+                                            '<span class="badge bg-warning">Fair</span>' :
+                                            '<span class="badge bg-danger">Poor</span>';
+
+                                        return `
+                                            <tr>
+                                                <td>${point.date ? new Date(point.date).toLocaleDateString() : 'N/A'}</td>
+                                                <td class="text-end">${point.predicted != null ? point.predicted.toFixed(1) : 'N/A'}</td>
+                                                <td class="text-end">${point.actual != null ? point.actual.toFixed(1) : 'N/A'}</td>
+                                                <td class="text-end ${diff <= 10 ? 'text-success' : 'text-warning'}">${point.difference != null ? (point.difference > 0 ? '+' : '') + point.difference.toFixed(1) : 'N/A'}</td>
+                                                <td class="text-center">${status}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            <strong>${dataPoints.length}</strong> test samples •
+                            <strong>${dataPoints.filter(p => Math.abs(p.difference) <= 10).length}</strong> within ±10 points
+                            (${Math.round(dataPoints.filter(p => Math.abs(p.difference) <= 10).length / dataPoints.length * 100)}% accuracy)
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initializeCharts(site) {
+    console.log('Initializing charts for site:', site.site_id);
+
+    const chartId = `wqi-chart-${site.site_id}`;
+    const scatterId = `scatter-chart-${site.site_id}`;
+    const dataPoints = window[`chartData_${site.site_id}`];
+
+    if (!dataPoints || dataPoints.length === 0) {
+        console.log('No chart data available for site', site.site_id);
+        return;
+    }
+
+    console.log('Rendering charts with', dataPoints.length, 'data points');
+    console.log('Looking for canvas with ID:', chartId);
+
+    // Line Chart: Predicted vs Actual Over Time
+    const chartCanvas = document.getElementById(chartId);
+    console.log('Found canvas element:', !!chartCanvas);
+    if (chartCanvas) {
+        const ctx = chartCanvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dataPoints.map(p => new Date(p.date).toLocaleDateString()),
+                datasets: [
+                    {
+                        label: 'Predicted WQI',
+                        data: dataPoints.map(p => p.predicted),
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Actual WQI',
+                        data: dataPoints.map(p => p.actual),
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderWidth: 0,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        showLine: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'WQI Score'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Scatter Plot: Predicted vs Actual
+    const scatterCanvas = document.getElementById(scatterId);
+    if (scatterCanvas) {
+        const scatterCtx = scatterCanvas.getContext('2d');
+        new Chart(scatterCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Predictions',
+                        data: dataPoints.map(p => ({x: p.actual, y: p.predicted})),
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Perfect Prediction Line',
+                        data: [{x: 0, y: 0}, {x: 100, y: 100}],
+                        type: 'line',
+                        borderColor: 'rgba(255, 0, 0, 0.5)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return 'Actual: ' + context.parsed.x + ', Predicted: ' + context.parsed.y;
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Actual WQI'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Predicted WQI'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+}
+
+function showError(message) {
+    document.getElementById('loading-spinner').style.display = 'none';
+    document.getElementById('sites-section').innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle"></i> Error loading validation summary: ${message}
+        </div>
+    `;
+    document.getElementById('sites-section').style.display = 'block';
+}
+</script>
+{% endblock %}

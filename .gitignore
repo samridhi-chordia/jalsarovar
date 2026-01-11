@@ -1,0 +1,35 @@
+__pycache__/
+*.py[cod]
+.Python
+venv/
+ENV/
+.env
+*.log
+.DS_Store
+.claude/
+*.db
+*.sqlite
+uploads/
+*.csv
+*.xlsx
+*.tar.gz
+*.zip
+
+# Backup files
+*.backup
+*~
+*.~
+*.before_optimization
+
+# macOS metadata
+._*
+
+# LaTeX build artifacts
+*.aux
+*.out
+*.toc
+
+# Application logs and data
+logs/
+instance/
+database/

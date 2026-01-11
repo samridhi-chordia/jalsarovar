@@ -1,0 +1,536 @@
+/*
+ * Gallery & Lightbox Styles
+ */
+
+/* ===================================
+   Gallery Grid
+   =================================== */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.gallery-grid img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.gallery-grid img:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.gallery-placeholder {
+    padding: 3rem 2rem;
+    text-align: center;
+    background-color: var(--background-alt);
+    border-radius: 0.5rem;
+    border: 2px dashed var(--border-color);
+}
+
+.gallery-placeholder p {
+    color: var(--text-light);
+    font-style: italic;
+    margin-bottom: 0;
+}
+
+/* ===================================
+   Lightbox
+   =================================== */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3000;
+    display: none;
+}
+
+.lightbox.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+}
+
+.lightbox-content {
+    position: relative;
+    z-index: 3001;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-xl);
+}
+
+/* Lightbox Controls */
+.lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 3rem;
+    height: 3rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: all var(--transition-fast);
+    z-index: 3002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-close:hover {
+    background-color: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3rem;
+    height: 3rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    font-size: 2.5rem;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: all var(--transition-fast);
+    z-index: 3002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-prev {
+    left: 1rem;
+}
+
+.lightbox-next {
+    right: 1rem;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox-caption {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 0.5rem;
+    text-align: center;
+    max-width: 80%;
+}
+
+/* ===================================
+   Bio Section (About Page)
+   =================================== */
+.bio-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+.bio-image {
+    position: sticky;
+    top: calc(var(--header-height) + 2rem);
+}
+
+.profile-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, var(--background-alt) 0%, #e0e7ff 100%);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+}
+
+.bio-content h2 {
+    margin-bottom: 1rem;
+}
+
+.bio-content p {
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+}
+
+.bio-download {
+    margin-top: 2rem;
+}
+
+/* ===================================
+   Timeline
+   =================================== */
+.timeline-items {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-items::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2.5rem;
+    top: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    border: 3px solid var(--background);
+    box-shadow: 0 0 0 3px var(--border-color);
+}
+
+.timeline-content {
+    background-color: var(--background-alt);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.timeline-date {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-content h3 {
+    margin-bottom: 0.5rem;
+}
+
+.timeline-content p {
+    color: var(--text-light);
+    margin-bottom: 0;
+}
+
+/* ===================================
+   Awards Grid
+   =================================== */
+.awards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.award-item {
+    background-color: var(--background);
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    transition: all var(--transition-base);
+}
+
+.award-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.award-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.award-item h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.award-item p {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.award-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--background-alt);
+    color: var(--text-dark);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* ===================================
+   Contact Page
+   =================================== */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 3rem;
+}
+
+.contact-intro {
+    margin-bottom: 1.5rem;
+    color: var(--text-light);
+}
+
+.contact-interests {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 2rem;
+}
+
+.contact-interests li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.contact-interests li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.contact-details {
+    margin-bottom: 2rem;
+}
+
+.contact-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: start;
+}
+
+.contact-icon {
+    font-size: 1.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--background-alt);
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+}
+
+.contact-text h3 {
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.contact-text p {
+    margin-bottom: 0;
+    color: var(--text-light);
+    font-size: 0.9375rem;
+}
+
+.contact-download {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.contact-download h3 {
+    margin-bottom: 0.5rem;
+}
+
+/* ===================================
+   Contact Form
+   =================================== */
+.contact-form-container {
+    background-color: var(--background-alt);
+    padding: 2rem;
+    border-radius: 0.75rem;
+}
+
+.form-intro {
+    margin-bottom: 2rem;
+    color: var(--text-light);
+}
+
+.contact-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.contact-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.contact-form .required {
+    color: #ef4444;
+}
+
+.contact-form input,
+.contact-form textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    transition: all var(--transition-fast);
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.contact-form textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-message {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: none;
+}
+
+.form-message.success {
+    display: block;
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.form-message.error {
+    display: block;
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.response-time {
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+    color: var(--text-light);
+}
+
+/* ===================================
+   Mobile Adjustments
+   =================================== */
+@media (max-width: 1024px) {
+    .bio-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .bio-image {
+        position: static;
+    }
+
+    .profile-placeholder {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .gallery-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery-grid img {
+        height: 200px;
+    }
+
+    .lightbox-content img {
+        max-width: 95%;
+        max-height: 80vh;
+    }
+
+    .lightbox-prev,
+    .lightbox-next {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 2rem;
+    }
+
+    .lightbox-prev {
+        left: 0.5rem;
+    }
+
+    .lightbox-next {
+        right: 0.5rem;
+    }
+
+    .lightbox-caption {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .awards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-form-container {
+        padding: 1.5rem;
+    }
+}

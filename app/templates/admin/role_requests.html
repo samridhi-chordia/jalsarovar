@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Role Requests - Admin - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-person-check"></i> Role Approval Requests</h2>
+            <p class="text-muted mb-0">Review and manage user role upgrade requests</p>
+        </div>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Admin
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Pending Requests</h6>
+                            <h2 class="mb-0">{{ stats.pending }}</h2>
+                        </div>
+                        <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.6;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Approved Today</h6>
+                            <h2 class="mb-0">{{ stats.approved_today }}</h2>
+                        </div>
+                        <i class="bi bi-check-circle" style="font-size: 2.5rem; opacity: 0.6;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Total Requests</h6>
+                            <h2 class="mb-0">{{ stats.total_requests }}</h2>
+                        </div>
+                        <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.6;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'pending' %}active{% endif %}"
+               href="{{ url_for('admin.role_requests', status='pending') }}">
+                <i class="bi bi-hourglass-split"></i> Pending ({{ stats.pending }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'approved' %}active{% endif %}"
+               href="{{ url_for('admin.role_requests', status='approved') }}">
+                <i class="bi bi-check-circle"></i> Approved
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'all' %}active{% endif %}"
+               href="{{ url_for('admin.role_requests', status='all') }}">
+                <i class="bi bi-list"></i> All Requests
+            </a>
+        </li>
+    </ul>
+
+    <!-- Requests Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Current Role</th>
+                            <th>Requested Role</th>
+                            <th>Organization</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.full_name or user.username }}</strong>
+                                <br>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </td>
+                            <td>
+                                {{ user.email }}
+                                {% if user.email_verified %}
+                                <i class="bi bi-check-circle-fill text-success" title="Email verified"></i>
+                                {% else %}
+                                <i class="bi bi-exclamation-circle text-warning" title="Email not verified"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ user.role.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.role_requested %}
+                                <span class="badge bg-primary">
+                                    {{ user.role_requested.replace('_', ' ').title() }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.organization_name %}
+                                <strong>{{ user.organization_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ user.organization_type or 'N/A' }}</small>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.role_status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% elif user.role_status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ user.role_status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.role_request_detail', user_id=user.id) }}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> Review
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">
+                    {% if status_filter == 'pending' %}
+                    No pending role requests at this time.
+                    {% elif status_filter == 'approved' %}
+                    No approved requests found.
+                    {% else %}
+                    No role requests found.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

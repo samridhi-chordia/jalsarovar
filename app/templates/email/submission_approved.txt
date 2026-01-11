@@ -1,0 +1,16 @@
+Submission Approved!
+
+Hello {{ user_name }},
+
+Your data submission has been approved and imported into the system.
+
+Thank you for contributing to water quality monitoring!
+
+View dashboard: {{ dashboard_url }}
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

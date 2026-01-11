@@ -1,0 +1,31 @@
+{
+  "id": "jalsarovar",
+  "title": "Jal Sarovar - ML-Based Water Quality Monitoring",
+  "category": "Research",
+  "short_description": "Built India's first ML-based unified water quality monitoring system",
+  "full_description": "Built India's first ML-based unified water quality monitoring system, integrating public infrastructure and residential communities with an autonomous IoT system for contamination forecasting. Trained ML models for contamination detection, achieving 92% accuracy. Deployed across 7 public sites and residential communities, serving 800+ residents.",
+  "start_date": "",
+  "currently_active": false,
+  "highlights": [
+    "92% accuracy in contamination detection",
+    "Deployed across 7 public sites",
+    "Serving 800+ residents",
+    "Autonomous IoT system integration",
+    "ML-based contamination forecasting"
+  ],
+  "skills": [
+    "Machine Learning",
+    "Python",
+    "IoT",
+    "Data Analysis",
+    "System Integration"
+  ],
+  "images": [],
+  "videos": [],
+  "links": [
+    {
+      "text": "View Live System",
+      "url": "http://127.0.0.1:8000/"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}About Jal Sarovar | ML-Based Water Quality Monitoring for India{% endblock %}
+{% block meta_description %}Learn about India's first ML-based water quality monitoring system. Supporting Mission Amrit Sarovar, Jal Jeevan Mission, and ensuring safe drinking water across India with 92% ML accuracy.{% endblock %}
+{% block meta_keywords %}about Jal Sarovar, water quality monitoring India, Mission Amrit Sarovar, Jal Jeevan Mission, water safety India, ML water monitoring, water quality research{% endblock %}
+{% block og_title %}About Jal Sarovar | India's ML-Based Water Quality System{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-4"><i class="bi bi-info-circle"></i> About Jal Sarovar</h1>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4>Water Quality Management System</h4>
+                    <p class="lead">
+                        Jal Sarovar is a comprehensive water quality management system designed for the
+                        <strong>Amrit Sarovar Mission</strong> under the Jal Jeevan initiative.
+                    </p>
+                    <p>
+                        The system combines traditional laboratory testing with advanced Machine Learning
+                        models to provide accurate contamination detection, risk assessment, and predictive
+                        analytics for water bodies across India.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> ML Models</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <strong>Site Risk Classifier</strong> - Random Forest model for risk level prediction
+                        </li>
+                        <li class="mb-3">
+                            <strong>Contamination Classifier</strong> - XGBoost model for contamination type detection
+                        </li>
+                        <li class="mb-3">
+                            <strong>WQI Calculator</strong> - Real-time Water Quality Index calculation
+                        </li>
+                        <li class="mb-3">
+                            <strong>Anomaly Detector</strong> - Isolation Forest for anomaly detection
+                        </li>
+                        <li class="mb-3">
+                            <strong>Quality Forecaster</strong> - Gaussian Process for water quality forecasting
+                        </li>
+                        <li class="mb-3">
+                            <strong>Cost Optimizer</strong> - Bayesian optimization for testing schedule optimization
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check-circle"></i> Standards Compliance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>WHO Standards</h6>
+                            <p class="text-muted">World Health Organization drinking water guidelines</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>BIS Standards</h6>
+                            <p class="text-muted">Bureau of Indian Standards (IS 10500:2012)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-stack"></i> Technology Stack</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-primary p-2">Flask 3.0</div>
+                        </div>
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-secondary p-2">PostgreSQL</div>
+                        </div>
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-success p-2">SQLAlchemy</div>
+                        </div>
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-info p-2">Bootstrap 5</div>
+                        </div>
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-warning text-dark p-2">Chart.js</div>
+                        </div>
+                        <div class="col-4 col-md-2 mb-3">
+                            <div class="badge bg-danger p-2">Scikit-learn</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    Jal Sarovar v2.0 | Water Quality Management System
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

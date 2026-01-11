@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if source else 'New' }} Data Source - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('imports.history') }}">Imports</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('imports.list_sources') }}">Data Sources</a></li>
+                    <li class="breadcrumb-item active">{{ 'Edit' if source else 'New' }} Source</li>
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body bg-light">
+                    <h2 class="mb-0">
+                        <i class="bi bi-{{ 'pencil' if source else 'plus-circle' }}"></i>
+                        {{ 'Edit' if source else 'Create' }} Data Source
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Source Form -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('imports.edit_source', source_id=source.id) if source else url_for('imports.new_source') }}">
+
+                        <!-- Basic Information -->
+                        <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="name" class="form-label">
+                                    <strong>Source Name</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="name" name="name" required
+                                       value="{{ source.name if source else '' }}"
+                                       placeholder="e.g., CPCB Monthly Data, Field Team Patna">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="source_type" class="form-label">
+                                    <strong>Source Type</strong> <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="source_type" name="source_type" required>
+                                    <option value="">-- Select Type --</option>
+                                    {% for value, label in source_types.items() %}
+                                    <option value="{{ value }}" {% if source and source.source_type == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                      placeholder="Brief description of this data source...">{{ source.description if source else '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="organization" class="form-label">Organization</label>
+                            <input type="text" class="form-control" id="organization" name="organization"
+                                   value="{{ source.organization if source else '' }}"
+                                   placeholder="e.g., Central Pollution Control Board">
+                        </div>
+
+                        <!-- Contact Information -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4"><i class="bi bi-person-lines-fill"></i> Contact Information</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                       value="{{ source.contact_person if source else '' }}"
+                                       placeholder="Name of primary contact">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="contact_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="contact_email" name="contact_email"
+                                       value="{{ source.contact_email if source else '' }}"
+                                       placeholder="contact@example.org">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="contact_phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="contact_phone" name="contact_phone"
+                                       value="{{ source.contact_phone if source else '' }}"
+                                       placeholder="+91 9876543210">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="website" class="form-label">Website</label>
+                                <input type="url" class="form-control" id="website" name="website"
+                                       value="{{ source.website if source else '' }}"
+                                       placeholder="https://example.org">
+                            </div>
+                        </div>
+
+                        <!-- Data Format -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4"><i class="bi bi-file-earmark-code"></i> Data Format</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="expected_file_format" class="form-label">Expected File Format</label>
+                                <select class="form-select" id="expected_file_format" name="expected_file_format">
+                                    <option value="">-- Any Format --</option>
+                                    {% for value, label in file_formats.items() %}
+                                    <option value="{{ value }}" {% if source and source.expected_file_format == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" id="has_custom_parser" name="has_custom_parser"
+                                           {% if source and source.has_custom_parser %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_custom_parser">
+                                        Has custom parser configuration
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="data_format_description" class="form-label">Data Format Notes</label>
+                            <textarea class="form-control" id="data_format_description" name="data_format_description" rows="2"
+                                      placeholder="Any special notes about the data format, column mappings, etc.">{{ source.data_format_description if source else '' }}</textarea>
+                        </div>
+
+                        <!-- Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4"><i class="bi bi-gear"></i> Settings</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_trusted" name="is_trusted"
+                                           {% if source and source.is_trusted %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_trusted">
+                                        <i class="bi bi-shield-check text-success"></i>
+                                        <strong>Trusted Source</strong>
+                                        <br>
+                                        <small class="text-muted">Data from trusted sources may have fewer validation checks</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                           {% if not source or source.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        <i class="bi bi-check-circle text-primary"></i>
+                                        <strong>Active</strong>
+                                        <br>
+                                        <small class="text-muted">Only active sources appear in import wizard</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('imports.list_sources') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> {{ 'Save Changes' if source else 'Create Source' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if source %}
+            <!-- Danger Zone -->
+            <div class="card shadow-sm mt-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Danger Zone</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Deleting a data source will remove it from the system. Import history will be preserved.</p>
+                    <form action="{{ url_for('imports.delete_source', source_id=source.id) }}" method="POST"
+                          onsubmit="return confirm('Are you sure you want to delete this data source?');">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete Data Source
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

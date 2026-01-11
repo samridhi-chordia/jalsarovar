@@ -1,0 +1,478 @@
+/*
+ * Blog-specific Styles
+ */
+
+/* ===================================
+   Blog Info Section
+   =================================== */
+.blog-info {
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    text-align: center;
+}
+
+.coming-soon-notice {
+    font-size: 1.125rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.blog-topics {
+    list-style: none;
+    padding-left: 0;
+}
+
+.blog-topics li {
+    padding: 0.75rem 1.5rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--background-alt);
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--primary-color);
+    text-align: left;
+    transition: all var(--transition-base);
+}
+
+.blog-topics li:hover {
+    background-color: #e0e7ff;
+    transform: translateX(4px);
+}
+
+/* ===================================
+   Blog Grid
+   =================================== */
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+.blog-card {
+    background-color: var(--background);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.blog-image {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background-color: var(--background-alt);
+}
+
+.blog-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.blog-card:hover .blog-image img {
+    transform: scale(1.05);
+}
+
+.blog-content {
+    padding: 1.5rem;
+}
+
+.blog-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.blog-date {
+    font-weight: 600;
+}
+
+.blog-read-time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.blog-read-time:before {
+    content: "⏱";
+}
+
+.blog-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+.blog-title a {
+    color: var(--text-dark);
+}
+
+.blog-title a:hover {
+    color: var(--primary-color);
+}
+
+.blog-excerpt {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.blog-read-more {
+    color: var(--primary-color);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: gap var(--transition-fast);
+}
+
+.blog-read-more:hover {
+    gap: 0.5rem;
+}
+
+/* ===================================
+   Blog Placeholder
+   =================================== */
+.blog-placeholder {
+    text-align: center;
+    padding: 4rem 2rem;
+    background-color: var(--background-alt);
+    border-radius: 0.75rem;
+    border: 2px dashed var(--border-color);
+}
+
+.placeholder-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.blog-placeholder h3 {
+    margin-bottom: 0.75rem;
+}
+
+.blog-placeholder p {
+    color: var(--text-light);
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* ===================================
+   Subscribe Section
+   =================================== */
+.subscribe-section {
+    background-color: var(--background-alt);
+    text-align: center;
+}
+
+.subscribe-section h2 {
+    margin-bottom: 0.75rem;
+}
+
+.subscribe-section p {
+    color: var(--text-light);
+    margin-bottom: 2rem;
+    font-size: 1.125rem;
+}
+
+/* ===================================
+   Individual Blog Post (when created)
+   =================================== */
+.blog-post-header {
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    text-align: center;
+}
+
+.blog-post-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.blog-post-meta {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    color: var(--text-light);
+    margin-bottom: 2rem;
+}
+
+.blog-post-featured-image {
+    max-width: 900px;
+    margin: 0 auto 3rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.blog-post-featured-image img {
+    width: 100%;
+    height: auto;
+}
+
+.blog-post-content {
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.8;
+}
+
+.blog-post-content h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.blog-post-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+.blog-post-content p {
+    margin-bottom: 1.5rem;
+}
+
+.blog-post-content img {
+    margin: 2rem auto;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+.blog-post-content blockquote {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: var(--text-light);
+}
+
+.blog-post-content code {
+    background-color: var(--background-alt);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.blog-post-content pre {
+    background-color: var(--background-dark);
+    color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 2rem 0;
+}
+
+.blog-post-content pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+/* ===================================
+   Blog Tags/Categories
+   =================================== */
+.blog-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.blog-tag {
+    padding: 0.25rem 0.75rem;
+    background-color: var(--background-alt);
+    color: var(--text-dark);
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.blog-tag:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* ===================================
+   Related Posts (for individual posts)
+   =================================== */
+.related-posts {
+    margin-top: 4rem;
+    padding-top: 3rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.related-posts h3 {
+    margin-bottom: 2rem;
+}
+
+.related-posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* ===================================
+   Volunteer & Interest Sections
+   =================================== */
+.volunteer-card,
+.interest-section {
+    background-color: var(--background);
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-md);
+}
+
+.volunteer-header,
+.interest-header {
+    display: flex;
+    align-items: start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.volunteer-icon,
+.interest-icon-large {
+    font-size: 4rem;
+    flex-shrink: 0;
+}
+
+.volunteer-subtitle,
+.interest-subtitle {
+    color: var(--text-light);
+    font-size: 1.125rem;
+}
+
+.volunteer-highlights,
+.interest-achievements {
+    margin: 2rem 0;
+}
+
+.volunteer-highlights h3,
+.interest-achievements h3 {
+    margin-bottom: 1rem;
+}
+
+.volunteer-highlights ul,
+.interest-achievements ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.volunteer-highlights li,
+.interest-achievements li {
+    padding-left: 1.75rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.volunteer-highlights li:before,
+.interest-achievements li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.volunteer-meta {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-light);
+}
+
+.volunteer-meta p {
+    margin-bottom: 0.5rem;
+}
+
+/* Interest Stats */
+.interest-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin: 2rem 0;
+}
+
+.stat-badge {
+    text-align: center;
+    min-width: 100px;
+}
+
+.badge-number {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.badge-label {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.9375rem;
+}
+
+/* Philosophy Section */
+.volunteer-philosophy,
+.balance {
+    background-color: var(--background-alt);
+}
+
+.philosophy-content,
+.balance-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.philosophy-content p,
+.balance-content p {
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+}
+
+/* ===================================
+   Mobile Adjustments
+   =================================== */
+@media (max-width: 640px) {
+    .blog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .blog-post-title {
+        font-size: 2rem;
+    }
+
+    .blog-post-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .volunteer-card,
+    .interest-section {
+        padding: 1.5rem;
+    }
+
+    .volunteer-header,
+    .interest-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .interest-stats {
+        gap: 1rem;
+    }
+
+    .related-posts-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Manage Portfolio Pages - Portfolio CMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-text"></i> Manage Portfolio Pages</h2>
+        <p class="text-muted mb-0">Edit content for portfolio pages</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin_portfolio.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in pages %}
+                    <tr>
+                        <td>
+                            <strong>{{ page.name }}</strong>
+                            <br><small class="text-muted">/samridhi-chordia/{{ page.id if page.id != 'home' else '' }}</small>
+                        </td>
+                        <td>
+                            {% if page.has_draft %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-pencil"></i> Draft
+                                </span>
+                                {% if page.has_published %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Has Published Version
+                                </span>
+                                {% endif %}
+                            {% elif page.has_published %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Published
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-dash-circle"></i> Not Created
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('admin_portfolio.edit_' + page.id + '_page') }}"
+                                   class="btn btn-outline-primary"
+                                   title="Edit">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+
+                                {% if page.has_draft %}
+                                <form method="POST"
+                                      action="{{ url_for('admin_portfolio.publish_page', page_id=page.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Publish this page?');">
+                                    <button type="submit"
+                                            class="btn btn-outline-success"
+                                            title="Publish">
+                                        <i class="bi bi-cloud-upload"></i>
+                                    </button>
+                                </form>
+
+                                <form method="POST"
+                                      action="{{ url_for('admin_portfolio.revert_page', page_id=page.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Discard draft changes?');">
+                                    <button type="submit"
+                                            class="btn btn-outline-warning"
+                                            title="Discard Draft">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <a href="{{ url_for('portfolio.' + ('home' if page.id == 'home' else page.id)) }}"
+                                   class="btn btn-outline-info"
+                                   title="Preview Page"
+                                   target="_blank">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4">
+    <h5><i class="bi bi-info-circle"></i> About Portfolio Pages</h5>
+    <p class="mb-0">
+        These pages control the content displayed on your portfolio website at <strong>/samridhi-chordia/</strong>.
+        Changes are saved as drafts and must be published to appear on the live site.
+    </p>
+</div>
+{% endblock %}

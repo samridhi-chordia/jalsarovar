@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}Jal Sarovar - ML-Driven Water Quality Monitoring for India{% endblock %}</title>
+    <meta name="title" content="{% block meta_title %}Jal Sarovar - ML-Driven Water Quality Monitoring for India{% endblock %}">
+    <meta name="description" content="{% block meta_description %}ML-powered water quality monitoring system supporting India's Mission Amrit Sarovar & Jal Jeevan Mission. Real-time contamination detection with 92% ML accuracy across 68,000+ water bodies.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}water quality monitoring India, Amrit Sarovar Mission, Jal Jeevan Mission, water testing India, ML water analysis, IoT water sensors, water contamination detection, drinking water safety, water quality dashboard, WHO water standards{% endblock %}">
+    <meta name="author" content="Samridhi Chordia">
+    <meta name="robots" content="index, follow">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{% block canonical_url %}https://jalsarovar.com{{ request.path }}{% endblock %}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="https://jalsarovar.com{{ request.path }}">
+    <meta property="og:title" content="{% block og_title %}Jal Sarovar - ML-Driven Water Quality Monitoring for India{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}ML-powered water quality monitoring system supporting India's Mission Amrit Sarovar & Jal Jeevan Mission. Real-time contamination detection with 92% ML accuracy.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://jalsarovar.com/static/images/og-image.jpg{% endblock %}">
+    <meta property="og:site_name" content="Jal Sarovar">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://jalsarovar.com{{ request.path }}">
+    <meta property="twitter:title" content="{% block twitter_title %}Jal Sarovar - ML-Driven Water Quality Monitoring{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}ML-powered water quality monitoring for India. Supporting Mission Amrit Sarovar with 92% ML accuracy.{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}https://jalsarovar.com/static/images/twitter-card.jpg{% endblock %}">
+
+    <!-- Additional SEO -->
+    <meta name="language" content="English">
+    <meta name="geo.region" content="IN">
+    <meta name="geo.placename" content="India">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Jal Sarovar">
+
+    <!-- Structured Data (JSON-LD) -->
+    {% block structured_data %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Jal Sarovar",
+      "description": "ML-Driven Water Quality Monitoring System for India",
+      "url": "https://jalsarovar.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://jalsarovar.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Jal Sarovar",
+      "description": "ML-Driven Water Quality Monitoring System for India",
+      "url": "https://jalsarovar.com",
+      "founder": {
+        "@type": "Person",
+        "name": "Samridhi Chordia",
+        "url": "https://jalsarovar.com/samridhi-chordia/"
+      },
+      "foundingDate": "2024",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "IN"
+      }
+    }
+    </script>
+    {% endblock %}
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --water-blue: #17a2b8;
+            --safe-green: #198754;
+            --warning-yellow: #ffc107;
+            --danger-red: #dc3545;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand img {
+            height: 40px;
+        }
+
+        /* Mobile Navigation Bar */
+        .mobile-navbar {
+            background: linear-gradient(90deg, #1a365d 0%, #2a4a7f 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .mobile-navbar .navbar-toggler {
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .mobile-navbar .navbar-toggler:focus {
+            box-shadow: none;
+        }
+        .mobile-navbar .navbar-brand {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Sidebar styles */
+        .sidebar {
+            background: linear-gradient(180deg, #1a365d 0%, #2a4a7f 100%);
+            height: 100vh;
+            padding-top: 130px;
+            padding-bottom: 140px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 16.666667%;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .sidebar-header {
+            background: #1a365d !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 16.666667%;
+            z-index: 1002;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar-header a {
+            display: block;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .sidebar-header a:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+        .sidebar-footer {
+            background: #1a365d !important;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            position: fixed !important;
+            bottom: 0;
+            left: 0;
+            width: 16.666667%;
+            z-index: 1001;
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        main.col-md-10 {
+            margin-left: 16.666667%;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin: 0.25rem 0.5rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link i {
+            width: 24px;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 767.98px) {
+            body {
+                padding-top: 56px;
+            }
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 280px;
+                height: 100vh;
+                transition: left 0.3s ease;
+                z-index: 1040;
+                padding-top: 80px;
+                padding-bottom: 100px;
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .sidebar-header {
+                width: 280px;
+                left: -100%;
+                transition: left 0.3s ease;
+            }
+            .sidebar.show ~ .sidebar-header,
+            .sidebar.show .sidebar-header {
+                left: 0;
+            }
+            .sidebar-footer {
+                width: 280px;
+                left: -100%;
+                transition: left 0.3s ease;
+            }
+            .sidebar.show ~ .sidebar-footer,
+            .sidebar.show .sidebar-footer {
+                left: 0;
+            }
+            main.col-md-10 {
+                margin-left: 0 !important;
+                width: 100%;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1030;
+            }
+            .mobile-overlay.show {
+                display: block;
+            }
+        }
+
+        /* Hide mobile navbar on desktop */
+        @media (min-width: 768px) {
+            .mobile-navbar {
+                display: none;
+            }
+        }
+        .card-stat {
+            border-left: 4px solid var(--primary-blue);
+        }
+        .card-stat.critical { border-left-color: var(--danger-red); }
+        .card-stat.warning { border-left-color: var(--warning-yellow); }
+        .card-stat.safe { border-left-color: var(--safe-green); }
+        .risk-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .risk-critical { background: #f8d7da; color: #842029; }
+        .risk-high { background: #fff3cd; color: #664d03; }
+        .risk-medium { background: #cfe2ff; color: #084298; }
+        .risk-low { background: #d1e7dd; color: #0f5132; }
+        .wqi-excellent { background: #198754; color: white; }
+        .wqi-compliant { background: #0dcaf0; color: dark; }
+        .wqi-warning { background: #ffc107; color: dark; }
+        .wqi-unsafe { background: #dc3545; color: white; }
+        .contamination-chart {
+            height: 250px;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        /* Print Styles - Hide navigation elements when printing */
+        @media print {
+            .sidebar,
+            .sidebar-header,
+            .sidebar-footer,
+            .mobile-navbar,
+            .mobile-overlay,
+            footer {
+                display: none !important;
+            }
+            main.col-md-10 {
+                margin-left: 0 !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Mobile Navigation Bar -->
+    <nav class="mobile-navbar d-md-none">
+        <div class="d-flex justify-content-between align-items-center">
+            <button class="navbar-toggler" type="button" id="mobileMenuToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="navbar-brand mb-0">
+                <i class="bi bi-droplet-fill"></i> Jal Sarovar
+            </span>
+            <div style="width: 40px;"></div>
+        </div>
+    </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Header (Fixed) -->
+            <div class="sidebar-header text-center">
+                <a href="{{ url_for('main.index') }}" class="text-decoration-none">
+                    <h5 class="text-white mb-1">
+                        <i class="bi bi-droplet-fill"></i> Jal Sarovar
+                    </h5>
+                    <small class="text-white-50">AI/ML based Water Quality Monitoring</small>
+                </a>
+                <div class="mt-2">
+                    <small class="text-white-50">
+                        <i class="bi bi-eye me-1"></i> Interactions: <strong class="text-white">{{ total_visits|default(0)|number_format }}</strong>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar" id="sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'sites' in request.endpoint %}active{% endif %}" href="{{ url_for('sites.index') }}">
+                            <i class="bi bi-geo-alt"></i> Sites
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'samples' in request.endpoint %}active{% endif %}" href="{{ url_for('samples.index') }}">
+                            <i class="bi bi-droplet"></i> Samples
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'analysis' in request.endpoint %}active{% endif %}" href="{{ url_for('analysis.index') }}">
+                            <i class="bi bi-graph-up"></i> Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analysis.trends') }}">
+                            <i class="bi bi-bar-chart"></i> Trends
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'reports' in request.endpoint %}active{% endif %}"
+                           data-bs-toggle="collapse" href="#reportsSubmenu" role="button"
+                           aria-expanded="{% if 'reports' in request.endpoint %}true{% else %}false{% endif %}">
+                            <span><i class="bi bi-file-earmark-bar-graph"></i> ML Reports</span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+                        <div class="collapse {% if 'reports' in request.endpoint %}show{% endif %}" id="reportsSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'reports.index' %}active{% endif %}" href="{{ url_for('reports.index') }}">
+                                        <i class="bi bi-house-door"></i> Reports Home
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'reports.validation_summary' %}active{% endif %}" href="{{ url_for('reports.validation_summary') }}">
+                                        <i class="bi bi-clipboard-check"></i> Validation Summary
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'reports.cost_optimizer' %}active{% endif %}" href="{{ url_for('reports.cost_optimizer') }}">
+                                        <i class="bi bi-currency-rupee"></i> Cost Optimizer
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint == 'reports.research_summary' %}active{% endif %}"
+                           data-bs-toggle="collapse" href="#researchSubmenu" role="button"
+                           aria-expanded="{% if request.endpoint == 'reports.research_summary' %}true{% else %}false{% endif %}">
+                            <span><i class="bi bi-journal-text"></i> Project Overview</span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+                        <div class="collapse {% if request.endpoint == 'reports.research_summary' %}show{% endif %}" id="researchSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}">
+                                        <i class="bi bi-house-door"></i> Overview
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-1">
+                                        <i class="bi bi-1-circle"></i> Introduction
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-2">
+                                        <i class="bi bi-2-circle"></i> System Overview
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-3">
+                                        <i class="bi bi-diagram-3"></i> Site Risk Classifier
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-4">
+                                        <i class="bi bi-funnel"></i> Contamination Classifier
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-5">
+                                        <i class="bi bi-graph-up"></i> Water Quality Forecaster
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-6">
+                                        <i class="bi bi-coin"></i> Bayesian Cost Optimizer
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-7">
+                                        <i class="bi bi-calculator"></i> WQI Calculator (Rule-Based)
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-8">
+                                        <i class="bi bi-exclamation-triangle"></i> Anomaly Detection
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-9">
+                                        <i class="bi bi-9-circle"></i> ML Pipeline
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-10">
+                                        <i class="bi bi-asterisk"></i> Intervention Management
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-11">
+                                        <i class="bi bi-bar-chart"></i> Results Summary
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-12">
+                                        <i class="bi bi-check-circle"></i> Conclusion
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1" href="{{ url_for('reports.research_summary') }}#section-13">
+                                        <i class="bi bi-book"></i> References
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reports.user_guide' %}active{% endif %}" href="{{ url_for('reports.user_guide') }}">
+                            <i class="bi bi-book text-info"></i> User Guide
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'analytics' in request.endpoint %}active{% endif %}" href="{{ url_for('analytics.dashboard') }}">
+                            <i class="bi bi-graph-up-arrow text-warning"></i> Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'interventions' in request.endpoint %}active{% endif %}" href="{{ url_for('interventions.index') }}">
+                            <i class="bi bi-wrench-adjustable-circle text-primary"></i> Interventions
+                        </a>
+                    </li>
+                    <li><hr class="text-white-50 my-2"></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sites.map_view') }}">
+                            <i class="bi bi-map"></i> Map View
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'wqi' in request.endpoint %}active{% endif %}" href="{{ url_for('wqi.calculator_page') }}">
+                            <i class="bi bi-calculator text-info"></i> WQI Calculator
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'portfolio.bio' in request.endpoint %}active{% endif %}" href="{{ url_for('portfolio.bio') }}">
+                            <i class="bi bi-person-badge text-success"></i> About Founder
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'rolling_poc_data' in request.endpoint %}active{% endif %}" href="{{ url_for('rolling_poc_data.dashboard') }}">
+                            <i class="bi bi-database-fill text-success"></i> ML Analysis
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
+                    <li><hr class="text-white-50 my-2"></li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'simulator' in request.endpoint or 'poc' in request.endpoint or 'rolling_poc' in request.endpoint %}active{% endif %}"
+                           data-bs-toggle="collapse" href="#simulatorSubmenu" role="button"
+                           aria-expanded="{% if 'simulator' in request.endpoint or 'poc' in request.endpoint or 'rolling_poc' in request.endpoint %}true{% else %}false{% endif %}">
+                            <span><i class="bi bi-cpu"></i> ML Simulator</span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+                        <div class="collapse {% if 'simulator' in request.endpoint or 'poc' in request.endpoint or 'rolling_poc' in request.endpoint %}show{% endif %}" id="simulatorSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'simulator.dashboard' %}active{% endif %}" href="{{ url_for('simulator.dashboard') }}">
+                                        <i class="bi bi-play-circle"></i> Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'poc.dashboard' %}active{% endif %}" href="{{ url_for('poc.dashboard') }}">
+                                        <i class="bi bi-rocket-takeoff"></i> POC
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 {% if request.endpoint == 'rolling_poc.dashboard' %}active{% endif %}" href="{{ url_for('rolling_poc.dashboard') }}">
+                                        <i class="bi bi-arrow-repeat"></i> Rolling POC
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li><hr class="text-white-50 my-2"></li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'settings' in request.endpoint %}active{% endif %}" href="{{ url_for('settings.index') }}">
+                            <i class="bi bi-sliders"></i> Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'admin' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.index') }}">
+                            <i class="bi bi-gear"></i> Admin
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated and (current_user.has_permission('can_bulk_import') or current_user.has_permission('can_create_sites') or current_user.has_permission('can_create_samples')) %}
+                    <li><hr class="text-white-50 my-2"></li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'imports' in request.endpoint %}active{% endif %}" href="{{ url_for('imports.history') }}">
+                            <i class="bi bi-upload text-info"></i> Import Data
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="sidebar-footer p-3">
+                    {% if current_user.is_authenticated %}
+                    <div class="d-flex align-items-center gap-2 text-white mb-2">
+                        <i class="bi bi-person-circle fs-5"></i>
+                        <span class="small">{{ current_user.username }}</span>
+                        {% if current_user.is_admin() %}<span class="badge bg-warning text-dark ms-1">Admin</span>{% endif %}
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </a>
+                    {% else %}
+                    <div class="d-flex align-items-center gap-2 text-white mb-2">
+                        <i class="bi bi-eye fs-5"></i>
+                        <span class="small">Public View</span>
+                    </div>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Login/Register
+                    </a>
+                    {% endif %}
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-10 ms-sm-auto px-4 py-3">
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+
+                <!-- Footer -->
+                <footer class="mt-5 pt-4 pb-3 border-top text-center text-muted">
+                    <div class="container">
+                        <p class="mb-1">
+                            <i class="bi bi-droplet-fill text-primary"></i>
+                            <strong>Jal Sarovar</strong> - AI/ML based Water Quality Monitoring System
+                        </p>
+                        <p class="small mb-0">
+                            A <strong><a href="{{ url_for('portfolio.bio') }}" class="text-decoration-none text-primary">Samridhi Chordia</a> Initiative</strong> supporting India's <a href="https://amritsarovar.gov.in/" target="_blank" rel="noopener noreferrer">Amrit Sarovar Mission</a>
+                        </p>
+                    </div>
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+
+            if (mobileMenuToggle && sidebar && mobileOverlay) {
+                // Toggle menu on button click
+                mobileMenuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('show');
+                    mobileOverlay.classList.toggle('show');
+                    document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+                });
+
+                // Close menu when overlay is clicked
+                mobileOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    mobileOverlay.classList.remove('show');
+                    document.body.style.overflow = '';
+                });
+
+                // Close menu when a link is clicked (optional, improves UX)
+                const sidebarLinks = sidebar.querySelectorAll('a:not([data-bs-toggle])');
+                sidebarLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 768) {
+                            sidebar.classList.remove('show');
+                            mobileOverlay.classList.remove('show');
+                            document.body.style.overflow = '';
+                        }
+                    });
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 768) {
+                        sidebar.classList.remove('show');
+                        mobileOverlay.classList.remove('show');
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

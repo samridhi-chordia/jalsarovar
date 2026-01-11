@@ -1,0 +1,58 @@
+Jal Sarovar - FINAL Production Deployment
+==========================================
+
+Package: jalsarovar_final_deployment_20251228_083150
+Created: Sun Dec 28 08:31:53 IST 2025
+Database: jal_sarovar_prod (restored from jalsarovar_amrit_sarovar)
+Target: www.jalsarovar.com
+
+INCLUDES COMPLETE DATABASE WITH ALL DATA:
+- 84,529 water samples
+- 79,122 test results
+- 4,421 monitoring sites
+- All user accounts and configuration
+
+DEPLOYMENT STEPS
+----------------
+
+1. Transfer to server:
+   scp jalsarovar_final_deployment_20251228_083150.tar.gz user@www.jalsarovar.com:/home/user/
+
+2. SSH to server:
+   ssh user@www.jalsarovar.com
+
+3. Extract:
+   tar -xzf jalsarovar_final_deployment_20251228_083150.tar.gz
+   cd jalsarovar_final_deployment_20251228_083150
+
+4. Deploy automatically:
+   sudo ./auto_deploy_remote.sh ../jalsarovar_final_deployment_20251228_083150.tar.gz
+
+5. Verify:
+   - Visit https://www.jalsarovar.com
+   - Login with existing credentials
+   - Check that all data is present
+
+ROLLBACK IF NEEDED
+------------------
+   sudo ./rollback_deployment.sh
+
+MANUAL VERIFICATION
+-------------------
+After deployment, verify data:
+
+   cd /var/www/jalsarovar
+   sudo -u www-data venv/bin/python3 -c "
+   from app import create_app
+   app = create_app()
+   with app.app_context():
+       from app.models.water_sample import WaterSample
+       from app.models.site import Site
+       print(f'Water samples: {WaterSample.query.count()}')
+       print(f'Sites: {Site.query.count()}')
+   "
+
+Expected output:
+   Water samples: 84529
+   Sites: 4421
+

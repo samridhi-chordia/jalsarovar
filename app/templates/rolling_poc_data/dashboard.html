@@ -1,0 +1,1703 @@
+{% extends 'base.html' %}
+
+{% block title %}Rolling POC - Real Public Data | Jal Sarovar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .poc-hero {
+        background: linear-gradient(135deg, #065f46 0%, #047857 50%, #065f46 100%);
+        color: white;
+        padding: 2rem 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(6, 95, 70, 0.3);
+    }
+    .poc-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .real-data-badge {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    /* Station Selector */
+    .station-selector {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #10b981;
+    }
+    .station-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    .station-info-item {
+        text-align: center;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+    }
+    .station-info-item .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #065f46;
+    }
+    .station-info-item .label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-transform: uppercase;
+    }
+
+    /* Data Status Card */
+    .data-status-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 2px solid #e9ecef;
+    }
+    .data-status-card.ready {
+        border-color: #198754;
+        background: linear-gradient(90deg, rgba(25,135,84,0.05) 0%, white 100%);
+    }
+
+    /* Model Row Card */
+    .model-row {
+        background: white;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .model-row:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .model-row.completed {
+        border-left: 4px solid #198754;
+    }
+    .model-row.running {
+        border-left: 4px solid #10b981;
+    }
+
+    /* Model Header */
+    .model-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f1f3f5;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .model-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    .model-icon.risk { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+    .model-icon.contam { background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%); }
+    .model-icon.wqi { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
+    .model-icon.forecast { background: linear-gradient(135deg, #198754 0%, #146c43 100%); }
+    .model-icon.cost { background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); }
+
+    .model-info h5 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .model-info small {
+        color: #6c757d;
+    }
+
+    .model-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-left: auto;
+        align-items: center;
+    }
+
+    .btn-rolling {
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        min-width: 180px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        color: white;
+    }
+    .btn-rolling:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: white;
+    }
+    .btn-rolling:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .btn-rolling.done {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    }
+
+    /* Progress indicator */
+    .rolling-progress {
+        display: none;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .rolling-progress.show {
+        display: flex;
+    }
+    .progress-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    /* Model Results */
+    .model-results {
+        display: none;
+        padding: 1.5rem;
+        background: #f8f9fa;
+    }
+    .model-results.show {
+        display: block;
+    }
+
+    /* Rolling Training Section */
+    .training-progression {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .training-progression h6 {
+        color: #10b981;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Accuracy Chart Container */
+    .accuracy-chart-container {
+        height: 200px;
+        margin-bottom: 1rem;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+    .metrics-grid.cost-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .metric-card.highlight {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1f2937;
+        line-height: 1;
+    }
+    .metric-value.cost-value {
+        font-size: 1.1rem;
+        word-break: break-word;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Comparison Section */
+    .comparison-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+    }
+    .comparison-section h6 {
+        color: #6366f1;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Accuracy Display */
+    .accuracy-display {
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .accuracy-value {
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #059669;
+        line-height: 1;
+    }
+    .accuracy-label {
+        font-size: 1rem;
+        color: #065f46;
+        margin-top: 0.5rem;
+    }
+    .accuracy-improvement {
+        display: inline-block;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    /* Summary Section */
+    .summary-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        text-align: center;
+    }
+    .summary-item .value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1f2937;
+    }
+    .summary-item .label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-transform: uppercase;
+    }
+
+    /* Results Table */
+    .results-table {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .results-table table {
+        font-size: 0.85rem;
+    }
+    .results-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 10;
+    }
+
+    /* Final Summary Card */
+    .final-summary-card {
+        display: none;
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+        color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-top: 2rem;
+        text-align: center;
+    }
+    .final-summary-card.show {
+        display: block;
+    }
+    .final-summary-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .summary-models {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    .summary-model {
+        text-align: center;
+    }
+    .summary-model .value {
+        font-size: 2rem;
+        font-weight: 800;
+    }
+    .summary-model .name {
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="poc-hero">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1><i class="bi bi-database-fill me-2"></i>Rolling POC<span class="real-data-badge">Real Public Data</span></h1>
+            <p class="mb-0 mt-2 opacity-75">
+                ML models trained and validated on actual Public water quality monitoring data
+            </p>
+        </div>
+        <div class="text-end">
+            <div class="fs-4 fw-bold">{{ total_samples }} Samples Available</div>
+            <small class="opacity-75">From Public monitoring network</small>
+        </div>
+    </div>
+</div>
+
+<!-- File Upload Section (Admin Only) -->
+{% if current_user.is_authenticated and current_user.is_admin() %}
+<div class="card mb-4" id="upload-section">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Import Public Data</h5>
+        <button class="btn btn-outline-light btn-sm" onclick="loadStats()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+        </button>
+    </div>
+    <div class="card-body">
+        <!-- Current Database Stats -->
+        <div class="row mb-3" id="db-stats-section">
+            <div class="col-12">
+                <div class="alert alert-info mb-0 py-2">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <i class="bi bi-database me-1"></i> <strong>Current Data:</strong>
+                        </div>
+                        <div class="col" id="db-stats-content">
+                            <span class="text-muted">Loading stats...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Select Public Excel File (.xlsx)</label>
+                <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls" onchange="validateFile()">
+                <small class="text-muted">Expected format: Monthly Surface Water Quality data with header at row 6</small>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Min Samples</label>
+                <input type="number" class="form-control" id="min-samples" value="40" min="10" max="200">
+                <small class="text-muted">Per station</small>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Max Stations</label>
+                <input type="number" class="form-control" id="max-stations" value="0" min="0" max="500">
+                <small class="text-muted">0 = all</small>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-primary btn-lg d-block w-100" id="btn-upload-import" onclick="uploadAndImport()" disabled>
+                    <i class="bi bi-cloud-upload me-1"></i> Import & Run ML
+                </button>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-danger d-block w-100" id="btn-reset-all" onclick="showResetModal()">
+                    <i class="bi bi-trash me-1"></i> Reset All
+                </button>
+            </div>
+        </div>
+
+        <!-- Download Template & Export Data Buttons -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-3"><i class="bi bi-info-circle me-1"></i> Data Tools:</span>
+                    <a href="{{ url_for('rolling_poc_data.download_template') }}" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Template
+                    </a>
+                    <a href="{{ url_for('rolling_poc_data.export_data') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-database-down me-1"></i> Export Current Data
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Residential Data Import Section -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card border-success">
+                    <div class="card-header bg-success bg-opacity-10">
+                        <h6 class="mb-0">
+                            <i class="bi bi-house-door-fill text-success me-2"></i>
+                            <strong>Import Residential Data</strong>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Current Residential Database Stats -->
+                        <div class="row mb-3" id="residential-db-stats-section">
+                            <div class="col-12">
+                                <div class="alert alert-success alert-success bg-opacity-10 mb-0 py-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-auto">
+                                            <i class="bi bi-database me-1"></i> <strong>Current Data:</strong>
+                                        </div>
+                                        <div class="col" id="residential-db-stats-content">
+                                            <span class="text-muted">Loading stats...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Select Residential Excel File (.xlsx)</label>
+                                <input type="file" class="form-control" id="residential-excel-file" accept=".xlsx,.xls" onchange="validateResidentialFile()">
+                                <small class="text-muted">Same format as Public data. Includes optional "Site Category" column.</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Min Samples</label>
+                                <input type="number" class="form-control" id="residential-min-samples" value="40" min="10" max="200">
+                                <small class="text-muted">Per station</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Max Stations</label>
+                                <input type="number" class="form-control" id="residential-max-stations" value="0" min="0" max="500">
+                                <small class="text-muted">0 = all</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-success btn-lg d-block w-100" id="btn-upload-residential" onclick="uploadResidentialData()" disabled>
+                                    <i class="bi bi-house-add me-1"></i> Import & Run ML
+                                </button>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-outline-success d-block w-100" id="btn-import-pregenerated" onclick="importResidentialData()">
+                                    <i class="bi bi-database-fill-add me-1"></i> Use Demo Data
+                                </button>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-danger d-block w-100" id="btn-reset-residential" onclick="showResidentialResetModal()">
+                                    <i class="bi bi-trash me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Site Category Detection:</strong> If Excel has "Site Category" column with "residential" value, site is marked as residential. Otherwise defaults to residential.
+                            </small>
+                        </div>
+
+                        <!-- Residential Data Tools -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="d-flex align-items-center">
+                                    <span class="text-muted me-3"><i class="bi bi-info-circle me-1"></i> Data Tools:</span>
+                                    <a href="{{ url_for('rolling_poc_data.download_template') }}" class="btn btn-outline-success btn-sm me-2">
+                                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Template
+                                    </a>
+                                    <a href="{{ url_for('rolling_poc_data.export_data') }}" class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-database-down me-1"></i> Export Current Data
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Residential Import Progress -->
+                        <div class="mt-3" id="residential-progress-section" style="display: none;">
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="residential-progress-bar" role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                            <small class="text-muted" id="residential-status">Preparing...</small>
+                        </div>
+                        <!-- Residential Import Results -->
+                        <div class="mt-3" id="residential-results-section" style="display: none;">
+                            <div class="alert alert-success mb-0 py-2">
+                                <i class="bi bi-check-circle-fill me-1"></i>
+                                <span id="residential-summary"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Progress -->
+        <div class="mt-3" id="upload-progress-section" style="display: none;">
+            <div class="progress mb-2" style="height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="upload-progress-bar" role="progressbar" style="width: 0%">0%</div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted" id="upload-status">Preparing...</small>
+                <small class="text-muted" id="upload-stats"></small>
+            </div>
+        </div>
+
+        <!-- Import Results -->
+        <div class="mt-3" id="import-results-section" style="display: none;">
+            <div class="alert alert-success mb-0">
+                <h6 class="alert-heading"><i class="bi bi-check-circle-fill me-1"></i> Import Complete!</h6>
+                <div id="import-summary"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Confirmation Modal -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="resetModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Reset All Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">This will permanently delete all imported Public data and reset ML models:</p>
+                <ul class="mb-3">
+                    <li>All Public-imported sites</li>
+                    <li>All samples and test results from imported sites</li>
+                    <li>All analyses for imported sites</li>
+                    <li>All ML predictions (risk, contamination, WQI, forecasts, cost)</li>
+                </ul>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="include-demo-check">
+                    <label class="form-check-label text-danger fw-bold" for="include-demo-check">
+                        Also delete demo/original data (complete reset)
+                    </label>
+                </div>
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="executeReset()">
+                    <i class="bi bi-trash me-1"></i> Reset All Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ML Analysis Status Summary (shown when analysis is complete) -->
+<div class="card mb-4 border-success" id="ml-analysis-status-card" style="display: none;">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-check-circle-fill me-2"></i>ML Analysis Complete</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-2">All ML models have been trained and predictions generated for the imported data.</p>
+                <div id="ml-status-summary" class="d-flex flex-wrap gap-2">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('reports.index') }}" class="btn btn-outline-success btn-lg">
+                    <i class="bi bi-graph-up me-1"></i> View ML Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Station Selector -->
+<div class="station-selector">
+    <div class="row align-items-center mb-3">
+        <div class="col-md-3">
+            <label class="form-label fw-bold"><i class="bi bi-filter-circle text-primary me-2"></i>Site Category</label>
+            <select class="form-select form-select-lg" id="category-filter" onchange="filterStationsByCategory()">
+                <option value="all">All Sites</option>
+                <option value="public" selected>Public Sites</option>
+                <option value="residential">Residential Sites</option>
+            </select>
+        </div>
+        <div class="col-md-9">
+            <label class="form-label fw-bold"><i class="bi bi-geo-alt-fill text-success me-2"></i>Select Monitoring Station</label>
+            <select class="form-select form-select-lg" id="station-select" onchange="loadStation()">
+                {% for station in stations %}
+                {% set check_field = station.site_code if station.get('site_code') else station.name %}
+                <option value="{{ station.name }}"
+                        data-category="{{ 'residential' if check_field.startswith('RES-') else 'public' }}"
+                        {% if current_station and station.name == current_station.name %}selected{% endif %}>
+                    {{ station.name }} ({{ station.state }}) - {{ station.samples }} samples
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="station-info" id="station-info">
+                {% if current_station %}
+                <div class="station-info-item">
+                    <div class="value">{{ current_station.state }}</div>
+                    <div class="label">State</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">{{ current_station.basin or 'N/A' }}</div>
+                    <div class="label">Basin</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">{{ "%.4f"|format(current_station.latitude) if current_station.latitude else 'N/A' }}</div>
+                    <div class="label">Latitude</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">{{ "%.4f"|format(current_station.longitude) if current_station.longitude else 'N/A' }}</div>
+                    <div class="label">Longitude</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">
+                        {% if current_station.name.startswith('CPCB-') %}
+                            <span class="badge bg-primary">Public</span>
+                        {% elif current_station.name.startswith('RES-') %}
+                            <span class="badge bg-success">Residential</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Public</span>
+                        {% endif %}
+                    </div>
+                    <div class="label">Category</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Status - Only shown when no ML analysis exists yet -->
+<div class="data-status-card {{ 'ready' if data_ready else '' }}" id="data-status">
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-check-circle-fill text-success fs-2"></i>
+        <div class="flex-grow-1">
+            <h5 class="mb-1">Real Public Data Loaded</h5>
+            <p class="mb-0 text-muted" id="status-text">
+                <span id="sample-count">{{ total_samples }}</span> monthly samples from
+                <strong id="station-name">{{ current_station.name if current_station else 'Koelwar' }}</strong>.
+                Data includes Temperature, TDS, pH, Turbidity, Conductivity, Alkalinity, and more.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Models Section -->
+<div id="models-section">
+    {% set models = [
+        ('site_risk', 'Site Risk Classifier', 'Rolling Random Forest (Real Data)', 'risk', 'shield-exclamation'),
+        ('contamination', 'Contamination Detector', 'Rolling XGBoost (Real Data)', 'contam', 'virus'),
+        ('wqi', 'WQI Predictor', 'Rolling Gradient Boosting (Real Data)', 'wqi', 'speedometer2'),
+        ('forecast', 'Quality Forecaster', 'Rolling LSTM (Real Data)', 'forecast', 'graph-up-arrow'),
+        ('cost', 'Cost Optimizer', 'Rolling Bayesian Opt (Real Data)', 'cost', 'currency-rupee')
+    ] %}
+
+    {% for model_id, name, algorithm, icon_class, icon in models %}
+    <div class="model-row" id="row-{{ model_id }}">
+        <div class="model-header">
+            <div class="model-icon {{ icon_class }}">
+                <i class="bi bi-{{ icon }}"></i>
+            </div>
+            <div class="model-info">
+                <h5>{{ name }}</h5>
+                <small>{{ algorithm }} - Retrains each month</small>
+            </div>
+            <div class="model-actions">
+                <div class="rolling-progress" id="progress-{{ model_id }}">
+                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                    <span class="progress-text" id="progress-text-{{ model_id }}">Processing...</span>
+                </div>
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <button class="btn btn-rolling" id="btn-{{ model_id }}" onclick="runRollingModel('{{ model_id }}')" {{ 'disabled' if not data_ready }}>
+                    <i class="bi bi-play-fill me-1"></i> Run with Real Data
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        <div class="model-results" id="results-{{ model_id }}"></div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Final Summary -->
+<div class="final-summary-card" id="final-summary">
+    <h3><i class="bi bi-trophy me-2"></i>Real Data Analysis Complete</h3>
+    <p class="opacity-75 mb-3">All models trained and validated on actual Public monitoring data</p>
+    <div class="row justify-content-center mb-3">
+        <div class="col-auto">
+            <div class="fs-1 fw-bold" id="avg-accuracy">0%</div>
+            <div class="opacity-75">Average Accuracy</div>
+        </div>
+    </div>
+    <div class="summary-models" id="summary-models"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const models = ['site_risk', 'contamination', 'wqi', 'forecast', 'cost'];
+const modelResults = {};
+let completedModels = 0;
+let currentStation = '{{ current_station.name if current_station else "Koelwar" }}';
+
+function validateFile() {
+    const fileInput = document.getElementById('excel-file');
+    const btn = document.getElementById('btn-upload-import');
+    btn.disabled = !fileInput.files.length;
+}
+
+// Validate residential file selection
+function validateResidentialFile() {
+    const fileInput = document.getElementById('residential-excel-file');
+    const btn = document.getElementById('btn-upload-residential');
+    btn.disabled = !fileInput.files.length;
+}
+
+// Upload and import residential water quality data
+async function uploadResidentialData() {
+    const fileInput = document.getElementById('residential-excel-file');
+    const progressDiv = document.getElementById('residential-upload-progress');
+    const progressBar = document.getElementById('residential-progress-bar');
+    const progressText = document.getElementById('residential-progress-text');
+    const resultsDiv = document.getElementById('residential-upload-results');
+    const resultsContent = document.getElementById('residential-results-content');
+    const btn = document.getElementById('btn-upload-residential');
+
+    if (!fileInput.files.length) {
+        alert('Please select an Excel file first');
+        return;
+    }
+
+    const minSamples = document.getElementById('residential-min-samples').value || 40;
+    const maxStations = document.getElementById('residential-max-stations').value || 0;
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('min_samples', minSamples);
+    formData.append('max_stations', maxStations);
+
+    // Show progress
+    progressDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    btn.disabled = true;
+    progressBar.style.width = '10%';
+    progressText.textContent = 'Uploading file...';
+
+    try {
+        // Upload and process
+        progressBar.style.width = '30%';
+        progressText.textContent = 'Processing Excel file...';
+
+        const response = await fetch('/rolling-data-ml/upload-residential', {
+            method: 'POST',
+            body: formData
+        });
+
+        progressBar.style.width = '70%';
+        progressText.textContent = 'Running ML analysis...';
+
+        const data = await response.json();
+
+        progressBar.style.width = '100%';
+
+        if (data.success) {
+            progressText.textContent = 'Import complete!';
+            progressBar.classList.remove('bg-primary');
+            progressBar.classList.add('bg-success');
+
+            // Show results
+            resultsDiv.style.display = 'block';
+            let html = `
+                <div class="alert alert-success mb-2">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <strong>Successfully imported ${data.summary.sites_imported} residential sites</strong>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Import Summary</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="bi bi-house-door me-2 text-success"></i>Sites: ${data.summary.sites_imported}</li>
+                            <li><i class="bi bi-droplet me-2 text-info"></i>Samples: ${data.summary.samples_imported}</li>
+                            <li><i class="bi bi-file-earmark-excel me-2 text-primary"></i>File: ${data.summary.file_name}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>ML Analysis</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="bi bi-shield me-2 text-danger"></i>Risk Predictions: ${data.summary.ml_analysis.risk_predictions}</li>
+                            <li><i class="bi bi-virus me-2 text-warning"></i>Contamination: ${data.summary.ml_analysis.contamination_predictions}</li>
+                            <li><i class="bi bi-speedometer2 me-2 text-success"></i>WQI Readings: ${data.summary.ml_analysis.wqi_readings}</li>
+                            <li><i class="bi bi-exclamation-triangle me-2 text-dark"></i>Anomalies: ${data.summary.anomaly_detections || 0}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            resultsContent.innerHTML = html;
+
+            // Reload stats
+            loadStats();
+        } else {
+            progressText.textContent = 'Import failed';
+            progressBar.classList.remove('bg-primary');
+            progressBar.classList.add('bg-danger');
+
+            resultsDiv.style.display = 'block';
+            resultsContent.innerHTML = `
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    <strong>Import failed:</strong> ${data.error || 'Unknown error'}
+                </div>
+            `;
+        }
+    } catch (error) {
+        progressText.textContent = 'Error occurred';
+        progressBar.classList.remove('bg-primary');
+        progressBar.classList.add('bg-danger');
+
+        resultsDiv.style.display = 'block';
+        resultsContent.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Error:</strong> ${error.message}
+            </div>
+        `;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Load database statistics on page load
+async function loadStats() {
+    const statsContent = document.getElementById('db-stats-content');
+    const mlStatusCard = document.getElementById('ml-analysis-status-card');
+    const mlStatusSummary = document.getElementById('ml-status-summary');
+
+    try {
+        const response = await fetch('/rolling-data-ml/stats');
+        const data = await response.json();
+
+        if (data.success) {
+            const cpcb = data.cpcb;
+            const total = data.total;
+            const ml = data.ml_predictions;
+
+            // Update the stats display in upload section
+            if (statsContent) {
+                const residential = data.residential || {sites: 0, samples: 0, analyses: 0};
+                let html = `
+                    <span class="badge bg-primary me-2">Public Sites: ${cpcb.sites}</span>
+                    <span class="badge bg-info me-2">Public Samples: ${cpcb.samples}</span>
+                `;
+                if (residential.sites > 0 || residential.samples > 0) {
+                    html += `
+                        <span class="badge bg-success me-2">Residential Sites: ${residential.sites}</span>
+                        <span class="badge bg-success me-2" style="opacity: 0.85;">Residential Samples: ${residential.samples}</span>
+                    `;
+                }
+                html += `
+                    <span class="badge bg-secondary me-2">Total Sites: ${total.sites}</span>
+                    <span class="badge bg-secondary me-2">Total Samples: ${total.samples}</span>
+                    <span class="badge bg-dark me-2">ML Predictions: ${ml.risk_predictions + ml.contamination_predictions + ml.wqi_readings}</span>
+                `;
+                statsContent.innerHTML = html;
+            }
+
+            // Update residential database stats section
+            const residentialStatsContent = document.getElementById('residential-db-stats-content');
+            if (residentialStatsContent) {
+                const residential = data.residential || {sites: 0, samples: 0, analyses: 0};
+                if (residential.sites > 0 || residential.samples > 0) {
+                    const resHtml = `
+                        <span class="badge bg-success me-2">Residential Sites: ${residential.sites}</span>
+                        <span class="badge bg-success me-2" style="opacity: 0.85;">Residential Samples: ${residential.samples}</span>
+                        <span class="badge bg-success me-2" style="opacity: 0.7;">Residential Analyses: ${residential.analyses}</span>
+                    `;
+                    residentialStatsContent.innerHTML = resHtml;
+                } else {
+                    residentialStatsContent.innerHTML = '<span class="text-muted">No residential data imported yet</span>';
+                }
+            }
+
+            // Check if ML analysis is complete (has predictions for imported Public or Residential data)
+            const hasMLPredictions = ml.risk_predictions > 0 || ml.contamination_predictions > 0 || ml.wqi_readings > 0;
+            const hasPublicData = cpcb.sites > 0 && cpcb.samples > 0;
+            const residential = data.residential || {sites: 0, samples: 0, analyses: 0};
+            const hasResidentialData = residential.sites > 0 && residential.samples > 0;
+
+            if ((hasPublicData || hasResidentialData) && hasMLPredictions && mlStatusCard) {
+                // Show the ML Analysis Complete card
+                mlStatusCard.style.display = 'block';
+
+                // Build summary badges with both Public and Residential statistics
+                let summaryHtml = '';
+
+                // Public data badges
+                if (hasPublicData) {
+                    summaryHtml += `
+                        <span class="badge bg-primary"><i class="bi bi-building me-1"></i>${cpcb.sites} Public Sites</span>
+                        <span class="badge bg-info"><i class="bi bi-droplet me-1"></i>${cpcb.samples} Public Samples</span>
+                    `;
+                }
+
+                // Residential data badges
+                if (hasResidentialData) {
+                    summaryHtml += `
+                        <span class="badge bg-success"><i class="bi bi-house me-1"></i>${residential.sites} Residential Sites</span>
+                        <span class="badge bg-success" style="opacity: 0.85;"><i class="bi bi-droplet me-1"></i>${residential.samples} Residential Samples</span>
+                    `;
+                }
+
+                // ML predictions badges
+                summaryHtml += `
+                    <span class="badge bg-danger"><i class="bi bi-shield-exclamation me-1"></i>${ml.risk_predictions} Risk Predictions</span>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-virus me-1"></i>${ml.contamination_predictions} Contamination</span>
+                    <span class="badge bg-success" style="opacity: 0.7;"><i class="bi bi-speedometer2 me-1"></i>${ml.wqi_readings} WQI Readings</span>
+                `;
+                if (ml.forecasts > 0) {
+                    summaryHtml += `<span class="badge bg-secondary"><i class="bi bi-graph-up-arrow me-1"></i>${ml.forecasts} Forecasts</span>`;
+                }
+                if (ml.anomalies > 0) {
+                    summaryHtml += `<span class="badge bg-dark"><i class="bi bi-exclamation-triangle me-1"></i>${ml.anomalies} Anomalies</span>`;
+                }
+                mlStatusSummary.innerHTML = summaryHtml;
+
+                // Update model buttons to show "Re-run" instead of "Run"
+                updateButtonLabels(true);
+            } else if (mlStatusCard) {
+                mlStatusCard.style.display = 'none';
+                updateButtonLabels(false);
+            }
+        } else {
+            if (statsContent) {
+                statsContent.innerHTML = '<span class="text-danger">Failed to load stats</span>';
+            }
+        }
+    } catch (error) {
+        if (statsContent) {
+            statsContent.innerHTML = '<span class="text-danger">Error loading stats</span>';
+        }
+    }
+}
+
+// Update button labels based on whether ML analysis exists
+function updateButtonLabels(hasExistingAnalysis) {
+    models.forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (btn && !btn.classList.contains('done')) {
+            if (hasExistingAnalysis) {
+                btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Re-run Analysis';
+            } else {
+                btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run with Real Data';
+            }
+        }
+    });
+}
+
+// Show reset confirmation modal
+function showResetModal() {
+    const modal = new bootstrap.Modal(document.getElementById('resetModal'));
+    document.getElementById('include-demo-check').checked = false;
+    modal.show();
+}
+
+// Execute the reset operation
+async function executeReset() {
+    const includeDemo = document.getElementById('include-demo-check').checked;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('resetModal'));
+
+    // Show loading state
+    const resetBtn = document.querySelector('#resetModal .btn-danger');
+    const originalText = resetBtn.innerHTML;
+    resetBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Resetting...';
+    resetBtn.disabled = true;
+
+    try {
+        const response = await fetch('/rolling-data-ml/reset-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ include_demo: includeDemo })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            modal.hide();
+
+            // Show success message
+            const deleted = data.deleted;
+            let message = `Reset complete!\n\nDeleted:\n`;
+            message += `- ${deleted.sites} sites\n`;
+            message += `- ${deleted.samples} samples\n`;
+            message += `- ${deleted.analyses} analyses\n`;
+            message += `- ${deleted.risk_predictions} risk predictions\n`;
+            message += `- ${deleted.wqi_readings} WQI readings\n`;
+            message += `- ${deleted.forecasts} forecasts\n`;
+            message += `- ${deleted.cost_results} cost results\n`;
+
+            alert(message);
+
+            // Reload stats
+            loadStats();
+
+            // Reset upload button state
+            const uploadBtn = document.getElementById('btn-upload-import');
+            uploadBtn.classList.remove('btn-success');
+            uploadBtn.classList.add('btn-primary');
+            uploadBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i> Import & Run ML';
+
+            // Hide any previous results
+            document.getElementById('import-results-section').style.display = 'none';
+            document.getElementById('upload-progress-section').style.display = 'none';
+        } else {
+            alert('Reset failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Reset failed: ' + error.message);
+    } finally {
+        resetBtn.innerHTML = originalText;
+        resetBtn.disabled = false;
+    }
+}
+
+// Load stats on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    filterStationsByCategory();  // Apply initial category filter
+});
+
+async function uploadAndImport() {
+    const fileInput = document.getElementById('excel-file');
+    const minSamples = document.getElementById('min-samples').value;
+    const maxStations = document.getElementById('max-stations').value;
+    const btn = document.getElementById('btn-upload-import');
+    const progressSection = document.getElementById('upload-progress-section');
+    const progressBar = document.getElementById('upload-progress-bar');
+    const statusText = document.getElementById('upload-status');
+    const statsText = document.getElementById('upload-stats');
+    const resultsSection = document.getElementById('import-results-section');
+    const summaryDiv = document.getElementById('import-summary');
+
+    if (!fileInput.files.length) {
+        alert('Please select an Excel file');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Processing...';
+    progressSection.style.display = 'block';
+    resultsSection.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('min_samples', minSamples);
+    formData.append('max_stations', maxStations);
+
+    try {
+        // Step 1: Upload and import
+        statusText.textContent = 'Uploading and importing data...';
+        progressBar.style.width = '10%';
+        progressBar.textContent = '10%';
+
+        const importResponse = await fetch('/rolling-data-ml/upload-import', {
+            method: 'POST',
+            body: formData
+        });
+        const importData = await importResponse.json();
+
+        if (!importData.success) {
+            throw new Error(importData.error || 'Import failed');
+        }
+
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+
+        // ML analysis runs automatically on server during import
+        const mlAnalysis = importData.ml_analysis || { stations_analyzed: 0, results: [] };
+        const anomalyDetection = importData.anomaly_detection || { stations_analyzed: 0, total_anomalies: 0, results: [] };
+        statusText.textContent = `Imported ${importData.sites_created} sites, ${importData.total_samples} samples`;
+        statsText.textContent = `ML: ${mlAnalysis.stations_analyzed} stations | Anomalies: ${anomalyDetection.total_anomalies} found`;
+
+        // Build ML results map for display
+        const mlResults = {};
+        for (const result of mlAnalysis.results) {
+            mlResults[result.station] = { models_run: result.models_run, errors: result.errors };
+        }
+
+        // Build anomaly results map for display
+        const anomalyResults = {};
+        for (const result of anomalyDetection.results) {
+            anomalyResults[result.station] = { anomalies: result.anomalies_found };
+        }
+
+        // Show results
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add('bg-success');
+        statusText.textContent = 'Complete!';
+
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Import Complete';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+
+        // Build summary
+        let summaryHtml = `
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <strong>Sites Imported:</strong> ${importData.sites_created}<br>
+                    <strong>Total Samples:</strong> ${importData.total_samples}<br>
+                    <strong>Total Analyses:</strong> ${importData.total_analyses}
+                </div>
+                <div class="col-md-8">
+                    <strong>Stations:</strong><br>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+        `;
+        for (const station of importData.stations) {
+            const mlInfo = mlResults[station.name] || { models_run: 0, errors: 0 };
+            const anomalyInfo = anomalyResults[station.name] || { anomalies: 0 };
+            const mlStatus = mlInfo.models_run === 5 ? '5 models' : `${mlInfo.models_run}/5 models`;
+            const anomalyStatus = anomalyInfo.anomalies > 0 ? `, ${anomalyInfo.anomalies} anomalies` : '';
+            summaryHtml += `
+                <a href="/sites/${station.site_id}" class="badge bg-${station.risk_level === 'critical' ? 'danger' : station.risk_level === 'high' ? 'warning' : 'success'} text-decoration-none">
+                    ${station.name} (${station.samples} samples, ${mlStatus}${anomalyStatus})
+                </a>
+            `;
+        }
+        summaryHtml += `</div></div></div>`;
+
+        resultsSection.style.display = 'block';
+        summaryDiv.innerHTML = summaryHtml;
+
+        // Reload station selector
+        location.reload();
+
+    } catch (error) {
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add('bg-danger');
+        statusText.textContent = `Error: ${error.message}`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Retry';
+        btn.classList.add('btn-danger');
+    }
+}
+
+function filterStationsByCategory() {
+    const categoryFilter = document.getElementById('category-filter');
+    const stationSelect = document.getElementById('station-select');
+    const selectedCategory = categoryFilter.value;
+
+    // Get all options
+    const options = stationSelect.querySelectorAll('option');
+
+    // Track the currently selected option
+    const currentSelection = stationSelect.value;
+    let firstVisibleOption = null;
+    let currentStillVisible = false;
+
+    // Filter options based on category
+    options.forEach(option => {
+        const optionCategory = option.getAttribute('data-category');
+
+        if (selectedCategory === 'all') {
+            // Show all options
+            option.style.display = '';
+            if (!firstVisibleOption) firstVisibleOption = option.value;
+            if (option.value === currentSelection) currentStillVisible = true;
+        } else {
+            // Show only matching category
+            if (optionCategory === selectedCategory) {
+                option.style.display = '';
+                if (!firstVisibleOption) firstVisibleOption = option.value;
+                if (option.value === currentSelection) currentStillVisible = true;
+            } else {
+                option.style.display = 'none';
+            }
+        }
+    });
+
+    // If current selection is no longer visible, select first visible option
+    if (!currentStillVisible && firstVisibleOption) {
+        stationSelect.value = firstVisibleOption;
+        loadStation(); // Load the newly selected station
+    }
+}
+
+async function loadStation() {
+    const select = document.getElementById('station-select');
+    currentStation = select.value;
+
+    try {
+        const response = await fetch(`/rolling-data-ml/api/station/${encodeURIComponent(currentStation)}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Update station info
+            document.getElementById('station-name').textContent = data.station.name;
+            document.getElementById('sample-count').textContent = data.samples;
+
+            // Determine category based on station name
+            let categoryBadge = '';
+            if (data.station.name.startsWith('CPCB-')) {
+                categoryBadge = '<span class="badge bg-primary">Public</span>';
+            } else if (data.station.name.startsWith('RES-')) {
+                categoryBadge = '<span class="badge bg-success">Residential</span>';
+            } else {
+                categoryBadge = '<span class="badge bg-secondary">Public</span>';
+            }
+
+            const infoHtml = `
+                <div class="station-info-item">
+                    <div class="value">${data.station.state}</div>
+                    <div class="label">State</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">${data.station.basin || 'N/A'}</div>
+                    <div class="label">Basin</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">${data.station.latitude ? data.station.latitude.toFixed(4) : 'N/A'}</div>
+                    <div class="label">Latitude</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">${data.station.longitude ? data.station.longitude.toFixed(4) : 'N/A'}</div>
+                    <div class="label">Longitude</div>
+                </div>
+                <div class="station-info-item">
+                    <div class="value">${categoryBadge}</div>
+                    <div class="label">Category</div>
+                </div>
+            `;
+            document.getElementById('station-info').innerHTML = infoHtml;
+
+            // Reset models
+            completedModels = 0;
+
+            // Map model names to ML result keys
+            const modelResultMapping = {
+                'site_risk': 'site_risk',
+                'contamination': 'contamination',
+                'wqi': 'wqi',
+                'forecast': 'forecast',
+                'cost': 'cost'
+            };
+
+            models.forEach(m => {
+                const btn = document.getElementById(`btn-${m}`);
+                const row = document.getElementById(`row-${m}`);
+                const results = document.getElementById(`results-${m}`);
+
+                // Check if ML results exist for this model
+                const mlResultKey = modelResultMapping[m];
+                const hasResults = data.ml_results_exist && data.ml_results_exist[mlResultKey];
+
+                // Set button text based on whether results exist
+                if (hasResults) {
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Rerun Analysis';
+                } else {
+                    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Run with Real Data';
+                }
+
+                btn.classList.remove('done');
+                btn.disabled = data.samples < 40;
+                row.classList.remove('completed', 'running');
+                results.classList.remove('show');
+                results.innerHTML = '';
+            });
+
+            document.getElementById('final-summary').classList.remove('show');
+        }
+    } catch (error) {
+        console.error('Error loading station:', error);
+    }
+}
+
+async function runRollingModel(model) {
+    const btn = document.getElementById(`btn-${model}`);
+    const progress = document.getElementById(`progress-${model}`);
+    const progressText = document.getElementById(`progress-text-${model}`);
+    const row = document.getElementById(`row-${model}`);
+    const resultsContainer = document.getElementById(`results-${model}`);
+
+    // Update UI to running state
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Processing...';
+    progress.classList.add('show');
+    row.classList.add('running');
+    progressText.textContent = 'Loading Public data...';
+
+    try {
+        // Simulate progress updates
+        let sample = 1;
+        const progressInterval = setInterval(() => {
+            progressText.textContent = `Training on sample ${sample}...`;
+            sample += 5;
+        }, 300);
+
+        const response = await fetch(`/rolling-data-ml/run/${model}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ station: currentStation })
+        });
+        const data = await response.json();
+
+        clearInterval(progressInterval);
+
+        if (data.success) {
+            modelResults[model] = data;
+            showRollingResults(model, data);
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Complete';
+            btn.classList.add('done');
+            row.classList.remove('running');
+            row.classList.add('completed');
+            completedModels++;
+
+            if (completedModels === models.length) {
+                showFinalSummary();
+            }
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (error) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Retry';
+        row.classList.remove('running');
+        progress.classList.remove('show');
+        alert(`Error: ${error.message}`);
+    }
+
+    progress.classList.remove('show');
+}
+
+function showRollingResults(model, data) {
+    const container = document.getElementById(`results-${model}`);
+    const results = data.results;
+    const summary = results.summary;
+    const metrics = results.metrics;
+    const isCostModel = model === 'cost';
+
+    // Build metrics HTML
+    let metricsHtml = '';
+    for (const [key, val] of Object.entries(metrics)) {
+        if (key === 'confusion_matrix') continue;
+        const isCostValue = key.includes('cost') || key.includes('savings') && key !== 'savings_percent';
+        const display = typeof val === 'number' ?
+            (key.includes('cost') && !key.includes('percent') ? `Rs.${val.toLocaleString()}` :
+             key.includes('percent') || key.includes('accuracy') || key.includes('precision') || key.includes('recall') || key.includes('rate') || key.includes('f1') ?
+             val.toFixed(1) + '%' : val.toFixed(2)) : val;
+        const valueClass = isCostValue ? 'metric-value cost-value' : 'metric-value';
+        metricsHtml += `<div class="metric-card"><div class="${valueClass}">${display}</div><div class="metric-label">${key.replace(/_/g, ' ')}</div></div>`;
+    }
+
+    // Build summary HTML
+    const summaryHtml = `
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="value">${summary.total_predictions}</div>
+                <div class="label">Predictions</div>
+            </div>
+            <div class="summary-item">
+                <div class="value text-success">${summary.correct_predictions}</div>
+                <div class="label">Correct</div>
+            </div>
+            <div class="summary-item">
+                <div class="value">${summary.initial_accuracy}%</div>
+                <div class="label">Initial Acc</div>
+            </div>
+            <div class="summary-item">
+                <div class="value text-warning">${summary.accuracy_improvement > 0 ? '+' : ''}${summary.accuracy_improvement}%</div>
+                <div class="label">Improvement</div>
+            </div>
+        </div>
+    `;
+
+    // Build training progression chart data
+    const chartId = `chart-${model}`;
+    const progression = results.training_progression;
+
+    // Build results table
+    let tableHeaders = '';
+    let tableRows = '';
+
+    if (model === 'site_risk') {
+        tableHeaders = '<th>Sample</th><th>Date</th><th>Training</th><th>Actual</th><th>Predicted</th><th>Match</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>#${r.sample}</strong></td>
+                <td>${r.date}</td>
+                <td>${r.training_samples}</td>
+                <td><span class="badge bg-${r.actual === 'critical' ? 'danger' : r.actual === 'high' ? 'warning' : 'secondary'}">${r.actual}</span></td>
+                <td><span class="badge bg-${r.predicted === 'critical' ? 'danger' : r.predicted === 'high' ? 'warning' : 'secondary'}">${r.predicted}</span></td>
+                <td>${r.correct ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'contamination') {
+        tableHeaders = '<th>Sample</th><th>Date</th><th>Actual</th><th>Predicted</th><th>Type</th><th>Correct</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>#${r.sample}</strong></td>
+                <td>${r.date}</td>
+                <td><span class="badge ${r.actual ? 'bg-danger' : 'bg-success'}">${r.actual ? 'Yes' : 'No'}</span></td>
+                <td><span class="badge ${r.predicted ? 'bg-danger' : 'bg-success'}">${r.predicted ? 'Yes' : 'No'}</span></td>
+                <td>${r.actual_type} / ${r.predicted_type}</td>
+                <td>${r.correct ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'wqi') {
+        tableHeaders = '<th>Sample</th><th>Date</th><th>Actual WQI</th><th>Predicted</th><th>Error</th><th>Class Match</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>#${r.sample}</strong></td>
+                <td>${r.date}</td>
+                <td>${r.actual_wqi} <small class="text-muted">(${r.actual_class})</small></td>
+                <td>${r.predicted_wqi} <small class="text-muted">(${r.predicted_class})</small></td>
+                <td>${r.error.toFixed(1)}</td>
+                <td>${r.class_match ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>'}</td>
+            </tr>`;
+        });
+    } else if (model === 'forecast') {
+        tableHeaders = '<th>Sample</th><th>Date</th><th>pH Err</th><th>Turb Err</th><th>TDS Err</th><th>Avg Err</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            tableRows += `<tr>
+                <td><strong>#${r.sample}</strong></td>
+                <td>${r.date}</td>
+                <td>${r.errors.ph || '-'}%</td>
+                <td>${r.errors.turbidity || '-'}%</td>
+                <td>${r.errors.tds || '-'}%</td>
+                <td class="${r.avg_error < 15 ? 'text-success' : 'text-danger'} fw-bold">${r.avg_error}%</td>
+            </tr>`;
+        });
+    } else if (model === 'cost') {
+        tableHeaders = '<th>Sample</th><th>Date</th><th>Risk</th><th>Recommendation</th><th>Current</th><th>Optimized</th><th>Savings</th>';
+        results.predictions.slice(0, 20).forEach(r => {
+            const recClass = r.recommendation === 'Skip Test' ? 'bg-success' :
+                            r.recommendation === 'Reduced Testing' ? 'bg-info' :
+                            r.recommendation === 'Standard Testing' ? 'bg-warning' : 'bg-danger';
+            const rowClass = r.recommendation === 'Skip Test' ? 'table-success' : '';
+            tableRows += `<tr class="${rowClass}">
+                <td><strong>#${r.sample}</strong></td>
+                <td>${r.date}</td>
+                <td><span class="badge bg-secondary">${r.risk_category}</span></td>
+                <td><span class="badge ${recClass}">${r.recommendation}</span></td>
+                <td>Rs.${r.current_cost.toLocaleString()}</td>
+                <td>${r.optimized_cost === 0 ? '<span class="text-success fw-bold">Rs.0</span>' : 'Rs.' + r.optimized_cost.toLocaleString()}</td>
+                <td class="text-success fw-bold">${r.savings_percent}%</td>
+            </tr>`;
+        });
+    }
+
+    container.innerHTML = `
+        <div class="training-progression">
+            <h6><i class="bi bi-database-fill me-1"></i> Real Data Analysis - ${data.station.name}</h6>
+            <div class="summary-section">
+                ${summaryHtml}
+            </div>
+            <div class="accuracy-chart-container">
+                <canvas id="${chartId}"></canvas>
+            </div>
+        </div>
+        <div class="comparison-section">
+            <h6><i class="bi bi-bar-chart-fill"></i> Results - ${data.name}</h6>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="accuracy-display">
+                        <div class="accuracy-value">${summary.final_accuracy}%</div>
+                        <div class="accuracy-label">Final Accuracy</div>
+                        ${summary.accuracy_improvement > 0 ? `<div class="accuracy-improvement"><i class="bi bi-graph-up-arrow me-1"></i>+${summary.accuracy_improvement}% improvement</div>` : ''}
+                    </div>
+                    <p class="small text-muted mb-2"><strong>Performance Metrics:</strong></p>
+                    <div class="metrics-grid${isCostModel ? ' cost-metrics' : ''}">${metricsHtml}</div>
+                </div>
+                <div class="col-lg-8">
+                    <p class="small text-muted mb-2"><strong>Sample Predictions (first 20):</strong></p>
+                    <div class="results-table">
+                        <table class="table table-sm table-hover">
+                            <thead><tr>${tableHeaders}</tr></thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.classList.add('show');
+
+    // Create accuracy progression chart
+    if (progression && progression.length > 0) {
+        const ctx = document.getElementById(chartId).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: progression.map(p => `#${p.sample}`),
+                datasets: [
+                    {
+                        label: 'Model Accuracy',
+                        data: progression.map(p => (p.model_accuracy * 100).toFixed(1)),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Cumulative Accuracy',
+                        data: progression.map(p => p.cumulative_accuracy),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Accuracy Progression (Real Public Data)' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 50,
+                        max: 100,
+                        title: { display: true, text: 'Accuracy %' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function showFinalSummary() {
+    let total = 0;
+    let summaryHtml = '';
+
+    models.forEach(m => {
+        const acc = modelResults[m]?.results?.summary?.final_accuracy || 0;
+        total += acc;
+        const name = modelResults[m]?.name?.split(' ')[0] || m;
+        const improvement = modelResults[m]?.results?.summary?.accuracy_improvement || 0;
+        summaryHtml += `
+            <div class="summary-model">
+                <div class="value">${acc.toFixed(0)}%</div>
+                <div class="name">${name}</div>
+                ${improvement > 0 ? `<small class="text-warning">+${improvement.toFixed(1)}%</small>` : ''}
+            </div>
+        `;
+    });
+
+    document.getElementById('avg-accuracy').textContent = (total / models.length).toFixed(1) + '%';
+    document.getElementById('summary-models').innerHTML = summaryHtml;
+    document.getElementById('final-summary').classList.add('show');
+    document.getElementById('final-summary').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Import Residential Data function
+async function importResidentialData() {
+    const btn = document.getElementById('btn-import-residential');
+    const progressSection = document.getElementById('residential-progress-section');
+    const progressBar = document.getElementById('residential-progress-bar');
+    const statusText = document.getElementById('residential-status');
+    const resultsSection = document.getElementById('residential-results-section');
+    const summarySpan = document.getElementById('residential-summary');
+
+    // Confirm before import
+    if (!confirm('This will import 20 residential sites with ~1400 water quality samples and run the ML pipeline. Continue?')) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Importing...';
+    progressSection.style.display = 'block';
+    resultsSection.style.display = 'none';
+
+    try {
+        // Start import
+        statusText.textContent = 'Reading residential data file...';
+        progressBar.style.width = '10%';
+        progressBar.textContent = '10%';
+
+        const response = await fetch('/rolling-data-ml/import-residential', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        progressBar.style.width = '50%';
+        progressBar.textContent = '50%';
+        statusText.textContent = 'Processing data and running ML pipeline...';
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Import failed');
+        }
+
+        // Success
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+        progressBar.classList.remove('progress-bar-animated');
+
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Import Complete';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-success');
+
+        // Show summary
+        const mlAnalysis = data.ml_analysis || { stations_analyzed: 0 };
+        const anomalyDetection = data.anomaly_detection || { total_anomalies: 0 };
+
+        summarySpan.innerHTML = `
+            Imported <strong>${data.sites_created}</strong> residential sites with
+            <strong>${data.total_samples}</strong> samples.
+            ML analysis: ${mlAnalysis.stations_analyzed} stations processed.
+            Anomalies detected: ${anomalyDetection.total_anomalies}.
+            <a href="{{ url_for('sites.index') }}?category=residential" class="ms-2">View Sites</a>
+        `;
+        resultsSection.style.display = 'block';
+
+        // Reload stats
+        loadStats();
+
+        // Reload page after 3 seconds to update station list
+        setTimeout(() => {
+            location.reload();
+        }, 3000);
+
+    } catch (error) {
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add('bg-danger');
+        statusText.textContent = `Error: ${error.message}`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Retry';
+        btn.classList.add('btn-danger');
+        btn.classList.remove('btn-success');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Add Site - Jal Sarovar{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('sites.index') }}">Sites</a></li>
+            <li class="breadcrumb-item active">Add Site</li>
+        </ol>
+    </nav>
+    <h2><i class="bi bi-plus-lg"></i> Add New Water Site</h2>
+</div>
+
+<form method="POST">
+    <div class="row g-4">
+        <!-- Basic Info -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="site_code" class="form-label">Site Code *</label>
+                        <input type="text" name="site_code" id="site_code" class="form-control" required placeholder="AS-TN-0001">
+                    </div>
+                    <div class="mb-3">
+                        <label for="site_name" class="form-label">Site Name *</label>
+                        <input type="text" name="site_name" id="site_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="site_type" class="form-label">Site Type *</label>
+                        <select name="site_type" id="site_type" class="form-select" required>
+                            <option value="">Select type...</option>
+                            <option value="pond">Pond</option>
+                            <option value="lake">Lake</option>
+                            <option value="tank">Tank</option>
+                            <option value="reservoir">Reservoir</option>
+                            <option value="stepwell">Stepwell</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="site_category" class="form-label">Site Category *</label>
+                        <select name="site_category" id="site_category" class="form-select" required>
+                            <option value="public" selected>Public</option>
+                            <option value="residential">Residential</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="water_source" class="form-label">Water Source</label>
+                        <select name="water_source" id="water_source" class="form-select">
+                            <option value="">Select...</option>
+                            <option value="groundwater">Groundwater</option>
+                            <option value="surface">Surface Water</option>
+                            <option value="mixed">Mixed</option>
+                            <option value="rainwater">Rainwater</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amrit_sarovar_id" class="form-label">Amrit Sarovar ID</label>
+                        <input type="text" name="amrit_sarovar_id" id="amrit_sarovar_id" class="form-control" placeholder="AMRIT-XX-XXXXX">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Location</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="country" class="form-label">Country *</label>
+                        <select name="country" id="country" class="form-select" required>
+                            <option value="India" selected>India</option>
+                            <option value="USA">USA</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="state" class="form-label">State *</label>
+                        <input type="text" name="state" id="state" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="district" class="form-label">District *</label>
+                        <input type="text" name="district" id="district" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="block" class="form-label">Block</label>
+                            <input type="text" name="block" id="block" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="village" class="form-label">Village</label>
+                            <input type="text" name="village" id="village" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="latitude" class="form-label">Latitude</label>
+                            <input type="number" step="0.0001" name="latitude" id="latitude" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="longitude" class="form-label">Longitude</label>
+                            <input type="number" step="0.0001" name="longitude" id="longitude" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environmental Factors -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Environmental Factors</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_coastal" id="is_coastal" class="form-check-input">
+                                <label class="form-check-label" for="is_coastal">Coastal Location</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_urban" id="is_urban" class="form-check-input">
+                                <label class="form-check-label" for="is_urban">Urban Area</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_industrial_nearby" id="is_industrial_nearby" class="form-check-input">
+                                <label class="form-check-label" for="is_industrial_nearby">Industrial Nearby</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_agricultural_nearby" id="is_agricultural_nearby" class="form-check-input">
+                                <label class="form-check-label" for="is_agricultural_nearby">Agricultural Nearby</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Physical Properties -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Physical Properties</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="surface_area" class="form-label">Surface Area (hectares)</label>
+                        <input type="number" step="0.01" name="surface_area" id="surface_area" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="population_served" class="form-label">Population Served</label>
+                        <input type="number" name="population_served" id="population_served" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> Create Site
+                </button>
+                <a href="{{ url_for('sites.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

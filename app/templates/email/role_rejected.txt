@@ -1,0 +1,20 @@
+Role Request Update
+
+Hello {{ user_name }},
+
+Thank you for your interest in the {{ requested_role }} role.
+
+After reviewing your request, we're unable to approve it at this time.
+
+Reason: {{ reason }}
+
+Your current access remains unchanged.
+
+If you have questions, please contact our support team: {{ contact_url }}
+
+Best regards,
+The Jal Sarovar Team
+
+---
+Jal Sarovar - Water Quality Management System
+https://jalsarovar.com

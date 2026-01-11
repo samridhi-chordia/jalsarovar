@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Water Monitoring Sites - Jal Sarovar | 68,000+ Water Bodies Across India{% endblock %}
+{% block meta_description %}Comprehensive database of water monitoring sites across India supporting Mission Amrit Sarovar. Track water quality at 68,000+ water bodies including ponds, lakes, tanks, and reservoirs.{% endblock %}
+{% block meta_keywords %}water monitoring sites India, Amrit Sarovar water bodies, water quality sites, India water sources, monitoring locations, public water bodies India{% endblock %}
+{% block og_title %}Water Monitoring Sites - Jal Sarovar | Mission Amrit Sarovar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-geo-alt"></i> Water Sites</h2>
+        <p class="text-muted mb-0">Amrit Sarovar monitoring locations</p>
+    </div>
+    <div>
+        <a href="{{ url_for('sites.map_view') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-map"></i> Map View
+        </a>
+        {% if current_user.is_authenticated and current_user.is_admin() %}
+        <a href="{{ url_for('sites.new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Add Site
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Country</label>
+                <select name="country" class="form-select">
+                    <option value="">All Countries</option>
+                    {% for country in countries %}
+                    <option value="{{ country }}" {% if request.args.get('country') == country %}selected{% endif %}>{{ country }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    <option value="public" {% if request.args.get('category') == 'public' %}selected{% endif %}>Public</option>
+                    <option value="residential" {% if request.args.get('category') == 'residential' %}selected{% endif %}>Residential</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">State</label>
+                <select name="state" class="form-select">
+                    <option value="">All States</option>
+                    {% for state in states %}
+                    <option value="{{ state }}" {% if request.args.get('state') == state %}selected{% endif %}>{{ state }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Site Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for type in types %}
+                    <option value="{{ type }}" {% if request.args.get('type') == type %}selected{% endif %}>{{ type|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Risk Level</label>
+                <select name="risk" class="form-select">
+                    <option value="">All Levels</option>
+                    <option value="critical" {% if request.args.get('risk') == 'critical' %}selected{% endif %}>Critical</option>
+                    <option value="high" {% if request.args.get('risk') == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if request.args.get('risk') == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if request.args.get('risk') == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Site name or code..." value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-md-12 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a href="{{ url_for('sites.index') }}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sites Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Site Code</th>
+                    <th>Name</th>
+                    <th>State</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Risk</th>
+                    <th>WQI</th>
+                    <th>Samples</th>
+                    <th>Contamination</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites.items %}
+                {% set stats = site_stats.get(site.id, {}) %}
+                <tr>
+                    <td><strong>{{ site.site_code }}</strong></td>
+                    <td><a href="{{ url_for('sites.detail', site_id=site.id) }}">{{ site.site_name }}</a></td>
+                    <td>{{ site.state }}</td>
+                    <td><span class="badge bg-secondary">{{ site.site_type|title }}</span></td>
+                    <td><span class="badge {% if site.site_category == 'residential' %}bg-info{% else %}bg-primary{% endif %}">{{ site.site_category or 'public' }}</span></td>
+                    <td>
+                        {% if site.current_risk_level %}
+                        <span class="risk-badge risk-{{ site.current_risk_level }}">
+                            {{ site.current_risk_level|title }}
+                            {% if site.risk_score %}<small>({{ site.risk_score|round(0)|int }})</small>{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if stats.latest_wqi %}
+                        <span class="badge {% if stats.wqi_class == 'Excellent' %}bg-success{% elif stats.wqi_class == 'Compliant' %}bg-info{% elif stats.wqi_class == 'Warning' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                            {{ stats.latest_wqi|round(0)|int }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark">{{ stats.sample_count or 0 }}</span>
+                    </td>
+                    <td>
+                        {% if stats.total_analyses > 0 %}
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                <div class="progress-bar {% if stats.contamination_rate >= 50 %}bg-danger{% elif stats.contamination_rate >= 25 %}bg-warning{% else %}bg-success{% endif %}"
+                                     style="width: {{ stats.contamination_rate }}%"></div>
+                            </div>
+                            <small class="{% if stats.contamination_rate >= 50 %}text-danger{% elif stats.contamination_rate >= 25 %}text-warning{% else %}text-success{% endif %}">
+                                {{ stats.contamination_rate }}%
+                            </small>
+                        </div>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
+                        <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-muted">No sites found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if sites.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if sites.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('sites.index', page=sites.prev_num, search=request.args.get('search', ''), state=request.args.get('state', ''), type=request.args.get('type', ''), category=request.args.get('category', ''), risk=request.args.get('risk', '')) }}">Previous</a>
+        </li>
+        {% endif %}
+
+        {% for page_num in sites.iter_pages() %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == sites.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('sites.index', page=page_num, search=request.args.get('search', ''), state=request.args.get('state', ''), type=request.args.get('type', ''), category=request.args.get('category', ''), risk=request.args.get('risk', '')) }}">{{ page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if sites.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('sites.index', page=sites.next_num, search=request.args.get('search', ''), state=request.args.get('state', ''), type=request.args.get('type', ''), category=request.args.get('category', ''), risk=request.args.get('risk', '')) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<script>
+// Cascading filter dropdowns - update options based on selections
+document.addEventListener('DOMContentLoaded', function() {
+    const countrySelect = document.querySelector('select[name="country"]');
+    const categorySelect = document.querySelector('select[name="category"]');
+    const stateSelect = document.querySelector('select[name="state"]');
+    const typeSelect = document.querySelector('select[name="type"]');
+    const riskSelect = document.querySelector('select[name="risk"]');
+
+    // Store original selected values
+    const originalState = stateSelect.value;
+    const originalType = typeSelect.value;
+
+    // Update dropdown options when filters change
+    async function updateFilterOptions() {
+        const params = new URLSearchParams();
+
+        if (countrySelect.value) params.append('country', countrySelect.value);
+        if (categorySelect.value) params.append('category', categorySelect.value);
+        if (stateSelect.value) params.append('state', stateSelect.value);
+        if (typeSelect.value) params.append('type', typeSelect.value);
+        if (riskSelect.value) params.append('risk', riskSelect.value);
+
+        try {
+            const response = await fetch(`/sites/api/filter-options?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Update state dropdown
+                updateDropdown(stateSelect, data.states, 'All States');
+
+                // Update type dropdown
+                updateDropdown(typeSelect, data.types, 'All Types');
+            }
+        } catch (error) {
+            console.error('Error updating filter options:', error);
+        }
+    }
+
+    // Helper function to update a dropdown with new options
+    function updateDropdown(selectElement, values, defaultLabel) {
+        const currentValue = selectElement.value;
+
+        // Clear existing options except the first one (All ...)
+        selectElement.innerHTML = `<option value="">${defaultLabel}</option>`;
+
+        // Add new options
+        values.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            // Preserve selection if the value still exists
+            if (value === currentValue) {
+                option.selected = true;
+            }
+            selectElement.appendChild(option);
+        });
+
+        // If current value is not in new options, reset to default
+        if (currentValue && !values.includes(currentValue)) {
+            selectElement.value = '';
+        }
+    }
+
+    // Add event listeners to trigger cascade
+    countrySelect.addEventListener('change', function() {
+        // When country changes, reset state and type, then update
+        if (this.value !== originalState) {
+            stateSelect.value = '';
+            typeSelect.value = '';
+        }
+        updateFilterOptions();
+    });
+
+    categorySelect.addEventListener('change', function() {
+        updateFilterOptions();
+    });
+
+    stateSelect.addEventListener('change', function() {
+        // When state changes, update type options
+        if (this.value !== originalState) {
+            typeSelect.value = '';
+        }
+        updateFilterOptions();
+    });
+
+    typeSelect.addEventListener('change', function() {
+        updateFilterOptions();
+    });
+
+    riskSelect.addEventListener('change', function() {
+        updateFilterOptions();
+    });
+
+    // Initial load - update options based on current selections
+    if (countrySelect.value || categorySelect.value || stateSelect.value || typeSelect.value || riskSelect.value) {
+        updateFilterOptions();
+    }
+});
+</script>
+{% endblock %}

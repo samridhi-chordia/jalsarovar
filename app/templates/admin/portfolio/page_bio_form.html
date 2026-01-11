@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Edit Bio Page - Portfolio CMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-person-badge"></i> Edit Bio/About Page</h2>
+        {% if is_draft %}
+        <span class="badge bg-warning">Draft</span>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('admin_portfolio.list_pages') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Pages
+    </a>
+</div>
+
+<form method="POST" id="bio-page-form">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-9">
+
+            <!-- Hero Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-star"></i> Hero Section</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" name="hero_title" class="form-control"
+                               value="{{ page.hero.title if page else 'About Me' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subtitle <span class="text-danger">*</span></label>
+                        <input type="text" name="hero_subtitle" class="form-control"
+                               value="{{ page.hero.subtitle if page else 'Student, Researcher, Developer - Building technology for social impact' }}" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Introduction Section -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Introduction</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addParagraph()">
+                        <i class="bi bi-plus-circle"></i> Add Paragraph
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Greeting <span class="text-danger">*</span></label>
+                        <input type="text" name="intro_greeting" class="form-control"
+                               value="{{ page.introduction.greeting if page else 'Hi, I\'m Samridhi Chordia' }}" required>
+                    </div>
+                    <div id="paragraphs-container">
+                        <!-- Paragraphs will be added here dynamically -->
+                    </div>
+                    <input type="hidden" name="paragraphs_json" id="paragraphs-json">
+                </div>
+            </div>
+
+            <!-- Education Section -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-mortarboard"></i> Education & Experience</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addEducation()">
+                        <i class="bi bi-plus-circle"></i> Add Entry
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="education-container">
+                        <!-- Education entries will be added here dynamically -->
+                    </div>
+                    <input type="hidden" name="education_json" id="education-json">
+                </div>
+            </div>
+
+            <!-- Skills Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Skills & Technologies</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Skills <span class="text-danger">*</span></label>
+                        <textarea name="skills" id="skills-input" class="form-control" rows="4"
+                                  placeholder="Python, Machine Learning, IoT, Flask/Django, React" required>{{ page.skills|join(', ') if page else 'Python, Machine Learning, IoT, Flask/Django, React, JavaScript, PostgreSQL, Git' }}</textarea>
+                        <small class="text-muted">Separate each skill with a comma</small>
+                    </div>
+                    <div id="skills-preview" class="mt-3">
+                        <strong>Preview:</strong>
+                        <div class="skills-grid mt-2" id="skills-preview-grid">
+                            <!-- Skills will be previewed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-megaphone"></i> Call-to-Action</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="cta_title" class="form-control"
+                               value="{{ page.cta.title if page else 'Want to collaborate?' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subtitle</label>
+                        <input type="text" name="cta_subtitle" class="form-control"
+                               value="{{ page.cta.subtitle if page else 'I\'m always interested in new projects and opportunities.' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Button Text</label>
+                        <input type="text" name="cta_button_text" class="form-control"
+                               value="{{ page.cta.button_text if page else 'Get in Touch' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <button type="submit" name="action" value="save_draft" class="btn btn-warning w-100 mb-2">
+                        <i class="bi bi-save"></i> Save Draft
+                    </button>
+                    <button type="submit" name="action" value="publish" class="btn btn-success w-100 mb-2"
+                            onclick="return confirm('Publish this page to the live site?');">
+                        <i class="bi bi-cloud-upload"></i> Publish
+                    </button>
+                    <a href="{{ url_for('portfolio.bio') }}" target="_blank" class="btn btn-outline-info w-100">
+                        <i class="bi bi-eye"></i> Preview
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+// Initialize data
+let paragraphs = {{ page.introduction.paragraphs|tojson if page else '[]'|safe }};
+let education = {{ page.education|tojson if page else '[]'|safe }};
+
+// Paragraphs Management
+function renderParagraphs() {
+    const container = document.getElementById('paragraphs-container');
+    container.innerHTML = '';
+
+    paragraphs.forEach((para, index) => {
+        const div = document.createElement('div');
+        div.className = 'card mb-2';
+        div.innerHTML = `
+            <div class="card-body">
+                <label class="form-label">Paragraph ${index + 1}</label>
+                <textarea class="form-control mb-2" rows="3"
+                          onchange="updateParagraph(${index}, this.value)" required>${para}</textarea>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeParagraph(${index})">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    updateParagraphsJSON();
+}
+
+function addParagraph() {
+    paragraphs.push('');
+    renderParagraphs();
+}
+
+function removeParagraph(index) {
+    paragraphs.splice(index, 1);
+    renderParagraphs();
+}
+
+function updateParagraph(index, value) {
+    paragraphs[index] = value;
+    updateParagraphsJSON();
+}
+
+function updateParagraphsJSON() {
+    document.getElementById('paragraphs-json').value = JSON.stringify(paragraphs);
+}
+
+// Education Management
+function renderEducation() {
+    const container = document.getElementById('education-container');
+    container.innerHTML = '';
+
+    education.forEach((edu, index) => {
+        const div = document.createElement('div');
+        div.className = 'card mb-2';
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Institution <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" value="${edu.institution}"
+                               onchange="updateEducation(${index}, 'institution', this.value)" required>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Description <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" value="${edu.description}"
+                               onchange="updateEducation(${index}, 'description', this.value)" required>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeEducation(${index})">
+                    <i class="bi bi-trash"></i> Remove
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    updateEducationJSON();
+}
+
+function addEducation() {
+    education.push({ institution: '', description: '', order: education.length + 1 });
+    renderEducation();
+}
+
+function removeEducation(index) {
+    education.splice(index, 1);
+    education.forEach((e, i) => e.order = i + 1);
+    renderEducation();
+}
+
+function updateEducation(index, field, value) {
+    education[index][field] = value;
+    updateEducationJSON();
+}
+
+function updateEducationJSON() {
+    document.getElementById('education-json').value = JSON.stringify(education);
+}
+
+// Skills Preview
+function updateSkillsPreview() {
+    const input = document.getElementById('skills-input').value;
+    const skills = input.split(',').map(s => s.trim()).filter(s => s);
+    const preview = document.getElementById('skills-preview-grid');
+
+    preview.innerHTML = skills.map(skill =>
+        `<span class="badge bg-primary me-2 mb-2">${skill}</span>`
+    ).join('');
+}
+
+// Event listeners
+document.getElementById('skills-input').addEventListener('input', updateSkillsPreview);
+
+// Form submission validation
+document.getElementById('bio-page-form').addEventListener('submit', function(e) {
+    if (paragraphs.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one introduction paragraph');
+        return false;
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    renderParagraphs();
+    renderEducation();
+    updateSkillsPreview();
+});
+</script>
+
+<style>
+.sticky-top {
+    z-index: 100;
+}
+.skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "email/base_email.html" %}
+
+{% block title %}Role Request Update - Jal Sarovar{% endblock %}
+
+{% block content %}
+<h2>Role Request Update</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>Thank you for your interest in the <strong>{{ requested_role }}</strong> role. After reviewing your request, we're unable to approve it at this time.</p>
+
+<div class="alert alert-warning">
+    <strong>Reason:</strong><br>
+    {{ reason }}
+</div>
+
+<p>Your current access level remains unchanged, and you can continue using all features available with your current role.</p>
+
+<h3>Next Steps:</h3>
+<ul>
+    <li>If you have questions about this decision, please contact our support team</li>
+    <li>You may reapply for this role in the future if your circumstances change</li>
+    <li>Continue contributing with your current role to build your profile</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ contact_url }}" class="button">Contact Support</a>
+</div>
+
+<p>We appreciate your understanding and continued participation in Jal Sarovar.</p>
+
+<p>Best regards,<br>
+The Jal Sarovar Team</p>
+{% endblock %}

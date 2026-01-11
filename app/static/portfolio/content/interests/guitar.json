@@ -1,0 +1,23 @@
+{
+  "id": "guitar",
+  "title": "Acoustic Guitar - Trinity College Grade 7",
+  "category": "Extracurricular Activity",
+  "short_description": "Achieved Grade 7 certification from Trinity College London, YouTube channel with 250+ subscribers",
+  "full_description": "Achieved Grade 7 certification in Acoustic Guitar from Trinity College London. Performed in 10+ school and private concerts. Created a YouTube channel featuring guitar covers and tutorials, growing to 250+ subscribers. Mentored younger students and helped them prepare for performances.",
+  "grades": ["9", "10", "11", "12"],
+  "hours_per_week": 3,
+  "weeks_per_year": 40,
+  "start_date": "",
+  "highlights": [
+    "Trinity College London Grade 7 certification",
+    "10+ concert performances",
+    "YouTube channel: 250+ subscribers",
+    "Guitar covers and tutorials",
+    "Mentored younger students"
+  ],
+  "skills": ["Music", "Performance", "Content Creation", "Teaching", "Mentorship"],
+  "images": [],
+  "videos": [],
+  "links": [],
+  "youtube_channel": ""
+}

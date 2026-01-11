@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Site Comparison - Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.dashboard') }}">Analytics</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('analytics.compare_sites') }}">Compare Sites</a></li>
+                    <li class="breadcrumb-item active">Results</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-diagram-3"></i> Site Comparison</h2>
+            <p class="text-muted">Comparing {{ comparison_data|length }} sites</p>
+        </div>
+    </div>
+
+    <!-- Summary Comparison Cards -->
+    <div class="row mb-4">
+        {% for site_data in comparison_data %}
+        <div class="col-md-{{ 12 // comparison_data|length }} mb-3">
+            <div class="card h-100 {% if site_data.warning_level == 'critical' %}border-danger{% elif site_data.warning_level == 'high' %}border-warning{% elif site_data.warning_level == 'medium' %}border-info{% else %}border-success{% endif %}">
+                <div class="card-header {% if site_data.warning_level == 'critical' %}bg-danger text-white{% elif site_data.warning_level == 'high' %}bg-warning{% elif site_data.warning_level == 'medium' %}bg-info text-white{% else %}bg-success text-white{% endif %}">
+                    <h6 class="mb-0">{{ site_data.site_name }}</h6>
+                    <small>{{ site_data.site_code }}</small>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="{% if site_data.warning_score >= 70 %}text-danger{% elif site_data.warning_score >= 50 %}text-warning{% elif site_data.warning_score >= 30 %}text-info{% else %}text-success{% endif %}">
+                            {{ site_data.warning_score|round(1) }}
+                        </h4>
+                        <small class="text-muted">Warning Score</small>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Trend:</strong>
+                        {% if site_data.overall_trend == 'improving' %}
+                            <span class="badge bg-success"><i class="bi bi-arrow-up"></i> Improving</span>
+                        {% elif site_data.overall_trend == 'declining' %}
+                            <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> Declining</span>
+                        {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-dash"></i> Stable</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Samples:</strong> {{ site_data.samples_analyzed }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Location:</strong><br>
+                        <small>{{ site_data.district }}, {{ site_data.state }}</small>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('analytics.site_trends', site_id=site_data.site_id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-graph-up"></i> Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Parameter Comparison Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Parameter Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    {% for site_data in comparison_data %}
+                                    <th class="text-center">{{ site_data.site_name }}</th>
+                                    {% endfor %}
+                                    <th class="text-center">Standard</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for param in parameters %}
+                                <tr>
+                                    <td><strong>{{ param.replace('_', ' ').title() }}</strong></td>
+                                    {% for site_data in comparison_data %}
+                                    <td class="text-center">
+                                        {% if site_data.parameter_trends and param in site_data.parameter_trends %}
+                                            {% set p = site_data.parameter_trends[param] %}
+                                            <span class="{% if p.compliance.status == 'non_compliant' %}text-danger{% elif p.compliance.status == 'acceptable' %}text-warning{% else %}text-success{% endif %}">
+                                                {{ p.mean_value|round(2) }}
+                                            </span>
+                                            {% if p.trend == 'improving' %}
+                                                <i class="bi bi-arrow-up text-success"></i>
+                                            {% elif p.trend == 'declining' %}
+                                                <i class="bi bi-arrow-down text-danger"></i>
+                                            {% else %}
+                                                <i class="bi bi-dash text-secondary"></i>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-center">
+                                        <small class="text-muted">
+                                            {% if param == 'ph_value' %}6.5-8.5{% endif %}
+                                            {% if param == 'turbidity_ntu' %}<5 NTU{% endif %}
+                                            {% if param == 'tds_ppm' %}<500 ppm{% endif %}
+                                            {% if param == 'free_chlorine_mg_l' %}0.2-5 mg/L{% endif %}
+                                            {% if param == 'iron_mg_l' %}<0.3 mg/L{% endif %}
+                                            {% if param == 'chloride_mg_l' %}<250 mg/L{% endif %}
+                                            {% if param == 'total_coliform_mpn' %}0 MPN{% endif %}
+                                            {% if param == 'temperature_celsius' %}10-25 C{% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-arrow-up text-success"></i> Improving
+                            <i class="bi bi-dash text-secondary ms-2"></i> Stable
+                            <i class="bi bi-arrow-down text-danger ms-2"></i> Declining
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning Score Comparison Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Warning Score Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="warningScoreChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check2-all"></i> Compliance Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for site_data in comparison_data %}
+                        <div class="col-md-{{ 12 // comparison_data|length }} mb-3">
+                            <h6>{{ site_data.site_name }}</h6>
+                            {% if site_data.parameter_trends %}
+                            {% set compliant_count = site_data.parameter_trends.values()|selectattr('compliance.status', 'equalto', 'compliant')|list|length %}
+                            {% set acceptable_count = site_data.parameter_trends.values()|selectattr('compliance.status', 'equalto', 'acceptable')|list|length %}
+                            {% set non_compliant_count = site_data.parameter_trends.values()|selectattr('compliance.status', 'equalto', 'non_compliant')|list|length %}
+                            {% set total_params = site_data.parameter_trends|length %}
+                            <div class="progress" style="height: 25px;">
+                                {% if compliant_count > 0 %}
+                                <div class="progress-bar bg-success" style="width: {{ (compliant_count / total_params * 100)|round }}%">
+                                    {{ compliant_count }} OK
+                                </div>
+                                {% endif %}
+                                {% if acceptable_count > 0 %}
+                                <div class="progress-bar bg-warning" style="width: {{ (acceptable_count / total_params * 100)|round }}%">
+                                    {{ acceptable_count }} Fair
+                                </div>
+                                {% endif %}
+                                {% if non_compliant_count > 0 %}
+                                <div class="progress-bar bg-danger" style="width: {{ (non_compliant_count / total_params * 100)|round }}%">
+                                    {{ non_compliant_count }} Fail
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No data available</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('analytics.compare_sites') }}" class="btn btn-primary">
+                <i class="bi bi-arrow-counterclockwise"></i> Compare Different Sites
+            </a>
+            <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Warning Score Comparison Chart
+    const ctx = document.getElementById('warningScoreChart').getContext('2d');
+
+    const siteNames = {{ comparison_data|map(attribute='site_name')|list|tojson }};
+    const warningScores = {{ comparison_data|map(attribute='warning_score')|list|tojson }};
+
+    // Color coding based on warning score
+    const barColors = warningScores.map(score => {
+        if (score >= 70) return 'rgba(220, 53, 69, 0.8)';  // danger
+        if (score >= 50) return 'rgba(255, 193, 7, 0.8)';  // warning
+        if (score >= 30) return 'rgba(13, 202, 240, 0.8)'; // info
+        return 'rgba(25, 135, 84, 0.8)';  // success
+    });
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: siteNames,
+            datasets: [{
+                label: 'Warning Score',
+                data: warningScores,
+                backgroundColor: barColors,
+                borderColor: barColors.map(c => c.replace('0.8', '1')),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Warning Score (0-100)'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
