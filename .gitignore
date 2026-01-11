@@ -20,6 +20,9 @@ uploads/
 *~
 *.~
 *.before_optimization
+*.ORIG
+*.B4_*
+*.backup-*
 
 # macOS metadata
 ._*
@@ -33,3 +36,15 @@ uploads/
 logs/
 instance/
 database/
+
+# Large media files - videos
+*.mov
+*.MOV
+*.mp4
+*.MP4
+*.avi
+*.AVI
+
+# Report compiled outputs
+app/templates/reports/*.pdf
+app/templates/reports/*.tex
