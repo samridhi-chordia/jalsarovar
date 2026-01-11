@@ -48,3 +48,11 @@ database/
 # Report compiled outputs
 app/templates/reports/*.pdf
 app/templates/reports/*.tex
+
+# Temporary documentation and test results
+*_TEST_RESULTS.md
+*_TESTING_REPORT.md
+*_FIXES_SUMMARY.md
+WEEK*_*.md
+FIX_*.md
+DEPLOYMENT_FIX_*.md
